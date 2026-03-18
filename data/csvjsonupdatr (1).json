@@ -1,0 +1,1565 @@
+[
+  {
+    "// Assume this data is loaded from your JSON file or a database": "const AGRI_TRACKER_STATIC_DATA = {"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "executive_summary\": \"Agri_Tracker is a mobile application designed to revolutionize agriculture in Cameroon by addressing the challenges faced by small-scale farmers. Our mission is to empower farmers with accessible"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "problem_statement\": \"In Cameroon"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "mission_statement\": \"To empower Cameroonian farmers with accessible data-driven technology and actionable insights"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "vision_statement\": \"To revolutionize Cameroonian agriculture by empowering farmers with real-time intelligence and innovative tools"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "company_description\": {"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "introduction\": \"In Cameroon"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "core_values\": [ { \"name\": \"Empowerment"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "company_history\": \"Agri_Tracker's journey began with a simple but powerful question: How can we help Cameroonian farmers overcome the devastating impact of post-harvest losses? We began the development of Agri_Tracker"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "legal_structure\": \"Not yet registered."
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "our_solution\": [ { \"name\": \"Integrated Marketplace"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "impact_on_sdgs\": [ { \"sdg\": \"Zero Hunger (SDG 2)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "market_opportunity\": \"Our primary target audience is small-scale farmers in Cameroon"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "agricultural_data\": ["
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "{"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Region (Specific Locality/Village)\": \"Centre (Obala)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Soil Type (Common in Locality)\": \"Loam"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Season (Relevant to Locality)\": \"Long Rainy Season (Mar-Jul)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Recommendations (Diverse Examples)\": \"Maize"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Rotation Planner (Example Sequence)\": \"Year 1 (Long Rainy): Maize (cereal) intercropped with Beans (legume) <br> Year 1 (Short Rainy): Groundnut (legume) followed by Leafy Greens <br> Year 2 (Long Rainy): Yam (root crop) intercropped with Okra <br> Focus on nutrient cycling & root diversification."
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "{"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Region (Specific Locality/Village)\": \"Centre (Mfou)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Soil Type (Common in Locality)\": \"Clay"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Season (Relevant to Locality)\": \"Short Dry Season (Dec-Feb)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Recommendations (Diverse Examples)\": \"Cassava (drought-tolerant varieties)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Rotation Planner (Example Sequence)\": \"Year 1 (Dry tolerant cycle): Cassava (long cycle"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "{"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Region (Specific Locality/Village)\": \"Centre (Mbalmayo)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Soil Type (Common in Locality)\": \"Ferralitic"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Season (Relevant to Locality)\": \"Long Rainy Season (Mar-Jul)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Recommendations (Diverse Examples)\": \"Plantain"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Rotation Planner (Example Sequence)\": \"Year 1 (Long Rainy): Maize (cereal) intercropped with Groundnut (legume) <br> Year 2 (Long Rainy): Plantain (long cycle) intercropped with Cocoyam (root crop) <br> Focus on soil improvement"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "{"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Region (Specific Locality/Village)\": \"Centre (Awae)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Soil Type (Common in Locality)\": \"Sandy Loam"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Season (Relevant to Locality)\": \"Short Rainy Season (Sep-Nov)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Recommendations (Diverse Examples)\": \"Groundnut"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Rotation Planner (Example Sequence)\": \"Year 1 (Short Rainy): Groundnut (legume) intercropped with Okra <br> Year 1 (Transition to Dry): Early Maize (short cycle) followed by Green Beans <br> Emphasize quick-maturing crops for efficient use of shorter season."
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "{"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Region (Specific Locality/Village)\": \"Littoral (Penja)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Soil Type (Common in Locality)\": \"Clayey"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Season (Relevant to Locality)\": \"Long Rainy Season (Mar-Jul)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Recommendations (Diverse Examples)\": \"Plantain"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Rotation Planner (Example Sequence)\": \"Year 1 (Long Rainy): Plantain (long cycle) intercropped with Pepper and Cocoyam <br> Year 2 (after short-term harvest): Groundnut (legume) followed by Ginger <br> Emphasize multi-story intercropping for maximized land use & diversity."
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "{"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Region (Specific Locality/Village)\": \"Littoral (Nkongsamba)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Soil Type (Common in Locality)\": \"Volcanic/Ferralitic"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Season (Relevant to Locality)\": \"Long Rainy Season (Mar-Jul)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Recommendations (Diverse Examples)\": \"Cocoa"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Rotation Planner (Example Sequence)\": \"Year 1 (Long Rainy): Maize (cereal) intercropped with Yam (root crop) <br> Year 2 (Long Rainy): Legumes (e.g."
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "{"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Region (Specific Locality/Village)\": \"Littoral (Edéa)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Soil Type (Common in Locality)\": \"Sandy"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Season (Relevant to Locality)\": \"Long Rainy Season (Mar-Jul)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Recommendations (Diverse Examples)\": \"Pineapple"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Rotation Planner (Example Sequence)\": \"Year 1 (Long Rainy): Maize (cereal) intercropped with Sweet Potato (root crop) <br> Year 2 (Long Rainy): Groundnut (legume) followed by Tomato/Pepper <br> Year 3: Pineapple (multi-year crop) <br> Incorporate organic matter and cover crops to improve water retention in sandy soils."
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "{"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Region (Specific Locality/Village)\": \"Littoral (Loum)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Soil Type (Common in Locality)\": \"Clay Loam"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Season (Relevant to Locality)\": \"Long Rainy Season (Mar-Jul)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Recommendations (Diverse Examples)\": \"Plantain"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Rotation Planner (Example Sequence)\": \"Year 1 (Long Rainy): Maize (cereal) intercropped with Cocoyam (root crop) <br> Year 2 (Long Rainy): Legumes (e.g."
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "{"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Region (Specific Locality/Village)\": \"North-West (Fundong)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Soil Type (Common in Locality)\": \"Volcanic"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Season (Relevant to Locality)\": \"Rainy Season (Mar-Oct)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Recommendations (Diverse Examples)\": \"Irish Potato"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Rotation Planner (Example Sequence)\": \"Year 1 (Rainy): Irish Potato (heavy feeder) intercropped with Leek <br> Year 2 (Rainy): Maize (cereal) intercropped with Beans (legume) <br> Year 3 (Rainy): Cabbage & Carrot (lighter feeders) <br> Integrate perennials around rotation; emphasize organic matter addition."
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "{"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Region (Specific Locality/Village)\": \"North-West (Belo)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Soil Type (Common in Locality)\": \"Ferralitic"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Season (Relevant to Locality)\": \"Rainy Season (Mar-Oct)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Recommendations (Diverse Examples)\": \"Maize"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Rotation Planner (Example Sequence)\": \"Year 1 (Rainy): Maize (cereal) intercropped with Soybeans (legume) <br> Year 2 (Rainy): Groundnut (legume) followed by early Irish Potato <br> Year 3 (Rainy): Cassava (soil builder"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "{"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Region (Specific Locality/Village)\": \"North-West (Bali)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Soil Type (Common in Locality)\": \"Volcanic/Loam"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Season (Relevant to Locality)\": \"Rainy Season (Mar-Oct)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Recommendations (Diverse Examples)\": \"Irish Potato"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Rotation Planner (Example Sequence)\": \"Year 1 (Rainy): Maize (cereal) intercropped with Beans (legume) <br> Year 2 (Rainy): Irish Potato (heavy feeder) followed by Cabbage <br> Year 3 (Rainy): Legumes (e.g."
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "{"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Region (Specific Locality/Village)\": \"North-West (Mbengwi)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Soil Type (Common in Locality)\": \"Clay Loam"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Season (Relevant to Locality)\": \"Rainy Season (Mar-Oct)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Recommendations (Diverse Examples)\": \"Plantain"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Rotation Planner (Example Sequence)\": \"Year 1 (Rainy): Maize (cereal) intercropped with Yam (root crop) <br> Year 2 (Rainy): Groundnut (legume) intercropped with Beans <br> Year 3 (Rainy): Plantain (longer cycle) intercropped with Cocoyam <br> Focus on maximizing land use and improving soil cover through intercropping."
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "{"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Region (Specific Locality/Village)\": \"North-West (Njinikom)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Soil Type (Common in Locality)\": \"Volcanic"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Season (Relevant to Locality)\": \"Rainy Season (Mar-Oct)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Recommendations (Diverse Examples)\": \"Coffee (Arabica)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Rotation Planner (Example Sequence)\": \"Year 1 (Rainy): Irish Potato (heavy feeder) intercropped with Cabbage <br> Year 2 (Rainy): Maize (cereal) intercropped with Green Beans (legume) <br> Year 3 (Rainy): Legumes (e.g."
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "{"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Region (Specific Locality/Village)\": \"North-West (Santa)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Soil Type (Common in Locality)\": \"Ferralitic"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Season (Relevant to Locality)\": \"Rainy Season (Mar-Oct)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Recommendations (Diverse Examples)\": \"Maize"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Rotation Planner (Example Sequence)\": \"Year 1 (Rainy): Maize (cereal) intercropped with Soybeans (legume) <br> Year 2 (Rainy): Groundnut (legume) followed by Irish Potato <br> Year 3 (Rainy): Cassava (longer cycle) <br> Focus on improving soil fertility and managing acidity with liming if needed."
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "{"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Region (Specific Locality/Village)\": \"West (Dschang)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Soil Type (Common in Locality)\": \"Volcanic/Ferralitic"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Season (Relevant to Locality)\": \"Rainy Season (Mar-Oct)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Recommendations (Diverse Examples)\": \"Irish Potato"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Rotation Planner (Example Sequence)\": \"Year 1 (Rainy): Irish Potato (heavy feeder) intercropped with Carrot <br> Year 2 (Rainy): Maize (cereal) intercropped with Beans (legume) <br> Year 3 (Rainy): Cabbage followed by Tomato <br> Rotation to manage nutrient uptake"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "{"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Region (Specific Locality/Village)\": \"West (Foumbot)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Soil Type (Common in Locality)\": \"Hydromorphic/Loam"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Season (Relevant to Locality)\": \"Rainy Season (Mar-Oct)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Recommendations (Diverse Examples)\": \"Rice"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Rotation Planner (Example Sequence)\": \"Year 1 (Rainy): Rice (paddy/upland) <br> Year 2 (Rainy): Maize (cereal) intercropped with Groundnut (legume) <br> Year 3 (Rainy): Mixed Vegetables (e.g."
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "{"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Region (Specific Locality/Village)\": \"West (Bandjoun)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Soil Type (Common in Locality)\": \"Clay Loam"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Season (Relevant to Locality)\": \"Rainy Season (Mar-Oct)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Recommendations (Diverse Examples)\": \"Maize"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Rotation Planner (Example Sequence)\": \"Year 1 (Rainy): Maize (cereal) intercropped with Beans (legume) <br> Year 2 (Rainy): Irish Potato (heavy feeder) followed by Cabbage <br> Year 3 (Rainy): Groundnut (legume) <br> Rotation to manage nutrient uptake and soil health."
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "{"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Region (Specific Locality/Village)\": \"West (Bafang)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Soil Type (Common in Locality)\": \"Ferralitic"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Season (Relevant to Locality)\": \"Rainy Season (Mar-Oct)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Recommendations (Diverse Examples)\": \"Maize"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Rotation Planner (Example Sequence)\": \"Year 1 (Rainy): Maize (cereal) intercropped with Groundnut (legume) <br> Year 2 (Rainy): Yam (root crop) intercropped with Cocoyam <br> Year 3 (Rainy): Cassava (longer cycle) <br> Focus on soil improvement and erosion control"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "{"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Region (Specific Locality/Village)\": \"Far North (Maroua)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Soil Type (Common in Locality)\": \"Sandy"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Season (Relevant to Locality)\": \"Unimodal Rainy Season (May-Oct)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Recommendations (Diverse Examples)\": \"Millet (different varieties)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Rotation Planner (Example Sequence)\": \"Year 1 (Rainy): Millet (cereal) intercropped with Cowpea (legume) <br> Year 2 (Rainy): Sorghum (cereal) followed by Groundnut (legume) <br> Year 3 (Rainy): Sesame/Cotton <br> Prioritize drought resistance; intercropping for soil cover and nitrogen fixation."
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "{"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Region (Specific Locality/Village)\": \"Far North (Kousseri)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Soil Type (Common in Locality)\": \"Hydromorphic"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Season (Relevant to Locality)\": \"Unimodal Rainy Season (May-Oct)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Recommendations (Diverse Examples)\": \"Rice (upland & lowland)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Rotation Planner (Example Sequence)\": \"Year 1 (Rainy): Rice (paddy/upland) <br> Year 2 (After Rice): Cowpea (legume) followed by Watermelon <br> Year 3 (Rainy): Okra intercropped with moisture-tolerant leafy greens <br> Manage water levels carefully"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "{"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Region (Specific Locality/Village)\": \"Far North (Mora)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Soil Type (Common in Locality)\": \"Sandy Loam"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Season (Relevant to Locality)\": \"Unimodal Rainy Season (May-Oct)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Recommendations (Diverse Examples)\": \"Sorghum"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Rotation Planner (Example Sequence)\": \"Year 1 (Rainy): Sorghum (cereal) intercropped with Groundnut (legume) <br> Year 2 (Rainy): Millet (cereal) intercropped with Cowpea (legume) <br> Year 3 (Rainy): Sesame followed by fodder crops <br> Emphasis on drought-resistant varieties and soil conservation through cover crops."
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "{"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Region (Specific Locality/Village)\": \"Far North (Kaélé)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Soil Type (Common in Locality)\": \"Clayey"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Season (Relevant to Locality)\": \"Unimodal Rainy Season (May-Oct)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Recommendations (Diverse Examples)\": \"Cotton"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Rotation Planner (Example Sequence)\": \"Year 1 (Rainy): Cotton (fiber crop) intercropped with Cowpea (legume) <br> Year 2 (Rainy): Sorghum (cereal) followed by Groundnut (legume) <br> Year 3 (Rainy): Millet <br> Focus on soil fertility maintenance for commercial crops; legumes replenish nitrogen."
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "{"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Region (Specific Locality/Village)\": \"South-West (Muyuka)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Soil Type (Common in Locality)\": \"Volcanic"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Season (Relevant to Locality)\": \"Rainy Season (Mar-Nov)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Recommendations (Diverse Examples)\": \"Plantain"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Rotation Planner (Example Sequence)\": \"Year 1 (Rainy): Maize (cereal) intercropped with Beans (legume) <br> Year 2 (Rainy): Yam (root crop) intercropped with Cocoyam <br> Year 3 (Rainy): Plantain (establishment) intercropped with Pepper <br> For perennials like cocoa/oil palm"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "{"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Region (Specific Locality/Village)\": \"South-West (Ekona)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Soil Type (Common in Locality)\": \"Volcanic/Loam"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Season (Relevant to Locality)\": \"Rainy Season (Mar-Nov)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Recommendations (Diverse Examples)\": \"Plantain"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Rotation Planner (Example Sequence)\": \"Year 1 (Rainy): Maize (cereal) intercropped with Yam (root crop) <br> Year 2 (Rainy): Legumes (e.g."
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "{"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Region (Specific Locality/Village)\": \"South-West (Mabeta)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Soil Type (Common in Locality)\": \"Clayey"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Season (Relevant to Locality)\": \"Rainy Season (Mar-Nov)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Recommendations (Diverse Examples)\": \"Oil Palm"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Rotation Planner (Example Sequence)\": \"Year 1 (Rainy): Cassava (long cycle) intercropped with Cocoyam <br> Year 2 (After annuals): Legumes (e.g."
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "{"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Region (Specific Locality/Village)\": \"South-West (Tiko)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Soil Type (Common in Locality)\": \"Volcanic/Sandy"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Season (Relevant to Locality)\": \"Rainy Season (Mar-Nov)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Recommendations (Diverse Examples)\": \"Banana"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Rotation Planner (Example Sequence)\": \"Year 1 (Rainy): Maize (cereal) intercropped with Cassava (root crop) <br> Year 2 (Rainy): Legumes (e.g."
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "{"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Region (Specific Locality/Village)\": \"South-West (Fontem)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Soil Type (Common in Locality)\": \"Ferralitic"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Season (Relevant to Locality)\": \"Rainy Season (Mar-Nov)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Recommendations (Diverse Examples)\": \"Coffee (Arabica)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Rotation Planner (Example Sequence)\": \"Year 1 (Rainy): Maize (cereal) intercropped with Beans (legume) <br> Year 2 (Rainy): Groundnut (legume) followed by Cocoyam <br> Year 3 (Rainy): Plantain (longer cycle) <br> Consider terracing on slopes. Focus on nutrient replenishment for sustainable coffee."
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "{"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Region (Specific Locality/Village)\": \"Adamaoua (Ngaoundere)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Soil Type (Common in Locality)\": \"Ferralitic"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Season (Relevant to Locality)\": \"Rainy Season (May-Oct)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Recommendations (Diverse Examples)\": \"Maize"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Rotation Planner (Example Sequence)\": \"Year 1 (Rainy): Maize (cereal) intercropped with Soybeans (legume) <br> Year 2 (Rainy): Sorghum (cereal) intercropped with Groundnut (legume) <br> Year 3 (Rainy): Millet followed by Fodder Crops <br> Focus on soil fertility improvement and erosion control on slopes with diverse crops."
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "{"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Region (Specific Locality/Village)\": \"Adamaoua (Meiganga)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Soil Type (Common in Locality)\": \"Ferralitic/Loam"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Season (Relevant to Locality)\": \"Rainy Season (May-Oct)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Recommendations (Diverse Examples)\": \"Maize"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Rotation Planner (Example Sequence)\": \"Year 1 (Rainy): Sorghum (cereal) intercropped with Groundnut (legume) <br> Year 2 (Rainy): Maize (cereal) intercropped with Beans (legume) <br> Year 3 (Rainy): Yam (root crop) followed by Fodder Crops <br> Emphasize soil organic matter and water retention"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "{"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Region (Specific Locality/Village)\": \"Adamaoua (Tibati)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Soil Type (Common in Locality)\": \"Ferralitic"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Season (Relevant to Locality)\": \"Rainy Season (May-Oct)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Recommendations (Diverse Examples)\": \"Maize"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Rotation Planner (Example Sequence)\": \"Year 1 (Rainy): Maize (cereal) intercropped with Groundnut (legume) <br> Year 2 (Rainy): Cassava (long cycle) intercropped with Yam <br> Year 3 (After annuals): Cover crops for soil building <br> Focus on drought tolerance and soil building with diversified crops."
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "{"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Region (Specific Locality/Village)\": \"East (Bertoua)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Soil Type (Common in Locality)\": \"Ferralitic"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Season (Relevant to Locality)\": \"Long Rainy Season (Apr-Nov)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Recommendations (Diverse Examples)\": \"Plantain"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Rotation Planner (Example Sequence)\": \"Year 1 (Long Rainy): Maize (cereal) intercropped with Groundnut (legume) <br> Year 2 (Long Rainy): Cassava (longer cycle) intercropped with Cocoyam <br> Year 3 (After annuals): Plantain (establishment) <br> Integrate agroforestry principles; focus on soil conservation and perennial integration."
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "{"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Region (Specific Locality/Village)\": \"East (Yokadouma)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Soil Type (Common in Locality)\": \"Ferralitic"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Season (Relevant to Locality)\": \"Long Rainy Season (Apr-Nov)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Recommendations (Diverse Examples)\": \"Cocoa"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Rotation Planner (Example Sequence)\": \"Year 1 (Long Rainy): Cassava (long cycle) intercropped with Yam (root crop) <br> Year 2 (Long Rainy): Groundnut (legume) followed by Leafy Greens <br> Year 3 (Long Rainy): Plantain (establishment) <br> Focus on sustainable harvest of forest products and cash crops with food crops."
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "{"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Region (Specific Locality/Village)\": \"East (Batouri)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Soil Type (Common in Locality)\": \"Ferralitic"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Season (Relevant to Locality)\": \"Long Rainy Season (Apr-Nov)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Recommendations (Diverse Examples)\": \"Maize"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Rotation Planner (Example Sequence)\": \"Year 1 (Long Rainy): Maize (cereal) intercropped with Groundnut (legume) <br> Year 2 (Long Rainy): Cassava (longer cycle) intercropped with Yam <br> Year 3 (Long Rainy): Upland Rice (cereal) <br> Emphasize soil fertility restoration after long cycles with crop diversification."
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "{"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Region (Specific Locality/Village)\": \"North (Garoua)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Soil Type (Common in Locality)\": \"Sandy/Clayey"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Season (Relevant to Locality)\": \"Unimodal Rainy Season (May-Oct)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Recommendations (Diverse Examples)\": \"Sorghum"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Rotation Planner (Example Sequence)\": \"Year 1 (Rainy): Sorghum (cereal) intercropped with Cowpea (legume) <br> Year 2 (Rainy): Groundnut (legume) followed by Millet (cereal) <br> Year 3 (Rainy): Cotton (fiber crop) intercropped with fodder crops <br> Emphasis on drought-resistant varieties and efficient water harvesting with intercropping."
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "{"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Region (Specific Locality/Village)\": \"North (Pitoa)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Soil Type (Common in Locality)\": \"Clayey"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Season (Relevant to Locality)\": \"Unimodal Rainy Season (May-Oct)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Recommendations (Diverse Examples)\": \"Rice (lowland)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Rotation Planner (Example Sequence)\": \"Year 1 (Rainy): Lowland Rice (paddy) <br> Year 2 (Rainy): Sorghum (cereal) intercropped with Cowpea (legume) <br> Year 3 (Rainy): Groundnut (legume) followed by short-cycle Maize <br> Focus on water management for rice and rotation for soil health & nitrogen boost."
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "{"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Region (Specific Locality/Village)\": \"North (Poli)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Soil Type (Common in Locality)\": \"Sandy Loam"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Season (Relevant to Locality)\": \"Unimodal Rainy Season (May-Oct)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Recommendations (Diverse Examples)\": \"Maize"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Rotation Planner (Example Sequence)\": \"Year 1 (Rainy): Maize (cereal) intercropped with Groundnut (legume) <br> Year 2 (Rainy): Sorghum (cereal) intercropped with Cowpea (legume) <br> Year 3 (Rainy): Sesame followed by fodder crops <br> Emphasize cover crops to prevent erosion in sandy soils and diversify income."
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "{"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Region (Specific Locality/Village)\": \"South (Ebolowa)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Soil Type (Common in Locality)\": \"Ferralitic"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Season (Relevant to Locality)\": \"Long Rainy Season (Mar-Jul)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Recommendations (Diverse Examples)\": \"Cocoa"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Rotation Planner (Example Sequence)\": \"Year 1 (Long Rainy): Maize (cereal) intercropped with Groundnut (legume) <br> Year 2 (Long Rainy): Yam (root crop) intercropped with Cassava <br> Year 3 (Long Rainy): Plantain (establishment) <br> Focus on integrating perennials with annual food crops for sustained production."
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "{"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Region (Specific Locality/Village)\": \"South (Kribi - Hinterland)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Soil Type (Common in Locality)\": \"Sandy Loam"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Season (Relevant to Locality)\": \"Long Rainy Season (Mar-Jul)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Recommendations (Diverse Examples)\": \"Oil Palm"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Rotation Planner (Example Sequence)\": \"Year 1 (Long Rainy): Cassava (long cycle) intercropped with Groundnut (legume) <br> Year 2 (Long Rainy): Plantain (establishment) intercropped with Pineapple <br> Year 3 (Long Rainy): Legumes for soil improvement <br> Manage sandy soils; focus on perennial establishment and intercropping."
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "{"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Region (Specific Locality/Village)\": \"South (Sangmélima)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Soil Type (Common in Locality)\": \"Ferralitic"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Season (Relevant to Locality)\": \"Long Rainy Season (Mar-Jul)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Recommendations (Diverse Examples)\": \"Cocoa"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Rotation Planner (Example Sequence)\": \"Year 1 (Long Rainy): Maize (cereal) intercropped with Groundnut (legume) <br> Year 2 (Long Rainy): Yam (root crop) intercropped with Cocoyam <br> Year 3 (Long Rainy): Plantain (establishment) <br> Emphasis on soil fertility for perennial cash crops and diversified food production."
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "]"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "};"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "interface AgriculturalDataEntry {"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Region (Specific Locality/Village)\": string;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Soil Type (Common in Locality)\": string;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Input: Season (Relevant to Locality)\"?: string;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "User Output: Season (Relevant to Locality)\"?: string;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Recommendations (Diverse Examples)\": string;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "AI Generated Output: Crop Rotation Planner (Example Sequence)\": string;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "// Helper function to safely get season"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "function getSeasonFromEntry(item: AgriculturalDataEntry): string | undefined {"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "return item[\"User Input: Season (Relevant to Locality)\"] || item[\"User Output: Season (Relevant to Locality)\"];"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "document.addEventListener('DOMContentLoaded'"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "const regionSelect = document.getElementById('region-select') as HTMLSelectElement;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "const soilSelect = document.getElementById('soil-select') as HTMLSelectElement;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "const seasonSelect = document.getElementById('season-select') as HTMLSelectElement;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "const plotSizeSelect = document.getElementById('plot-size-select') as HTMLSelectElement;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "const primaryGoalSelect = document.getElementById('primary-goal-select') as HTMLSelectElement;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "const budgetInput = document.getElementById('budget-input') as HTMLInputElement;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "const savingGoalInput = document.getElementById('saving-goal-input') as HTMLInputElement;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "const initialExpensesInput = document.getElementById('initial-expenses-input') as HTMLInputElement;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "const getPlanBtn = document.getElementById('get-plan-btn') as HTMLButtonElement;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "const resultsContainer = document.getElementById('results-container') as HTMLDivElement;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "const agriculturalData: AgriculturalDataEntry[] = AGRI_TRACKER_STATIC_DATA.agricultural_data;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "// Populate Region Select"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "const regions = [...new Set(agriculturalData.map(item => item[\"User Input: Region (Specific Locality/Village)\"]))];"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "regions.sort().forEach(region => {"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "const option = document.createElement('option');"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "option.value = region;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "option.textContent = region;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "regionSelect.appendChild(option);"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "});"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "function checkFormCompleteness() {"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "const isRegionSelected = regionSelect.value !== '';"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "const isSoilPopulated = soilSelect.value !== '';"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "const isSeasonPopulated = seasonSelect.value !== '';"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "const isPlotSizeSelected = plotSizeSelect.value !== '';"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "const isPrimaryGoalSelected = primaryGoalSelect.value !== '';"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "const isBudgetEntered = budgetInput.value !== '';"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "getPlanBtn.disabled = !(isRegionSelected && isSoilPopulated && isSeasonPopulated && isPlotSizeSelected && isPrimaryGoalSelected && isBudgetEntered);"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": ""
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "[regionSelect"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "element.addEventListener('change'"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "if (element.tagName === 'INPUT') {"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "element.addEventListener('input'"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "});"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "regionSelect.addEventListener('change'"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "const selectedRegion = regionSelect.value;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "soilSelect.innerHTML = '<option value=\"\">-- Soil Type --</option>';"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "seasonSelect.innerHTML = '<option value=\"\">-- Season --</option>';"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "resultsContainer.innerHTML = '<p>Your personalized farm plan and financial advisory will appear here.</p>';"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": ""
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "soilSelect.disabled = true;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "seasonSelect.disabled = true;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "if (selectedRegion) {"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "const firstMatch = agriculturalData.find(item => item[\"User Input: Region (Specific Locality/Village)\"] === selectedRegion);"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "if (firstMatch) {"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "const soilOption = document.createElement('option');"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "soilOption.value = firstMatch[\"User Input: Soil Type (Common in Locality)\"];"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "soilOption.textContent = firstMatch[\"User Input: Soil Type (Common in Locality)\"];"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "soilSelect.appendChild(soilOption);"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "soilSelect.value = firstMatch[\"User Input: Soil Type (Common in Locality)\"];"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "soilSelect.disabled = true;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "const seasonValue = getSeasonFromEntry(firstMatch);"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "if (seasonValue) {"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "const seasonOption = document.createElement('option');"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "seasonOption.value = seasonValue;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "seasonOption.textContent = seasonValue;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "seasonSelect.appendChild(seasonOption);"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "seasonSelect.value = seasonValue;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "seasonSelect.disabled = true;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "} else {"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "resultsContainer.innerHTML = '<p class=\"error-message\">Season data missing for the selected region. Cannot proceed.</p>';"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "} else {"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "resultsContainer.innerHTML = '<p class=\"error-message\">No data found for the selected region.</p>';"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "checkFormCompleteness();"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "});"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "getPlanBtn.addEventListener('click'"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "const selectedRegion = regionSelect.value;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "const selectedSoil = soilSelect.value;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "const selectedSeason = seasonSelect.value;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "const selectedPlotSize = plotSizeSelect.value;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "const selectedPrimaryGoal = primaryGoalSelect.value;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "const budget = parseFloat(budgetInput.value) || 0;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "const savingGoal = parseFloat(savingGoalInput.value) || 0;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "const initialExpenses = parseFloat(initialExpensesInput.value) || 0;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "if (!selectedRegion || !selectedSoil || !selectedSeason || !selectedPlotSize || !selectedPrimaryGoal || !budgetInput.value) {"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "resultsContainer.innerHTML = '<p class=\"error-message\">Please fill in all required fields: Region"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "return;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "const baseEntry = agriculturalData.find(item => {"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "return item[\"User Input: Region (Specific Locality/Village)\"] === selectedRegion &&"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "item[\"User Input: Soil Type (Common in Locality)\"] === selectedSoil &&"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "getSeasonFromEntry(item) === selectedSeason;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "});"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "if (!baseEntry) {"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "resultsContainer.innerHTML = '<p class=\"info-message\">No specific agricultural data found for this combination. Please check your selections or contact support if data seems missing.</p>';"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "return;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": ""
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "displayComprehensiveResults(baseEntry"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "});"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "function displayComprehensiveResults("
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "entry: AgriculturalDataEntry"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "plotSize: string"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "primaryGoal: string"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "budget: number"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "savingGoal: number"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "initialExpenses: number"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": ") {"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "resultsContainer.innerHTML = '';"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "const overviewSection = document.createElement('div');"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "overviewSection.id = 'farm-overview-results';"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "overviewSection.classList.add('results-section');"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "overviewSection.innerHTML = `"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "<h3>Your Farm Overview</h3>"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "<p><strong>Region:</strong> ${entry[\"User Input: Region (Specific Locality/Village)\"]}</p>"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "<p><strong>Soil Type:</strong> ${entry[\"User Input: Soil Type (Common in Locality)\"]}</p>"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "<p><strong>Season:</strong> ${getSeasonFromEntry(entry)}</p>"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "<p><strong>Farm Plot Size:</strong> ${plotSize === 'small' ? 'Small (&lt;1 Hectare)' : 'Medium (1-5 Hectares)'}</p>"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "<p><strong>Primary Goal:</strong> ${primaryGoal === 'feed_family' ? 'Feed My Family' : 'Sell for Profit'}</p>"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "`;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "resultsContainer.appendChild(overviewSection);"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "const cropRecomSection = document.createElement('div');"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "cropRecomSection.id = 'crop-recommendations-results';"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "cropRecomSection.classList.add('results-section');"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "let recomHTML = `<h3>Tailored Crop Recommendations</h3>`;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": ""
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "const originalRecommendations = entry[\"AI Generated Output: Crop Recommendations (Diverse Examples)\"];"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "recomHTML += `<p><strong>General Recommendations for your area:</strong> ${originalRecommendations}</p>`;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": ""
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "let goalGuidance = \"\";"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "if (primaryGoal === 'feed_family') {"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "goalGuidance = \"For <strong>feeding your family</strong>"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "} else if (primaryGoal === 'sell_profit') {"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "goalGuidance = \"To <strong>sell for profit</strong>"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "if (goalGuidance) recomHTML += `<p><strong>Goal-Based Tip:</strong> ${goalGuidance}</p>`;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "let plotSizeGuidance = \"\";"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "if (plotSize === 'small') {"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "plotSizeGuidance = \"With a <strong>small plot (&lt;1 Hectare)</strong>"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "} else if (plotSize === 'medium') {"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "plotSizeGuidance = \"A <strong>medium plot (1-5 Hectares)</strong> allows for more diversification. You can cultivate several crops from the recommended list"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "if (plotSizeGuidance) recomHTML += `<p><strong>Plot Size Tip:</strong> ${plotSizeGuidance}</p>`;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "let budgetGuidance = \"\";"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "if (budget < 30000) {"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "budgetGuidance = `With your budget of <strong>${budget.toLocaleString()} CFA</strong>"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "} else if (budget <= 100000) {"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "budgetGuidance = `Your budget of <strong>${budget.toLocaleString()} CFA</strong> allows for a moderate selection. You can choose 2-3 crops from the list"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "} else {"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "budgetGuidance = `With a budget of <strong>${budget.toLocaleString()} CFA</strong>"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "recomHTML += `<p><strong>Budget Tip:</strong> ${budgetGuidance}</p>`;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": ""
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "cropRecomSection.innerHTML = recomHTML;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "resultsContainer.appendChild(cropRecomSection);"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "const rotationSection = document.createElement('div');"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "rotationSection.id = 'rotation-plan-results';"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "rotationSection.classList.add('results-section');"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "rotationSection.innerHTML = `"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "<h3>Suggested Crop Rotation Planner</h3>"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "<p>${entry[\"AI Generated Output: Crop Rotation Planner (Example Sequence)\"]}</p>"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "`;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "resultsContainer.appendChild(rotationSection);"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "const financialSection = document.createElement('div');"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "financialSection.id = 'financial-advisory-results';"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "financialSection.classList.add('results-section');"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "let financialHTML = `<h3>Financial Advisory</h3>`;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "financialHTML += `<p><strong>Your Stated Budget:</strong> ${budget.toLocaleString()} CFA</p>`;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "financialHTML += `<p><strong>Your Initial Expenses:</strong> ${initialExpenses.toLocaleString()} CFA</p>`;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": ""
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "const remainingBudget = budget - initialExpenses;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "financialHTML += `<p><strong>Remaining Budget for Plan:</strong> ${remainingBudget.toLocaleString()} CFA</p>`;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "if (initialExpenses > budget) {"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "financialHTML += `<p class=\"alert-message\"><strong>Alert:</strong> Your initial expenses (${initialExpenses.toLocaleString()} CFA) exceed your stated budget (${budget.toLocaleString()} CFA) by ${(initialExpenses - budget).toLocaleString()} CFA! This requires immediate attention to avoid losses. Re-evaluate your spending or adjust your budget if possible.</p>`;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "} else if (remainingBudget < budget * 0.2 && budget > 0) {"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "financialHTML += `<p class=\"info-message\"><strong>Note:</strong> A significant portion of your budget has been allocated to initial expenses. Plan carefully with the remaining ${remainingBudget.toLocaleString()} CFA.</p>`;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": ""
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "// Projected Income (Illustrative)"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "financialHTML += `<h4>Projected Income (Illustrative):</h4>`;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "if (primaryGoal === 'sell_profit') {"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "financialHTML += `<p>For your goal to <strong>sell for profit</strong>"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "} else { // feed_family"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "financialHTML += `<p>Your primary goal is to <strong>feed your family</strong>. The recommended staple crops are selected to help you maximize nutritional yield and achieve food security for your household"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "financialHTML += `<h4>Budget Allocation Advice:</h4>`;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "if (remainingBudget > 0) {"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "const seedPercent = 0.35;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "const soilFertilizerPercent = 0.25;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "const laborPercent = 0.25;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "const seedAllocation = Math.round(remainingBudget * seedPercent);"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "const soilFertilizerAllocation = Math.round(remainingBudget * soilFertilizerPercent);"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "const laborAllocation = Math.round(remainingBudget * laborPercent);"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "const contingencyAllocation = remainingBudget - seedAllocation - soilFertilizerAllocation - laborAllocation;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "financialHTML += `<p>With your remaining budget of <strong>${remainingBudget.toLocaleString()} CFA</strong>"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "<ul>"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "<li><strong>Seeds/Planting Materials:</strong> ${seedAllocation.toLocaleString()} CFA</li>"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "<li><strong>Soil Preparation/Fertilizers:</strong> ${soilFertilizerAllocation.toLocaleString()} CFA</li>"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "<li><strong>Labor (if applicable):</strong> ${laborAllocation.toLocaleString()} CFA</li>"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "<li><strong>Contingency:</strong> ${contingencyAllocation.toLocaleString()} CFA</li>"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "</ul>"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "<p><em>These are general estimates. Actual costs will vary based on your chosen crops"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "} else {"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "financialHTML += `<p>Your remaining budget is not sufficient for a detailed allocation. Please review your initial budget and expenses.</p>"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "<ul>"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "<li>If funds can be reallocated or found"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "<li>Consider costs for necessary soil preparation.</li>"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "<li>Factor in potential labor costs if absolutely necessary.</li>"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "</ul>`;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "if (savingGoal > 0) {"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "financialHTML += `<h4>Saving Goal Feasibility (Your Goal: ${savingGoal.toLocaleString()} CFA):</h4>`;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "if (remainingBudget <= 0 || budget <= 0) {"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "financialHTML += `<p>It's difficult to assess your saving goal as your current remaining budget for investment is zero or negative. Focus on managing expenses first.</p>`;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "} else {"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "financialHTML += `<p>Achieving your saving goal depends on actual yields"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "financialHTML += `<p>A general aim for profit margin from sales might be 20-50% of revenue after costs"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": ""
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "financialSection.innerHTML = financialHTML;"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "resultsContainer.appendChild(financialSection);"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "}"
+  },
+  {
+    "// Assume this data is loaded from your JSON file or a database": "});"
+  }
+]

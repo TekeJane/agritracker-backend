@@ -1,0 +1,362 @@
+[
+  {
+    "region": "Centre",
+    "common_soil_types": [
+      "Clay",
+      "Ferralitic",
+      "Loam",
+      "Sandy Loam"
+    ],
+    "seasons": [
+      "Long Rainy Season (Mar-Jul)",
+      "Short Dry Season (Dec-Feb)",
+      "Short Rainy Season (Sep-Nov)"
+    ],
+    "crop_recommendations": [
+      "Avocado",
+      "Cabbage",
+      "Cassava (drought-tolerant varieties)",
+      "Cocoa",
+      "Cocoa (perennial)",
+      "Colocasia (Cocoyam)",
+      "Drought-resistant vegetables",
+      "Green Beans",
+      "Groundnut",
+      "Maize",
+      "Maize (early maturing)",
+      "Melon",
+      "Okra",
+      "Pepper",
+      "Plantain",
+      "Sweet Potato",
+      "Yam"
+    ],
+    "crop_rotation_plans": {
+      "Long Rainy Season (Mar-Jul)": [
+        "Year 1 (Long Rainy): Maize (cereal) intercropped with Beans (legume) \n Year 1 (Short Rainy): Groundnut (legume) followed by Leafy Greens \n Year 2 (Long Rainy): Yam (root crop) intercropped with Okra \n Focus on nutrient cycling & root diversification.",
+        "Year 1 (Long Rainy): Maize (cereal) intercropped with Groundnut (legume) \n Year 2 (Long Rainy): Plantain (long cycle) intercropped with Cocoyam (root crop) \n Focus on soil improvement, integrate perennials for long-term production."
+      ],
+      "Short Dry Season (Dec-Feb)": [
+        "Year 1 (Dry tolerant cycle): Cassava (long cycle, drought-tolerant) intercropped with Melon \n Year 2 (after cassava harvest): Groundnut (legume) followed by Sweet Potato \n Emphasis on drought resilience & nutrient utilization post-heavy feeder."
+      ],
+      "Short Rainy Season (Sep-Nov)": [
+        "Year 1 (Short Rainy): Groundnut (legume) intercropped with Okra \n Year 1 (Transition to Dry): Early Maize (short cycle) followed by Green Beans \n Emphasize quick-maturing crops for efficient use of shorter season."
+      ]
+    },
+    "advisory_notes": "Use region-specific rotation strategies. Include legumes to improve nitrogen balance. Rotate heavy feeders with light feeders or cover crops to restore soil fertility. Prioritize early-maturing crops in shorter seasons and drought-resistant varieties in drier areas."
+  },
+  {
+    "region": "Littoral",
+    "common_soil_types": [
+      "Clay Loam",
+      "Clayey",
+      "Sandy",
+      "Volcanic/Ferralitic"
+    ],
+    "seasons": [
+      "Long Rainy Season (Mar-Jul)"
+    ],
+    "crop_recommendations": [
+      "Cassava",
+      "Cocoa",
+      "Cocoyam",
+      "Coffee (Robusta)",
+      "Groundnut",
+      "Maize",
+      "Oil Palm",
+      "Pepper",
+      "Pineapple",
+      "Plantain",
+      "Robusta Coffee",
+      "Sweet Potato",
+      "Vegetables (e.g.",
+      "Yam",
+      "tomato)"
+    ],
+    "crop_rotation_plans": {
+      "Long Rainy Season (Mar-Jul)": [
+        "Year 1 (Long Rainy): Plantain (long cycle) intercropped with Pepper and Cocoyam \n Year 2 (after short-term harvest): Groundnut (legume) followed by Ginger \n Emphasize multi-story intercropping for maximized land use & diversity.",
+        "Year 1 (Long Rainy): Maize (cereal) intercropped with Yam (root crop) \n Year 2 (Long Rainy): Legumes (e.g., Groundnuts & Beans) \n Year 3 (Long Rainy): Plantain/Cocoyam (establishment) \n For perennials like cocoa/coffee, integrate cover crops like Mucuna.",
+        "Year 1 (Long Rainy): Maize (cereal) intercropped with Sweet Potato (root crop) \n Year 2 (Long Rainy): Groundnut (legume) followed by Tomato/Pepper \n Year 3: Pineapple (multi-year crop) \n Incorporate organic matter and cover crops to improve water retention in sandy soils."
+      ]
+    },
+    "advisory_notes": "Use region-specific rotation strategies. Include legumes to improve nitrogen balance. Rotate heavy feeders with light feeders or cover crops to restore soil fertility. Prioritize early-maturing crops in shorter seasons and drought-resistant varieties in drier areas."
+  },
+  {
+    "region": "North-West",
+    "common_soil_types": [
+      "Clay Loam",
+      "Ferralitic",
+      "Volcanic",
+      "Volcanic/Loam"
+    ],
+    "seasons": [
+      "Rainy Season (Mar-Oct)"
+    ],
+    "crop_recommendations": [
+      "Beans",
+      "Cabbage",
+      "Carrot",
+      "Cassava (improved varieties)",
+      "Cocoyam",
+      "Coffee",
+      "Coffee (Arabica)",
+      "Coffee (perennial)",
+      "Groundnut",
+      "Irish Potato",
+      "Leek",
+      "Maize",
+      "Plantain",
+      "Sorghum",
+      "Soybeans",
+      "Tomatoes",
+      "Vegetables (e.g.",
+      "Yam",
+      "green beans)"
+    ],
+    "crop_rotation_plans": {
+      "Rainy Season (Mar-Oct)": [
+        "Year 1 (Rainy): Irish Potato (heavy feeder) intercropped with Leek \n Year 2 (Rainy): Maize (cereal) intercropped with Beans (legume) \n Year 3 (Rainy): Cabbage & Carrot (lighter feeders) \n Integrate perennials around rotation; emphasize organic matter addition.",
+        "Year 1 (Rainy): Maize (cereal) intercropped with Soybeans (legume) \n Year 2 (Rainy): Groundnut (legume) followed by early Irish Potato \n Year 3 (Rainy): Cassava (soil builder, longer cycle) \n Focus on improving soil fertility and managing acidity with liming if needed.",
+        "Year 1 (Rainy): Maize (cereal) intercropped with Beans (legume) \n Year 2 (Rainy): Irish Potato (heavy feeder) followed by Cabbage \n Year 3 (Rainy): Legumes (e.g., Groundnuts & Cowpea) \n Rotation to manage nutrient uptake and soil health in fertile conditions."
+      ]
+    },
+    "advisory_notes": "Use region-specific rotation strategies. Include legumes to improve nitrogen balance. Rotate heavy feeders with light feeders or cover crops to restore soil fertility. Prioritize early-maturing crops in shorter seasons and drought-resistant varieties in drier areas."
+  },
+  {
+    "region": "West",
+    "common_soil_types": [
+      "Clay Loam",
+      "Ferralitic",
+      "Hydromorphic/Loam",
+      "Volcanic/Ferralitic"
+    ],
+    "seasons": [
+      "Rainy Season (Mar-Oct)"
+    ],
+    "crop_recommendations": [
+      "Beans",
+      "Cabbage",
+      "Carrot",
+      "Cassava",
+      "Cocoyam",
+      "Coffee",
+      "Coffee (Arabica)",
+      "Groundnut",
+      "Irish Potato",
+      "Maize",
+      "Plantain",
+      "Rice",
+      "Tomato",
+      "Vegetables (e.g.",
+      "Yam",
+      "leafy greens",
+      "onion)"
+    ],
+    "crop_rotation_plans": {
+      "Rainy Season (Mar-Oct)": [
+        "Year 1 (Rainy): Irish Potato (heavy feeder) intercropped with Carrot \n Year 2 (Rainy): Maize (cereal) intercropped with Beans (legume) \n Year 3 (Rainy): Cabbage followed by Tomato \n Rotation to manage nutrient uptake, soil health, and pest cycles in intensive farming.",
+        "Year 1 (Rainy): Rice (paddy/upland) \n Year 2 (Rainy): Maize (cereal) intercropped with Groundnut (legume) \n Year 3 (Rainy): Mixed Vegetables (e.g., Onion, Leafy Greens) followed by Beans \n Optimize water use in rice plains. Diversify annuals for year-round production.",
+        "Year 1 (Rainy): Maize (cereal) intercropped with Beans (legume) \n Year 2 (Rainy): Irish Potato (heavy feeder) followed by Cabbage \n Year 3 (Rainy): Groundnut (legume) \n Rotation to manage nutrient uptake and soil health."
+      ]
+    },
+    "advisory_notes": "Use region-specific rotation strategies. Include legumes to improve nitrogen balance. Rotate heavy feeders with light feeders or cover crops to restore soil fertility. Prioritize early-maturing crops in shorter seasons and drought-resistant varieties in drier areas."
+  },
+  {
+    "region": "Far North",
+    "common_soil_types": [
+      "Clayey",
+      "Hydromorphic",
+      "Sandy",
+      "Sandy Loam"
+    ],
+    "seasons": [
+      "Unimodal Rainy Season (May-Oct)"
+    ],
+    "crop_recommendations": [
+      "Cotton",
+      "Cotton (drought-tolerant)",
+      "Cowpea",
+      "Groundnut",
+      "Livestock fodder crops",
+      "Millet",
+      "Millet (different varieties)",
+      "Moisture-tolerant vegetables",
+      "Okra",
+      "Rice (upland & lowland)",
+      "Sesame",
+      "Sorghum",
+      "Sugarcane",
+      "Watermelon"
+    ],
+    "crop_rotation_plans": {
+      "Unimodal Rainy Season (May-Oct)": [
+        "Year 1 (Rainy): Millet (cereal) intercropped with Cowpea (legume) \n Year 2 (Rainy): Sorghum (cereal) followed by Groundnut (legume) \n Year 3 (Rainy): Sesame/Cotton \n Prioritize drought resistance; intercropping for soil cover and nitrogen fixation.",
+        "Year 1 (Rainy): Rice (paddy/upland) \n Year 2 (After Rice): Cowpea (legume) followed by Watermelon \n Year 3 (Rainy): Okra intercropped with moisture-tolerant leafy greens \n Manage water levels carefully, benefit from consistent moisture for diverse crops.",
+        "Year 1 (Rainy): Sorghum (cereal) intercropped with Groundnut (legume) \n Year 2 (Rainy): Millet (cereal) intercropped with Cowpea (legume) \n Year 3 (Rainy): Sesame followed by fodder crops \n Emphasis on drought-resistant varieties and soil conservation through cover crops."
+      ]
+    },
+    "advisory_notes": "Use region-specific rotation strategies. Include legumes to improve nitrogen balance. Rotate heavy feeders with light feeders or cover crops to restore soil fertility. Prioritize early-maturing crops in shorter seasons and drought-resistant varieties in drier areas."
+  },
+  {
+    "region": "South-West",
+    "common_soil_types": [
+      "Clayey",
+      "Ferralitic",
+      "Volcanic",
+      "Volcanic/Loam",
+      "Volcanic/Sandy"
+    ],
+    "seasons": [
+      "Rainy Season (Mar-Nov)"
+    ],
+    "crop_recommendations": [
+      "Banana",
+      "Beans",
+      "Cassava",
+      "Cocoa",
+      "Cocoyam",
+      "Coffee (Arabica)",
+      "Coffee (Robusta)",
+      "Colocasia (Cocoyam)",
+      "Groundnut",
+      "Maize",
+      "Oil Palm",
+      "Pepper",
+      "Plantain",
+      "Rubber",
+      "Vegetables (e.g.",
+      "Yam",
+      "leafy greens)"
+    ],
+    "crop_rotation_plans": {
+      "Rainy Season (Mar-Nov)": [
+        "Year 1 (Rainy): Maize (cereal) intercropped with Beans (legume) \n Year 2 (Rainy): Yam (root crop) intercropped with Cocoyam \n Year 3 (Rainy): Plantain (establishment) intercropped with Pepper \n For perennials like cocoa/oil palm, focus on shade management and consistent fertilization; integrate food crops.",
+        "Year 1 (Rainy): Maize (cereal) intercropped with Yam (root crop) \n Year 2 (Rainy): Legumes (e.g., Beans & Groundnuts) intercropped with Leafy Greens \n Year 3 (Rainy): Plantain (establishment) intercropped with Cocoyam \n Focus on diverse food crops alongside perennial cash crops for robust systems.",
+        "Year 1 (Rainy): Cassava (long cycle) intercropped with Cocoyam \n Year 2 (After annuals): Legumes (e.g., Groundnuts & Cowpea) for soil improvement \n Year 3: Plantain (establishment) \n Focus on sustainable perennial management and intercropping to maximize land use."
+      ]
+    },
+    "advisory_notes": "Use region-specific rotation strategies. Include legumes to improve nitrogen balance. Rotate heavy feeders with light feeders or cover crops to restore soil fertility. Prioritize early-maturing crops in shorter seasons and drought-resistant varieties in drier areas."
+  },
+  {
+    "region": "Adamaoua",
+    "common_soil_types": [
+      "Ferralitic",
+      "Ferralitic/Loam"
+    ],
+    "seasons": [
+      "Rainy Season (May-Oct)"
+    ],
+    "crop_recommendations": [
+      "Beans",
+      "Cassava",
+      "Groundnut",
+      "Irish Potato",
+      "Livestock fodder crops",
+      "Maize",
+      "Millet",
+      "Oil Palm (selected varieties)",
+      "Sorghum",
+      "Soybeans",
+      "Yam"
+    ],
+    "crop_rotation_plans": {
+      "Rainy Season (May-Oct)": [
+        "Year 1 (Rainy): Maize (cereal) intercropped with Soybeans (legume) \n Year 2 (Rainy): Sorghum (cereal) intercropped with Groundnut (legume) \n Year 3 (Rainy): Millet followed by Fodder Crops \n Focus on soil fertility improvement and erosion control on slopes with diverse crops.",
+        "Year 1 (Rainy): Sorghum (cereal) intercropped with Groundnut (legume) \n Year 2 (Rainy): Maize (cereal) intercropped with Beans (legume) \n Year 3 (Rainy): Yam (root crop) followed by Fodder Crops \n Emphasize soil organic matter and water retention, integrating legumes.",
+        "Year 1 (Rainy): Maize (cereal) intercropped with Groundnut (legume) \n Year 2 (Rainy): Cassava (long cycle) intercropped with Yam \n Year 3 (After annuals): Cover crops for soil building \n Focus on drought tolerance and soil building with diversified crops."
+      ]
+    },
+    "advisory_notes": "Use region-specific rotation strategies. Include legumes to improve nitrogen balance. Rotate heavy feeders with light feeders or cover crops to restore soil fertility. Prioritize early-maturing crops in shorter seasons and drought-resistant varieties in drier areas."
+  },
+  {
+    "region": "East",
+    "common_soil_types": [
+      "Ferralitic"
+    ],
+    "seasons": [
+      "Long Rainy Season (Apr-Nov)"
+    ],
+    "crop_recommendations": [
+      "Cassava",
+      "Cocoa",
+      "Cocoyam",
+      "Forest fruits",
+      "Groundnut",
+      "Maize",
+      "Oil Palm",
+      "Oil Palm (perennial)",
+      "Plantain",
+      "Rice (upland)",
+      "Yam"
+    ],
+    "crop_rotation_plans": {
+      "Long Rainy Season (Apr-Nov)": [
+        "Year 1 (Long Rainy): Maize (cereal) intercropped with Groundnut (legume) \n Year 2 (Long Rainy): Cassava (longer cycle) intercropped with Cocoyam \n Year 3 (After annuals): Plantain (establishment) \n Integrate agroforestry principles; focus on soil conservation and perennial integration.",
+        "Year 1 (Long Rainy): Cassava (long cycle) intercropped with Yam (root crop) \n Year 2 (Long Rainy): Groundnut (legume) followed by Leafy Greens \n Year 3 (Long Rainy): Plantain (establishment) \n Focus on sustainable harvest of forest products and cash crops with food crops.",
+        "Year 1 (Long Rainy): Maize (cereal) intercropped with Groundnut (legume) \n Year 2 (Long Rainy): Cassava (longer cycle) intercropped with Yam \n Year 3 (Long Rainy): Upland Rice (cereal) \n Emphasize soil fertility restoration after long cycles with crop diversification."
+      ]
+    },
+    "advisory_notes": "Use region-specific rotation strategies. Include legumes to improve nitrogen balance. Rotate heavy feeders with light feeders or cover crops to restore soil fertility. Prioritize early-maturing crops in shorter seasons and drought-resistant varieties in drier areas."
+  },
+  {
+    "region": "North",
+    "common_soil_types": [
+      "Clayey",
+      "Sandy Loam",
+      "Sandy/Clayey"
+    ],
+    "seasons": [
+      "Unimodal Rainy Season (May-Oct)"
+    ],
+    "crop_recommendations": [
+      "Cotton",
+      "Cowpea",
+      "Groundnut",
+      "Livestock fodder crops",
+      "Maize",
+      "Millet",
+      "Rice (lowland)",
+      "Sesame",
+      "Sorghum"
+    ],
+    "crop_rotation_plans": {
+      "Unimodal Rainy Season (May-Oct)": [
+        "Year 1 (Rainy): Sorghum (cereal) intercropped with Cowpea (legume) \n Year 2 (Rainy): Groundnut (legume) followed by Millet (cereal) \n Year 3 (Rainy): Cotton (fiber crop) intercropped with fodder crops \n Emphasis on drought-resistant varieties and efficient water harvesting with intercropping.",
+        "Year 1 (Rainy): Lowland Rice (paddy) \n Year 2 (Rainy): Sorghum (cereal) intercropped with Cowpea (legume) \n Year 3 (Rainy): Groundnut (legume) followed by short-cycle Maize \n Focus on water management for rice and rotation for soil health & nitrogen boost.",
+        "Year 1 (Rainy): Maize (cereal) intercropped with Groundnut (legume) \n Year 2 (Rainy): Sorghum (cereal) intercropped with Cowpea (legume) \n Year 3 (Rainy): Sesame followed by fodder crops \n Emphasize cover crops to prevent erosion in sandy soils and diversify income."
+      ]
+    },
+    "advisory_notes": "Use region-specific rotation strategies. Include legumes to improve nitrogen balance. Rotate heavy feeders with light feeders or cover crops to restore soil fertility. Prioritize early-maturing crops in shorter seasons and drought-resistant varieties in drier areas."
+  },
+  {
+    "region": "South",
+    "common_soil_types": [
+      "Ferralitic",
+      "Sandy Loam"
+    ],
+    "seasons": [
+      "Long Rainy Season (Mar-Jul)"
+    ],
+    "crop_recommendations": [
+      "Cassava",
+      "Cocoa",
+      "Coconut",
+      "Cocoyam",
+      "Groundnut",
+      "Maize",
+      "Oil Palm",
+      "Pineapple",
+      "Plantain",
+      "Yam"
+    ],
+    "crop_rotation_plans": {
+      "Long Rainy Season (Mar-Jul)": [
+        "Year 1 (Long Rainy): Maize (cereal) intercropped with Groundnut (legume) \n Year 2 (Long Rainy): Yam (root crop) intercropped with Cassava \n Year 3 (Long Rainy): Plantain (establishment) \n Focus on integrating perennials with annual food crops for sustained production.",
+        "Year 1 (Long Rainy): Cassava (long cycle) intercropped with Groundnut (legume) \n Year 2 (Long Rainy): Plantain (establishment) intercropped with Pineapple \n Year 3 (Long Rainy): Legumes for soil improvement \n Manage sandy soils; focus on perennial establishment and intercropping.",
+        "Year 1 (Long Rainy): Maize (cereal) intercropped with Groundnut (legume) \n Year 2 (Long Rainy): Yam (root crop) intercropped with Cocoyam \n Year 3 (Long Rainy): Plantain (establishment) \n Emphasis on soil fertility for perennial cash crops and diversified food production."
+      ]
+    },
+    "advisory_notes": "Use region-specific rotation strategies. Include legumes to improve nitrogen balance. Rotate heavy feeders with light feeders or cover crops to restore soil fertility. Prioritize early-maturing crops in shorter seasons and drought-resistant varieties in drier areas."
+  }
+]
