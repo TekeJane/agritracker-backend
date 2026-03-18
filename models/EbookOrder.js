@@ -1,7 +1,7 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/db');
 const User = require('./user');
-const Ebook = require('./Ebook');
+const Ebook = require('./ebook');
 
 const EbookOrder = sequelize.define('EbookOrder', {
     price_paid: {

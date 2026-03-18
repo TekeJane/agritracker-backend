@@ -1,7 +1,7 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/db');
 const User = require('./user');
-const EbookCategory = require('./EbookCategory');
+const EbookCategory = require('./ebookCategory');
 
 const Ebook = sequelize.define('Ebook', {
     title: {
