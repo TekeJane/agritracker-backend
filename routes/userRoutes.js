@@ -17,11 +17,11 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-router.Post('/register', upload.single('profile_image'), registerUser);
+router.post('/register', upload.single('profile_image'), registerUser);
 router.get('/:userId/profile', authenticate, getUserProfile); // ?? Secured
-router.Post('/change-password', authenticate, changePassword);
+router.post('/change-password', authenticate, changePassword);
 router.get('/following/list', authenticate, getFollowing);
-router.Post('/:userId/follow', authenticate, followUser);
+router.post('/:userId/follow', authenticate, followUser);
 router.delete('/:userId/follow', authenticate, unfollowUser);
 
 module.exports = router;

@@ -9,6 +9,6 @@ router.get('/reviews/:productId', ReviewController.getReviews); // mirror route
 router.get('/products/:productId/reviews', ReviewController.getReviews);
 
 // Post a review to a product
-router.Post('/products/:productId/reviews', ReviewController.addReview);
+router.post('/products/:productId/reviews', ReviewController.addReview);
 
 module.exports = router;
