@@ -23,7 +23,7 @@ const WebinarQuestion = require('./WebinarQuestion')(sequelize, DataTypes);
 const Notification= require('./Notification')(sequelize, DataTypes);
 const Feedback = require('./Feedback')(sequelize, DataTypes);
 const ProductPriceLog = require('./ProductPriceLog');
-const UserFollow = require('./UserFollow');
+const UserFollow = require('./userFollow');
 
 
 
