@@ -14,16 +14,16 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-router.get('/posts', PostController.getPosts);
-router.post('/posts', upload.single('image'), PostController.createPost);
-router.put('/posts/:postId', upload.single('image'), PostController.updatePost);
-router.delete('/posts/:postId', PostController.deletePost);
+router.get('/Posts', PostController.getPosts);
+router.Post('/Posts', upload.single('image'), PostController.createPost);
+router.put('/Posts/:PostId', upload.single('image'), PostController.updatePost);
+router.delete('/Posts/:PostId', PostController.deletePost);
 
-router.post('/posts/:postId/like', PostController.likePost);
-router.post('/posts/:postId/dislike', PostController.dislikePost);
-router.post('/posts/:postId/share', PostController.sharePost);
-router.post('/comments/:commentId/like', PostController.likeComment);
+router.Post('/Posts/:PostId/like', PostController.likePost);
+router.Post('/Posts/:PostId/dislike', PostController.dislikePost);
+router.Post('/Posts/:PostId/share', PostController.sharePost);
+router.Post('/comments/:commentId/like', PostController.likeComment);
 
-router.post('/comments', PostController.createComment);
+router.Post('/comments', PostController.createComment);
 
 module.exports = router;

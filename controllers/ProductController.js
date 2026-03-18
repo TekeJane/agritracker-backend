@@ -58,7 +58,7 @@ function formatProduct(product, hostUrl) {
         sellerName: seller.full_name || 'Anonymous',
         sellerImage: seller.profile_image ? `${hostUrl}/uploads/${seller.profile_image}` : null,
         sellerBio: seller.bio || '',
-        facebook: seller.facebook || null,
+        facEbook: seller.facEbook || null,
         instagram: seller.instagram || null,
         twitter: seller.twitter || null,
         tiktok: seller.tiktok || null,

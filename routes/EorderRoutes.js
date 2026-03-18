@@ -7,9 +7,9 @@ const { authenticateToken, requireAdmin, optionalAuth } = require('../middleware
 
 // Validation middleware
 const validateOrder = [
-    body('ebook_id')
+    body('Ebook_id')
         .isInt({ min: 1 })
-        .withMessage('Valid ebook ID is required'),
+        .withMessage('Valid Ebook ID is required'),
     body('payment_method')
         .isIn(['mobile_money', 'bank_transfer', 'card'])
         .withMessage('Valid payment method is required'),
@@ -47,13 +47,13 @@ const validateOrderUpdate = [
         .withMessage('Refund reason cannot exceed 1000 characters')
 ];
 
-// Create new order (purchase ebook)
-router.post('/', optionalAuth, validateOrder, orderController.createOrder);
+// Create new order (purchase Ebook)
+router.Post('/', optionalAuth, validateOrder, orderController.createOrder);
 
 // Get order by order ID
 router.get('/:orderId', optionalAuth, orderController.getOrderById);
 
-// Download ebook (for purchased items)
+// Download Ebook (for purchased items)
 router.get('/:orderId/download', optionalAuth, orderController.downloadEbook);
 
 // Protected routes (require authentication)

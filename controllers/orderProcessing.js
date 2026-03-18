@@ -7,7 +7,7 @@ const EbookOrder = require('../models/EbookOrder');
 const emailService = require('../services/emailService');
 
 class OrderController {
-    // Create a new order (purchase ebook)
+    // Create a new order (purchase Ebook)
     async createOrder(req, res) {
         try {
             const errors = validationResult(req);
@@ -20,7 +20,7 @@ class OrderController {
             }
 
             const {
-                ebook_id,
+                Ebook_id,
                 payment_method,
                 customer_email,
                 customer_phone,
@@ -30,10 +30,10 @@ class OrderController {
 
             const userId = req.user ? req.user.id : null;
 
-            // Validate ebook exists and is approved
-            const ebook = await Ebook.findOne({
+            // Validate Ebook exists and is approved
+            const Ebook = await Ebook.findOne({
                 where: {
-                    id: ebook_id,
+                    id: Ebook_id,
                     is_approved: true
                 },
                 include: [
@@ -45,19 +45,19 @@ class OrderController {
                 ]
             });
 
-            if (!ebook) {
+            if (!Ebook) {
                 return res.status(404).json({
                     success: false,
                     message: 'Ebook not found or not approved'
                 });
             }
 
-            // Check if user already purchased this ebook
+            // Check if user already purchased this Ebook
             if (userId) {
                 const existingOrder = await EbookOrder.findOne({
                     where: {
                         user_id: userId,
-                        ebook_id: ebook_id,
+                        Ebook_id: Ebook_id,
                         payment_status: 'completed'
                     }
                 });
@@ -65,7 +65,7 @@ class OrderController {
                 if (existingOrder) {
                     return res.status(400).json({
                         success: false,
-                        message: 'You have already purchased this ebook'
+                        message: 'You have already purchased this Ebook'
                     });
                 }
             }
@@ -77,8 +77,8 @@ class OrderController {
             const order = await EbookOrder.create({
                 order_id: orderId,
                 user_id: userId,
-                ebook_id: ebook_id,
-                price_paid: ebook.price,
+                Ebook_id: Ebook_id,
+                price_paid: Ebook.price,
                 payment_method,
                 customer_email,
                 customer_phone,
@@ -107,7 +107,7 @@ class OrderController {
                 include: [
                     {
                         model: Ebook,
-                        as: 'ebook',
+                        as: 'Ebook',
                         include: [
                             {
                                 model: EbookCategory,
@@ -150,7 +150,7 @@ class OrderController {
                 include: [
                     {
                         model: Ebook,
-                        as: 'ebook',
+                        as: 'Ebook',
                         include: [
                             {
                                 model: EbookCategory,
@@ -204,7 +204,7 @@ class OrderController {
                 include: [
                     {
                         model: Ebook,
-                        as: 'ebook',
+                        as: 'Ebook',
                         include: [
                             {
                                 model: EbookCategory,
@@ -276,7 +276,7 @@ class OrderController {
                 include: [
                     {
                         model: Ebook,
-                        as: 'ebook',
+                        as: 'Ebook',
                         include: [
                             {
                                 model: EbookCategory,
@@ -311,7 +311,7 @@ class OrderController {
         }
     }
 
-    // Download ebook (for purchased items)
+    // Download Ebook (for purchased items)
     async downloadEbook(req, res) {
         try {
             const { orderId } = req.params;
@@ -324,7 +324,7 @@ class OrderController {
                 include: [
                     {
                         model: Ebook,
-                        as: 'ebook'
+                        as: 'Ebook'
                     }
                 ]
             });
@@ -344,7 +344,7 @@ class OrderController {
                 });
             }
 
-            if (!order.ebook.file_url) {
+            if (!order.Ebook.file_url) {
                 return res.status(404).json({
                     success: false,
                     message: 'Ebook file not available'
@@ -362,14 +362,14 @@ class OrderController {
                 success: true,
                 message: 'Download link generated',
                 data: {
-                    download_url: order.ebook.file_url,
+                    download_url: order.Ebook.file_url,
                     download_count: order.download_count + 1,
                     expires_in: '24 hours'
                 }
             });
 
         } catch (error) {
-            console.error('Download ebook error:', error);
+            console.error('Download Ebook error:', error);
             res.status(500).json({
                 success: false,
                 message: 'Internal server error'
@@ -386,7 +386,7 @@ class OrderController {
                 status,
                 payment_method,
                 user_id,
-                ebook_id
+                Ebook_id
             } = req.query;
 
             const offset = (page - 1) * limit;
@@ -395,14 +395,14 @@ class OrderController {
             if (status) whereClause.payment_status = status;
             if (payment_method) whereClause.payment_method = payment_method;
             if (user_id) whereClause.user_id = user_id;
-            if (ebook_id) whereClause.ebook_id = ebook_id;
+            if (Ebook_id) whereClause.Ebook_id = Ebook_id;
 
             const { count, rows: orders } = await EbookOrder.findAndCountAll({
                 where: whereClause,
                 include: [
                     {
                         model: Ebook,
-                        as: 'ebook',
+                        as: 'Ebook',
                         include: [
                             {
                                 model: EbookCategory,

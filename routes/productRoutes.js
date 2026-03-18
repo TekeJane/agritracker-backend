@@ -14,8 +14,8 @@ router.get('/:id', ProductController.getProductById);
 router.get('/category/:categoryId', ProductController.getProductsByCategory);
 router.get('/subcategory/:subCategoryId', ProductController.getProductsBySubCategory);
 
-// POST product with images and videos
-router.post(
+// Post product with images and videos
+router.Post(
   '/',
   upload.fields([
     { name: 'images', maxCount: 10 },

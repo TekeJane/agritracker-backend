@@ -26,7 +26,7 @@ const sendOtp = async (req, res) => {
     };
 
     try {
-        const response = await axios.post(
+        const response = await axios.Post(
             'https://rest.clicksend.com/v3/sms/send',
             {
                 messages: [

@@ -13,7 +13,7 @@ console.log({
 });
 
 
-router.post('/add', authenticate, authorizeAdmin, addAdmin);
+router.Post('/add', authenticate, authorizeAdmin, addAdmin);
 router.get('/', authenticate, authorizeAdmin, getAllAdmins);
 router.delete('/:id', authenticate, authorizeAdmin, deleteAdmin);
 

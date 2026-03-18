@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const ebookController = require('../controllers/ebookController');
+const EbookController = require('../controllers/EbookController');
 const { authenticate, authorizeAdmin } = require('../middleware/authMiddleware');
 const multer = require('multer');
 const path = require('path');
@@ -21,49 +21,49 @@ const upload = multer({ storage });
 
 // === Routes ===
 
-// ✅ Upload ebook (requires authentication)
-router.post(
+// ✅ Upload Ebook (requires authentication)
+router.Post(
     '/',
     authenticate,
     upload.fields([
         { name: 'file', maxCount: 1 },
         { name: 'cover_image', maxCount: 1 },
     ]),
-    ebookController.uploadEbook
+    EbookController.uploadEbook
 );
 
-// ✅ Get list of approved ebooks (public)
-router.get('/', ebookController.listApprovedEbooks);
+// ✅ Get list of approved Ebooks (public)
+router.get('/', EbookController.listApprovedEbooks);
 
-// ✅ Admin approves an ebook
+// ✅ Admin approves an Ebook
 router.put(
-    '/ebooks/:id/approve',
+    '/Ebooks/:id/approve',
     authenticate,
     authorizeAdmin,
-    ebookController.approveEbook
+    EbookController.approveEbook
 );
 
 // ✅ Admin creates a category
-router.post(
-    '/ebooks/categories',
+router.Post(
+    '/Ebooks/categories',
     authenticate,
     authorizeAdmin,
-    ebookController.createEbookCategory
+    EbookController.createEbookCategory
 );
 
-// ✅ Get all ebook categories (public)
-router.get('/categories', ebookController.getEbookCategories);
+// ✅ Get all Ebook categories (public)
+router.get('/categories', EbookController.getEbookCategories);
 
-// ✅ User purchases an ebook
-router.post('/ebooks/purchase', authenticate, ebookController.purchaseEbook);
+// ✅ User purchases an Ebook
+router.Post('/Ebooks/purchase', authenticate, EbookController.purchaseEbook);
 
-// ✅ Update ebook (author only or admin, depending on logic)
-router.put('/ebooks/:id', authenticate, ebookController.updateEbook);
+// ✅ Update Ebook (author only or admin, depending on logic)
+router.put('/Ebooks/:id', authenticate, EbookController.updateEbook);
 
-// ✅ Delete ebook (author only or admin)
-router.delete('/ebooks/:id', authenticate, ebookController.deleteEbook);
+// ✅ Delete Ebook (author only or admin)
+router.delete('/Ebooks/:id', authenticate, EbookController.deleteEbook);
 
-router.get('/random', ebookController.getRandomEbooks);
+router.get('/random', EbookController.getRandomEbooks);
 
 
 module.exports = router; // 🔁 Export the router

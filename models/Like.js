@@ -6,7 +6,7 @@ const Like = sequelize.define('Like', {
         type: DataTypes.INTEGER,
         allowNull: false,
     },
-    post_id: {
+    Post_id: {
         type: DataTypes.INTEGER,
         allowNull: true,
     },

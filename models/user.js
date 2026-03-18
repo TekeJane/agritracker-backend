@@ -38,7 +38,7 @@ const User = sequelize.define('User', {
     bio: {
         type: DataTypes.TEXT,
     },
-    facebook: {
+    facEbook: {
         type: DataTypes.STRING,
     },
     instagram: {

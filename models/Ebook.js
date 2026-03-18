@@ -1,7 +1,7 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/db');
 const User = require('./user');
-const EbookCategory = require('./ebookCategory');
+const EbookCategory = require('./EbookCategory');
 
 const Ebook = sequelize.define('Ebook', {
     title: {
@@ -18,7 +18,7 @@ const Ebook = sequelize.define('Ebook', {
     format: {
         type: DataTypes.STRING,
         allowNull: false,
-        defaultValue: 'ebook'
+        defaultValue: 'Ebook'
     },
     printing_cost: {
         type: DataTypes.DECIMAL,

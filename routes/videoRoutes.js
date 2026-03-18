@@ -7,7 +7,7 @@ const upload = multer({ dest: 'uploads/' });
 
 
 
-router.post('/', authenticate, upload.fields([  { name: 'video_url', maxCount: 1 },
+router.Post('/', authenticate, upload.fields([  { name: 'video_url', maxCount: 1 },
     { name: 'thumbnail_image', maxCount: 1 },
 ]), videoController.uploadVideo);
 
@@ -24,7 +24,7 @@ router.put('/videos/:id/approve', authenticate, authorizeAdmin, videoController.
 router.delete('/videos/:id/reject', authenticate, authorizeAdmin, videoController.rejectVideo);
 
 // Video Categories
-router.post('/videos/categories', authenticate, authorizeAdmin, videoController.createCategory);
+router.Post('/videos/categories', authenticate, authorizeAdmin, videoController.createCategory);
 router.get('/categories', videoController.getCategories); // ✅ correct
 
 router.get('/random', videoController.getRandomApprovedVideo);

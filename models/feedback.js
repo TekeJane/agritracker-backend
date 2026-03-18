@@ -24,7 +24,7 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false
         }
     }, {
-        tableName: 'feedbacks',       // optional: match actual DB table
+        tableName: 'Feedbacks',       // optional: match actual DB table
         timestamps: true              // adds createdAt, updatedAt
     });
 

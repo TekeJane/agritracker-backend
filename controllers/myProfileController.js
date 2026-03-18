@@ -27,7 +27,7 @@ const buildUserResponse = (user, baseUrl, sellerAverageRating = null, sellerRevi
             ? `${baseUrl}uploads/${user.profile_image}`
             : null,
         bio: user.bio,
-        facebook: user.facebook,
+        facEbook: user.facEbook,
         instagram: user.instagram,
         twitter: user.twitter,
         tiktok: user.tiktok,
@@ -139,7 +139,7 @@ const updateMyProfile = async (req, res) => {
         const userId = req.user.id;
         const allowedFields = [
             'full_name', 'phone', 'address', 'date_of_birth', 'bio',
-            'facebook', 'instagram', 'twitter', 'tiktok', 'profile_image'
+            'facEbook', 'instagram', 'twitter', 'tiktok', 'profile_image'
         ];
 
         const updates = {};

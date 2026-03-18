@@ -15,7 +15,7 @@ router.get('/my-products/orders', OrderController.getOrdersForMyProducts);
 // User routes
 router.get('/', OrderController.getUserOrders);
 router.get('/:id', OrderController.getOrderById);
-router.post('/', OrderController.createOrder);
+router.Post('/', OrderController.createOrder);
 router.put('/:id/cancel', OrderController.cancelOrder);
 
 // Admin routes

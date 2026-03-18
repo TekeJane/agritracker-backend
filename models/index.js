@@ -1,6 +1,6 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/db');
-const Post = require('./post');
+const Post = require('./Post');
 const Comment = require('./Comment');
 const Like = require('./Like');
 const User = require('./user');
@@ -11,9 +11,9 @@ const Order = require('./Order');
 const OrderItem = require('./OrderItem');
 const Cart = require('./Cart');
 const Review = require('./review')(sequelize, DataTypes);
-const EbookCategory = require('./ebookCategory');
-const Ebook = require('./ebook');
-const EbookOrder = require('./ebookOrder');
+const EbookCategory = require('./EbookCategory');
+const Ebook = require('./Ebook');
+const EbookOrder = require('./EbookOrder');
 const VideoCategory = require('./videoCategory');
 const VideoTip = require('./videoTip');
 const WebinarRequest = require('./webinarRequest')(sequelize, DataTypes);
@@ -21,7 +21,7 @@ const Webinar = require('./webinar')(sequelize, DataTypes);
 const WebinarAttendee = require('./webinarAttendee')(sequelize, DataTypes);
 const WebinarQuestion = require('./webinarQuestion')(sequelize, DataTypes);
 const Notification= require('./Notification')(sequelize, DataTypes);
-const Feedback = require('./feedback')(sequelize, DataTypes);
+const Feedback = require('./Feedback')(sequelize, DataTypes);
 const ProductPriceLog = require('./ProductPriceLog');
 const UserFollow = require('./userFollow');
 
@@ -54,21 +54,21 @@ Cart.belongsTo(User);
 Product.hasMany(Cart);
 Cart.belongsTo(Product);
 
-// post forum Associations
+// Post forum Associations
 User.hasMany(Post, { foreignKey: 'user_id' });
 Post.belongsTo(User, { foreignKey: 'user_id' });
 
 User.hasMany(Comment, { foreignKey: 'user_id' });
 Comment.belongsTo(User, { foreignKey: 'user_id' });
 
-Post.hasMany(Comment, { foreignKey: 'post_id' });
-Comment.belongsTo(Post, { foreignKey: 'post_id' });
+Post.hasMany(Comment, { foreignKey: 'Post_id' });
+Comment.belongsTo(Post, { foreignKey: 'Post_id' });
 
 User.hasMany(Like, { foreignKey: 'user_id' });
 Like.belongsTo(User, { foreignKey: 'user_id' });
 
-Post.hasMany(Like, { foreignKey: 'post_id' });
-Like.belongsTo(Post, { foreignKey: 'post_id' });
+Post.hasMany(Like, { foreignKey: 'Post_id' });
+Like.belongsTo(Post, { foreignKey: 'Post_id' });
 
 Comment.hasMany(Like, { foreignKey: 'comment_id' });
 Like.belongsTo(Comment, { foreignKey: 'comment_id' });
@@ -100,7 +100,7 @@ Product.belongsTo(User, { foreignKey: 'seller_id', as: 'seller' });
 User.hasMany(Product, { foreignKey: 'seller_id', as: 'products' });
 
 
-// ✅ EBOOK ASSOCIATIONS
+// ✅ Ebook ASSOCIATIONS
 User.hasMany(Ebook, { foreignKey: 'author_id' });
 Ebook.belongsTo(User, { foreignKey: 'author_id' });
 
@@ -110,8 +110,8 @@ Ebook.belongsTo(EbookCategory, { foreignKey: 'category_id' });
 User.hasMany(EbookOrder, { foreignKey: 'user_id' });
 EbookOrder.belongsTo(User, { foreignKey: 'user_id' });
 
-Ebook.hasMany(EbookOrder, { foreignKey: 'ebook_id' });
-EbookOrder.belongsTo(Ebook, { foreignKey: 'ebook_id' });
+Ebook.hasMany(EbookOrder, { foreignKey: 'Ebook_id' });
+EbookOrder.belongsTo(Ebook, { foreignKey: 'Ebook_id' });
 
 // ✅ VIDEO ASSOCIATIONS
 User.hasMany(VideoTip, { foreignKey: 'uploaded_by' });

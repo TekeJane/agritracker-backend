@@ -6,7 +6,7 @@ async up(queryInterface, Sequelize) {
       await queryInterface.addColumn('Ebooks', 'format', {
         type: Sequelize.STRING,
         allowNull: false,
-        defaultValue: 'ebook',
+        defaultValue: 'Ebook',
         after: 'price',
       });
     }

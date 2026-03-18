@@ -1,7 +1,7 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/db');
 const User = require('./user');
-const Ebook = require('./ebook');
+const Ebook = require('./Ebook');
 
 const EbookOrder = sequelize.define('EbookOrder', {
     price_paid: {
@@ -18,7 +18,7 @@ const EbookOrder = sequelize.define('EbookOrder', {
 User.hasMany(EbookOrder, { foreignKey: 'user_id' });
 EbookOrder.belongsTo(User, { foreignKey: 'user_id' });
 
-Ebook.hasMany(EbookOrder, { foreignKey: 'ebook_id' });
-EbookOrder.belongsTo(Ebook, { foreignKey: 'ebook_id' });
+Ebook.hasMany(EbookOrder, { foreignKey: 'Ebook_id' });
+EbookOrder.belongsTo(Ebook, { foreignKey: 'Ebook_id' });
 
 module.exports = EbookOrder;

@@ -14,7 +14,7 @@ const subCategoryRoutes = require('./routes/subCategoryRoutes');
 const productRoutes = require('./routes/productRoutes');
 const cartRoutes = require('./routes/cartRoutes');
 const userRoutes = require('./routes/userRoutes');
-const forumRoutes = require('./routes/postRoutes');
+const forumRoutes = require('./routes/PostRoutes');
 const reviewRoutes = require('./routes/reviewRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const adminProductRoutes = require('./routes/adminProductRoutes');
@@ -22,15 +22,15 @@ const adminUserRoutes = require('./routes/adminUserRoutes');
 const adminForumRoutes = require('./routes/adminForumRoutes');
 const userProductRoutes = require('./routes/userProductRoutes');
 const orderRoutes = require('./routes/orderRoutes');
-const ebookRoutes = require('./routes/ebookRoutes');
+const EbookRoutes = require('./routes/EbookRoutes');
 const videoRoutes = require('./routes/videoRoutes');
 const webinarRoutes = require('./routes/webinarRoutes');
 const advisoryRoutes = require('./routes/advisory');
 const chatbotRoutes = require('./routes/chatbot');
 const notificationRoutes = require('./routes/notifications');
 const marketRoutes = require('./routes/market');
-const feedbackRoutes = require('./routes/feedback');
-const postRoutes = require('./routes/postRoutes');   // ✅ new post routes (fixed filename casing)
+const FeedbackRoutes = require('./routes/Feedback');
+const PostRoutes = require('./routes/PostRoutes');   // ✅ new Post routes (fixed filename casing)
 const diseaseRoutes = require('./routes/diseaseRoutes');   // ✅ plant disease detection
      // ✅ new plant routes
 
@@ -56,15 +56,15 @@ app.use('/api/admin/products', adminProductRoutes);
 app.use('/api/admin/users', adminUserRoutes);
 app.use('/api/admin/forum', adminForumRoutes);
 app.use('/api', userProductRoutes);
-app.use('/api/ebooks', ebookRoutes);
+app.use('/api/Ebooks', EbookRoutes);
 app.use('/api/videos', videoRoutes);
 app.use('/api/webinars', webinarRoutes);
 app.use('/api', advisoryRoutes);
 app.use('/api/chatbot', chatbotRoutes);
 app.use('/notifications', notificationRoutes);
 app.use('/api/market', marketRoutes);
-app.use('/feedback', feedbackRoutes);
-app.use('/api', postRoutes);   // ✅ mount the new PostController routes
+app.use('/Feedback', FeedbackRoutes);
+app.use('/api', PostRoutes);   // ✅ mount the new PostController routes
 app.use('/api', diseaseRoutes); // ✅ plant disease detection
  // ✅ mount the new Plant routes
 

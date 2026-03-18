@@ -2,9 +2,9 @@ const { Post, User, Comment, Like } = require('../models');
 const { Op } = require('sequelize');
 const path = require('path');
 
-// GET all posts (with user & comments)
+// GET all Posts (with user & comments)
 exports.getPosts = async (req, res) => {
-    console.log('\n📥 [GET] /api/posts called');
+    console.log('\n📥 [GET] /api/Posts called');
     try {
         const { category, search, sort } = req.query;
         const whereClause = {};
@@ -25,7 +25,7 @@ exports.getPosts = async (req, res) => {
                 ? [['likes_count', 'DESC'], ['createdAt', 'DESC']]
                 : [['createdAt', 'DESC']];
 
-        const posts = await Post.findAll({
+        const Posts = await Post.findAll({
             where: whereClause,
             order,
             include: [
@@ -43,17 +43,17 @@ exports.getPosts = async (req, res) => {
             ]
         });
 
-        console.log(`✅ ${posts.length} post(s) retrieved.`);
-        res.json({ success: true, data: posts });
+        console.log(`✅ ${Posts.length} Post(s) retrieved.`);
+        res.json({ success: true, data: Posts });
     } catch (error) {
         console.error('❌ Error in getPosts:', error);
         res.status(500).json({ success: false, message: 'Server error', error });
     }
 };
 
-// CREATE new post
+// CREATE new Post
 exports.createPost = async (req, res) => {
-    console.log('\n✉️ [POST] /api/posts called');
+    console.log('\n✉️ [Post] /api/Posts called');
     try {
         const { user_id, title, text, category } = req.body;
         let image_url = null;
@@ -73,31 +73,31 @@ exports.createPost = async (req, res) => {
 
         console.log('✅ Post saved with ID:', newPost.id);
 
-        const postWithUser = await Post.findByPk(newPost.id, {
+        const PostWithUser = await Post.findByPk(newPost.id, {
             include: {
                 model: User,
                 attributes: ['id', 'full_name', 'profile_image', 'account_type']
             }
         });
 
-        res.status(201).json({ success: true, data: postWithUser });
+        res.status(201).json({ success: true, data: PostWithUser });
     } catch (error) {
         console.error('❌ Error in createPost:', error);
-        res.status(500).json({ success: false, message: 'Failed to create post', error });
+        res.status(500).json({ success: false, message: 'Failed to create Post', error });
     }
 };
 
-// CREATE comment on a post
+// CREATE comment on a Post
 exports.createComment = async (req, res) => {
-    console.log('\n💬 [POST] /api/comments called');
+    console.log('\n💬 [Post] /api/comments called');
     try {
-        const { user_id, post_id, text } = req.body;
+        const { user_id, Post_id, text } = req.body;
 
-        console.log(`➡️ Creating comment for post_id ${post_id} by user ${user_id}`);
+        console.log(`➡️ Creating comment for Post_id ${Post_id} by user ${user_id}`);
 
         const comment = await Comment.create({
             user_id,
-            post_id,
+            Post_id,
             text
         });
 
@@ -116,41 +116,41 @@ exports.createComment = async (req, res) => {
     }
 };
 
-// LIKE a post
+// LIKE a Post
 exports.likePost = async (req, res) => {
-    console.log(`\n❤️ [POST] /api/posts/${req.params.postId}/like called`);
+    console.log(`\n❤️ [Post] /api/Posts/${req.params.PostId}/like called`);
     try {
         const { user_id } = req.body;
-        const { postId } = req.params;
+        const { PostId } = req.params;
 
-        console.log(`🔎 Finding post ID ${postId}`);
-        const post = await Post.findByPk(postId);
+        console.log(`🔎 Finding Post ID ${PostId}`);
+        const Post = await Post.findByPk(PostId);
 
-        if (!post) {
+        if (!Post) {
             console.log('❌ Post not found.');
             return res.status(404).json({ success: false, message: 'Post not found' });
         }
 
-        console.log(`👍 Current likes: ${post.likes_count}`);
+        console.log(`👍 Current likes: ${Post.likes_count}`);
         await Like.create({
             user_id,
-            post_id: postId
+            Post_id: PostId
         });
 
-        post.likes_count += 1;
-        await post.save();
+        Post.likes_count += 1;
+        await Post.save();
 
-        console.log(`✅ Post likes incremented to: ${post.likes_count}`);
-        res.json({ success: true, message: 'Post liked', likes: post.likes_count });
+        console.log(`✅ Post likes incremented to: ${Post.likes_count}`);
+        res.json({ success: true, message: 'Post liked', likes: Post.likes_count });
     } catch (error) {
         console.error('❌ Error in likePost:', error);
-        res.status(500).json({ success: false, message: 'Failed to like post', error });
+        res.status(500).json({ success: false, message: 'Failed to like Post', error });
     }
 };
 
 // LIKE a comment
 exports.likeComment = async (req, res) => {
-    console.log(`\n❤️ [POST] /api/comments/${req.params.commentId}/like called`);
+    console.log(`\n❤️ [Post] /api/comments/${req.params.commentId}/like called`);
     try {
         const { user_id } = req.body;
         const { commentId } = req.params;
@@ -182,108 +182,108 @@ exports.likeComment = async (req, res) => {
 
 
 
-// DISLIKE a post
+// DISLIKE a Post
 exports.dislikePost = async (req, res) => {
-    console.log(`\n👎 [POST] /api/posts/${req.params.postId}/dislike called`);
+    console.log(`\n👎 [Post] /api/Posts/${req.params.PostId}/dislike called`);
     try {
-        const { postId } = req.params;
-        const post = await Post.findByPk(postId);
+        const { PostId } = req.params;
+        const Post = await Post.findByPk(PostId);
 
-        if (!post) {
+        if (!Post) {
             return res.status(404).json({ success: false, message: 'Post not found' });
         }
 
-        post.dislikes_count += 1;
-        await post.save();
+        Post.dislikes_count += 1;
+        await Post.save();
 
-        res.json({ success: true, message: 'Post disliked', dislikes: post.dislikes_count });
+        res.json({ success: true, message: 'Post disliked', dislikes: Post.dislikes_count });
     } catch (error) {
         console.error('❌ Error in dislikePost:', error);
-        res.status(500).json({ success: false, message: 'Failed to dislike post', error });
+        res.status(500).json({ success: false, message: 'Failed to dislike Post', error });
     }
 };
 
-// SHARE a post
+// SHARE a Post
 exports.sharePost = async (req, res) => {
-    console.log(`\n🔗 [POST] /api/posts/${req.params.postId}/share called`);
+    console.log(`\n🔗 [Post] /api/Posts/${req.params.PostId}/share called`);
     try {
-        const { postId } = req.params;
-        const post = await Post.findByPk(postId);
+        const { PostId } = req.params;
+        const Post = await Post.findByPk(PostId);
 
-        if (!post) {
+        if (!Post) {
             return res.status(404).json({ success: false, message: 'Post not found' });
         }
 
-        post.shares_count += 1;
-        await post.save();
+        Post.shares_count += 1;
+        await Post.save();
 
-        res.json({ success: true, message: 'Post shared', shares: post.shares_count });
+        res.json({ success: true, message: 'Post shared', shares: Post.shares_count });
     } catch (error) {
         console.error('❌ Error in sharePost:', error);
-        res.status(500).json({ success: false, message: 'Failed to share post', error });
+        res.status(500).json({ success: false, message: 'Failed to share Post', error });
     }
 };
 
-// UPDATE a post
+// UPDATE a Post
 exports.updatePost = async (req, res) => {
-    console.log(`\n📝 [PUT] /api/posts/${req.params.postId} called`);
+    console.log(`\n📝 [PUT] /api/Posts/${req.params.PostId} called`);
     try {
-        const { postId } = req.params;
+        const { PostId } = req.params;
         const { user_id, title, text, category } = req.body;
 
-        const post = await Post.findByPk(postId);
-        if (!post) {
+        const Post = await Post.findByPk(PostId);
+        if (!Post) {
             return res.status(404).json({ success: false, message: 'Post not found' });
         }
 
-        if (user_id && post.user_id !== parseInt(user_id)) {
-            return res.status(403).json({ success: false, message: 'Not authorized to edit this post' });
+        if (user_id && Post.user_id !== parseInt(user_id)) {
+            return res.status(403).json({ success: false, message: 'Not authorized to edit this Post' });
         }
 
-        if (title !== undefined) post.title = title;
-        if (text !== undefined) post.text = text;
-        if (category !== undefined) post.category = category;
+        if (title !== undefined) Post.title = title;
+        if (text !== undefined) Post.text = text;
+        if (category !== undefined) Post.category = category;
 
         if (req.file) {
-            post.image_url = `/uploads/${req.file.filename}`;
+            Post.image_url = `/uploads/${req.file.filename}`;
         }
 
-        await post.save();
+        await Post.save();
 
-        const postWithUser = await Post.findByPk(post.id, {
+        const PostWithUser = await Post.findByPk(Post.id, {
             include: {
                 model: User,
                 attributes: ['id', 'full_name', 'profile_image', 'account_type']
             }
         });
 
-        res.json({ success: true, data: postWithUser });
+        res.json({ success: true, data: PostWithUser });
     } catch (error) {
         console.error('❌ Error in updatePost:', error);
-        res.status(500).json({ success: false, message: 'Failed to update post', error });
+        res.status(500).json({ success: false, message: 'Failed to update Post', error });
     }
 };
 
-// DELETE a post
+// DELETE a Post
 exports.deletePost = async (req, res) => {
-    console.log(`\n🗑️ [DELETE] /api/posts/${req.params.postId} called`);
+    console.log(`\n🗑️ [DELETE] /api/Posts/${req.params.PostId} called`);
     try {
-        const { postId } = req.params;
+        const { PostId } = req.params;
         const userId = req.body.user_id || req.query.user_id;
 
-        const post = await Post.findByPk(postId);
-        if (!post) {
+        const Post = await Post.findByPk(PostId);
+        if (!Post) {
             return res.status(404).json({ success: false, message: 'Post not found' });
         }
 
-        if (userId && post.user_id !== parseInt(userId)) {
-            return res.status(403).json({ success: false, message: 'Not authorized to delete this post' });
+        if (userId && Post.user_id !== parseInt(userId)) {
+            return res.status(403).json({ success: false, message: 'Not authorized to delete this Post' });
         }
 
-        await post.destroy();
+        await Post.destroy();
         res.json({ success: true, message: 'Post deleted' });
     } catch (error) {
         console.error('❌ Error in deletePost:', error);
-        res.status(500).json({ success: false, message: 'Failed to delete post', error });
+        res.status(500).json({ success: false, message: 'Failed to delete Post', error });
     }
 };

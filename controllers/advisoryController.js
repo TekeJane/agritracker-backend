@@ -27,12 +27,12 @@ exports.getAllAdvisories = (req, res) => {
     }
 };
 
-// POST: Get advisory by filters (changed from GET to match your route)
+// Post: Get advisory by filters (changed from GET to match your route)
 exports.getAdvisory = (req, res) => {
-    // Changed from req.query to req.body for POST requests
+    // Changed from req.query to req.body for Post requests
     const { region, season, soil } = req.body;
 
-    console.log(`📥 [POST] /api/advisory requested with:
+    console.log(`📥 [Post] /api/advisory requested with:
    • Region: ${region}
    • Season: ${season} 
    • Soil: ${soil}`);

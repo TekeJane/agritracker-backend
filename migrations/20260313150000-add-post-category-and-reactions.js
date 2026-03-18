@@ -2,10 +2,10 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    const table = await queryInterface.describeTable('posts');
+    const table = await queryInterface.describeTable('Posts');
 
     if (!table.category) {
-      await queryInterface.addColumn('posts', 'category', {
+      await queryInterface.addColumn('Posts', 'category', {
         type: Sequelize.STRING,
         allowNull: true,
         defaultValue: 'general',
@@ -13,7 +13,7 @@ module.exports = {
     }
 
     if (!table.dislikes_count) {
-      await queryInterface.addColumn('posts', 'dislikes_count', {
+      await queryInterface.addColumn('Posts', 'dislikes_count', {
         type: Sequelize.INTEGER,
         allowNull: false,
         defaultValue: 0,
@@ -21,7 +21,7 @@ module.exports = {
     }
 
     if (!table.shares_count) {
-      await queryInterface.addColumn('posts', 'shares_count', {
+      await queryInterface.addColumn('Posts', 'shares_count', {
         type: Sequelize.INTEGER,
         allowNull: false,
         defaultValue: 0,
@@ -30,8 +30,8 @@ module.exports = {
   },
 
   down: async (queryInterface) => {
-    await queryInterface.removeColumn('posts', 'category');
-    await queryInterface.removeColumn('posts', 'dislikes_count');
-    await queryInterface.removeColumn('posts', 'shares_count');
+    await queryInterface.removeColumn('Posts', 'category');
+    await queryInterface.removeColumn('Posts', 'dislikes_count');
+    await queryInterface.removeColumn('Posts', 'shares_count');
   },
 };

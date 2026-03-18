@@ -10,7 +10,7 @@ router.get('/:id', SubCategoryController.getSubCategoryById);
 router.get('/category/:categoryId', SubCategoryController.getSubCategoriesByCategory);
 
 // Protected routes - require authentication
-router.post('/', authenticate, SubCategoryController.createSubCategory);
+router.Post('/', authenticate, SubCategoryController.createSubCategory);
 router.put('/:id', authenticate, SubCategoryController.updateSubCategory);
 router.delete('/:id', authenticate, SubCategoryController.deleteSubCategory);
 

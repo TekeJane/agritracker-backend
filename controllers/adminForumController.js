@@ -32,7 +32,7 @@ const getAllMessages = async (req, res) => {
 };
 
 // ✅ Post a new message
-const postMessage = async (req, res) => {
+const PostMessage = async (req, res) => {
     try {
         const { text } = req.body;
         let image_url = null;
@@ -53,9 +53,9 @@ const postMessage = async (req, res) => {
             image_url
         });
 
-        res.status(201).json({ message: 'Message posted', data: newMessage });
+        res.status(201).json({ message: 'Message Posted', data: newMessage });
     } catch (err) {
-        console.error("❌ Error posting message:", err);
+        console.error("❌ Error Posting message:", err);
         res.status(500).json({ message: 'Server error' });
     }
 };
@@ -78,6 +78,6 @@ const deleteMessage = async (req, res) => {
 
 module.exports = {
     getAllMessages,
-    postMessage,
+    PostMessage,
     deleteMessage,
 };

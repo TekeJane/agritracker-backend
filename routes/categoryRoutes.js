@@ -9,7 +9,7 @@ router.get('/', CategoryController.getAllCategories);
 router.get('/:id', CategoryController.getCategoryById);
 
 // Protected routes - require authentication
-router.post('/', authenticate, CategoryController.createCategory);
+router.Post('/', authenticate, CategoryController.createCategory);
 router.put('/:id', authenticate, CategoryController.updateCategory);
 router.delete('/:id', authenticate, CategoryController.deleteCategory);
 

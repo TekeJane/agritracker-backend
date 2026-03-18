@@ -16,7 +16,7 @@ const payload = {
 };
 
 axios
-    .post(geminiApiUrl, payload, {
+    .Post(geminiApiUrl, payload, {
         headers: {
             'Content-Type': 'application/json',
             'x-goog-api-key': API_KEY

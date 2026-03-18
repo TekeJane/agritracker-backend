@@ -62,7 +62,7 @@ class EmailService {
                     <h2>Order Details</h2>
                     <div class="order-details">
                         <p><strong>Order ID:</strong> ${order.order_id}</p>
-                        <p><strong>Ebook:</strong> ${order.ebook?.title || 'N/A'}</p>
+                        <p><strong>Ebook:</strong> ${order.Ebook?.title || 'N/A'}</p>
                         <p><strong>Amount Paid:</strong> XAF ${order.price_paid}</p>
                         <p><strong>Payment Method:</strong> ${this.formatPaymentMethod(order.payment_method)}</p>
                         <p><strong>Purchase Date:</strong> ${new Date(order.purchased_at).toLocaleDateString()}</p>
@@ -70,9 +70,9 @@ class EmailService {
                     </div>
 
                     <h3>Download Your Ebook</h3>
-                    <p>Your ebook is now available for download. Click the button below to access your purchase:</p>
+                    <p>Your Ebook is now available for download. Click the button below to access your purchase:</p>
                     
-                    ${order.ebook?.file_url ? `
+                    ${order.Ebook?.file_url ? `
                         <a href="${process.env.FRONTEND_URL}/download/${order.order_id}" class="download-button">
                             📱 Download Ebook
                         </a>
@@ -81,7 +81,7 @@ class EmailService {
                     <h3>What's Next?</h3>
                     <ul>
                         <li>📧 Save this email for your records</li>
-                        <li>📱 Download your ebook using the link above</li>
+                        <li>📱 Download your Ebook using the link above</li>
                         <li>💬 Contact support if you need any assistance</li>
                     </ul>
 
@@ -112,7 +112,7 @@ class EmailService {
             const mailOptions = {
                 from: process.env.EMAIL_USER,
                 to: order.customer_email,
-                subject: `Download Link - ${order.ebook?.title}`,
+                subject: `Download Link - ${order.Ebook?.title}`,
                 html: this.getDownloadLinkTemplate(order)
             };
 
@@ -147,12 +147,12 @@ class EmailService {
             <div class="container">
                 <div class="header">
                     <h1>📚 Your Ebook is Ready!</h1>
-                    <p>Download your purchased ebook</p>
+                    <p>Download your purchased Ebook</p>
                 </div>
                 
                 <div class="content">
-                    <h2>${order.ebook?.title}</h2>
-                    <p>Your ebook download is now available. Click the button below to download:</p>
+                    <h2>${order.Ebook?.title}</h2>
+                    <p>Your Ebook download is now available. Click the button below to download:</p>
                     
                     <div style="text-align: center;">
                         <a href="${process.env.FRONTEND_URL}/download/${order.order_id}" class="download-button">
@@ -166,7 +166,7 @@ class EmailService {
                     <h3>Important Notes:</h3>
                     <ul>
                         <li>🔒 This download link is secure and personalized for you</li>
-                        <li>♾️ You can download this ebook unlimited times</li>
+                        <li>♾️ You can download this Ebook unlimited times</li>
                         <li>📧 Keep this email for future downloads</li>
                         <li>💬 Contact support if you have any issues</li>
                     </ul>
@@ -205,7 +205,7 @@ class EmailService {
                     </div>
                     <div style="background: #f9f9f9; padding: 20px; border-radius: 0 0 8px 8px;">
                         <p>We're sorry, but your payment for order <strong>${order.order_id}</strong> could not be processed.</p>
-                        <p><strong>Ebook:</strong> ${order.ebook?.title}</p>
+                        <p><strong>Ebook:</strong> ${order.Ebook?.title}</p>
                         <p><strong>Amount:</strong> XAF ${order.price_paid}</p>
                         <p>Please try again or contact our support team for assistance.</p>
                     </div>
