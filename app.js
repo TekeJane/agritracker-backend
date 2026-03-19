@@ -22,14 +22,14 @@ const adminUserRoutes = require('./routes/adminUserRoutes');
 const adminForumRoutes = require('./routes/adminForumRoutes');
 const userProductRoutes = require('./routes/userProductRoutes');
 const orderRoutes = require('./routes/orderRoutes');
-const EbookRoutes = require('./routes/EbookRoutes');
+const ebookRoutes = require('./routes/ebookRoutes');
 const videoRoutes = require('./routes/videoRoutes');
 const webinarRoutes = require('./routes/webinarRoutes');
 const advisoryRoutes = require('./routes/advisory');
 const chatbotRoutes = require('./routes/chatbot');
 const notificationRoutes = require('./routes/notifications');
 const marketRoutes = require('./routes/market');
-const FeedbackRoutes = require('./routes/Feedback');
+const feedbackRoutes = require('./routes/feedback');
 const PostRoutes = require('./routes/postRoutes');   // ✅ new Post routes (fixed filename casing)
 const diseaseRoutes = require('./routes/diseaseRoutes');   // ✅ plant disease detection
      // ✅ new plant routes
@@ -56,14 +56,14 @@ app.use('/api/admin/products', adminProductRoutes);
 app.use('/api/admin/users', adminUserRoutes);
 app.use('/api/admin/forum', adminForumRoutes);
 app.use('/api', userProductRoutes);
-app.use('/api/Ebooks', EbookRoutes);
+app.use('/api/Ebooks', ebookRoutes);
 app.use('/api/videos', videoRoutes);
 app.use('/api/webinars', webinarRoutes);
 app.use('/api', advisoryRoutes);
 app.use('/api/chatbot', chatbotRoutes);
 app.use('/notifications', notificationRoutes);
 app.use('/api/market', marketRoutes);
-app.use('/Feedback', FeedbackRoutes);
+app.use('/Feedback', feedbackRoutes);
 app.use('/api', PostRoutes);   // ✅ mount the new PostController routes
 app.use('/api', diseaseRoutes); // ✅ plant disease detection
  // ✅ mount the new Plant routes
