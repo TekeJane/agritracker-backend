@@ -12,7 +12,7 @@ const upload = require('../middleware/upload'); // multer middleware
 
 // Admin-only routes
 router.get('/', authenticate, authorizeAdmin, getAllMessages);
-router.Post('/', authenticate, authorizeAdmin, upload.single('image'), PostMessage);
+router.post('/', authenticate, authorizeAdmin, upload.single('image'), PostMessage);
 router.delete('/:id', authenticate, authorizeAdmin, deleteMessage);
 
 module.exports = router;
