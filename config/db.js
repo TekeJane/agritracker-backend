@@ -5,8 +5,8 @@ require('dotenv').config();
 const connectionUrl = process.env.DATABASE_URL || process.env.MYSQL_URL || null;
 
 let DB_NAME = process.env.DB_NAME || process.env.MYSQLDATABASE;
-let DB_USER = process.env.DB_USER || process.env.MYSQLUSER;
-let DB_PASSWORD = process.env.DB_PASSWORD || process.env.MYSQLPASSWORD;
+let DB_USER = process.env.DB_USER || process.env.MYSQLUSER || 'root';
+let DB_PASSWORD = process.env.DB_PASSWORD || process.env.MYSQLPASSWORD || '';
 let DB_HOST = process.env.DB_HOST || process.env.MYSQLHOST;
 let DB_PORT = process.env.DB_PORT || process.env.MYSQLPORT || 3306;
 let DB_DIALECT = process.env.DB_DIALECT || 'mysql';
