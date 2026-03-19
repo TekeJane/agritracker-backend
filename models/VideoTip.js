@@ -1,7 +1,7 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/db');
 const User = require('./user');
-const VideoCategory = require('./videoCategory');
+const VideoCategory = require('./VideoCategory');
 
 const VideoTip = sequelize.define('VideoTip', {
     title: {
