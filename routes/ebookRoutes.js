@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const EbookController = require('../controllers/EbookController');
+const EbookController = require('../controllers/ebookController');
 const { authenticate, authorizeAdmin } = require('../middleware/authMiddleware');
 const multer = require('multer');
 const path = require('path');
@@ -22,7 +22,7 @@ const upload = multer({ storage });
 // === Routes ===
 
 // ✅ Upload Ebook (requires authentication)
-router.Post(
+router.post(
     '/',
     authenticate,
     upload.fields([
@@ -44,7 +44,7 @@ router.put(
 );
 
 // ✅ Admin creates a category
-router.Post(
+router.post(
     '/Ebooks/categories',
     authenticate,
     authorizeAdmin,
@@ -55,7 +55,7 @@ router.Post(
 router.get('/categories', EbookController.getEbookCategories);
 
 // ✅ User purchases an Ebook
-router.Post('/Ebooks/purchase', authenticate, EbookController.purchaseEbook);
+router.post('/Ebooks/purchase', authenticate, EbookController.purchaseEbook);
 
 // ✅ Update Ebook (author only or admin, depending on logic)
 router.put('/Ebooks/:id', authenticate, EbookController.updateEbook);
