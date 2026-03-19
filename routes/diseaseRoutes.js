@@ -7,7 +7,7 @@ const router = express.Router();
 const upload = multer({ dest: 'uploads/disease/' });
 
 // Minimal handler to avoid 404 and return structured data expected by mobile app
-router.Post('/detect-plant-disease', upload.single('image'), async (req, res) => {
+router.post('/detect-plant-disease', upload.single('image'), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ message: 'Image file is required under field "image".' });

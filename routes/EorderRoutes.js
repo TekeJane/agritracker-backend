@@ -48,7 +48,7 @@ const validateOrderUpdate = [
 ];
 
 // Create new order (purchase Ebook)
-router.Post('/', optionalAuth, validateOrder, orderController.createOrder);
+router.post('/', optionalAuth, validateOrder, orderController.createOrder);
 
 // Get order by order ID
 router.get('/:orderId', optionalAuth, orderController.getOrderById);

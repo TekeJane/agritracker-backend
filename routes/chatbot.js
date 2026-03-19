@@ -9,7 +9,7 @@ const router = express.Router();
 const upload = multer({ dest: 'uploads/audio/' });
 
 const runChatCompletion = async (userMessage) => {
-    const response = await axios.Post(
+    const response = await axios.post(
         'https://openrouter.ai/api/v1/chat/completions',
         {
             model: "openai/gpt-4o",
@@ -43,7 +43,7 @@ const runChatCompletion = async (userMessage) => {
     return reply || "🤖 I couldn’t process your request right now. Please try again shortly or rephrase your question.";
 };
 
-router.Post('/', async (req, res) => {
+router.post('/', async (req, res) => {
     const userMessage = req.body.message;
 
     console.log('\n🧠 [AI CHATBOT] Post /api/chatbot');
@@ -66,7 +66,7 @@ router.Post('/', async (req, res) => {
 });
 
 // Audio → text → chat reply
-router.Post('/audio', upload.single('audio'), async (req, res) => {
+router.post('/audio', upload.single('audio'), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ error: 'Audio file is required under field name "audio"' });
@@ -82,7 +82,7 @@ router.Post('/audio', upload.single('audio'), async (req, res) => {
         form.append('model', 'whisper-1');
         form.append('language', 'en');
 
-        const whisperResp = await axios.Post(
+        const whisperResp = await axios.post(
             'https://api.openai.com/v1/audio/transcriptions',
             form,
             {

@@ -11,7 +11,7 @@ const {
 router.get('/summary', getMarketSummary);
 router.get('/category/daily', getCategoryDailyTrend);
 router.get('/:cropName', getCropTrend);
-router.Post('/submit', submitMarketPrice);
+router.post('/submit', submitMarketPrice);
 
 
 
