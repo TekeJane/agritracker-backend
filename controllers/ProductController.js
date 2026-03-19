@@ -1,5 +1,4 @@
-const { Product, Category, SubCategory, User } = require('../models');
-const notifyUser = require('../services/notifyUser'); // ✅ make sure this is imported
+const { Product, Category, SubCategory, User } = require('../models');        
 function formatProduct(product, hostUrl) {
     console.log(`\n🔄 Formatting product ID=${product.id}`);
 
@@ -293,6 +292,58 @@ const ProductController = {
             return res.status(404).json({ message: 'Product not found' });
         } catch (error) {
             console.error('❌ Error in deleteProduct:', error);
+            return res.status(500).json({ error: error.message });
+        }
+    },
+
+    async markAsFeatured(req, res) {
+        console.log(`\n📌 MARK AS FEATURED product ID: ${req.params.id}`);
+        try {
+            const product = await Product.findByPk(req.params.id, {
+                include: [Category, SubCategory, { model: User, as: 'seller' }],
+            });
+
+            if (!product) {
+                console.warn('⚠️ Product not found to feature:', req.params.id);
+                return res.status(404).json({ message: 'Product not found' });
+            }
+
+            product.is_featured = true;
+            await product.save();
+
+            const hostUrl = `${req.protocol}://${req.get('host')}`;
+            const formatted = formatProduct(product, hostUrl);
+
+            console.log('✅ Product marked as featured:', product.id);
+            return res.status(200).json(formatted);
+        } catch (error) {
+            console.error('❌ Error in markAsFeatured:', error);
+            return res.status(500).json({ error: error.message });
+        }
+    },
+
+    async unmarkAsFeatured(req, res) {
+        console.log(`\n📌 UNMARK FEATURED product ID: ${req.params.id}`);
+        try {
+            const product = await Product.findByPk(req.params.id, {
+                include: [Category, SubCategory, { model: User, as: 'seller' }],
+            });
+
+            if (!product) {
+                console.warn('⚠️ Product not found to unfeature:', req.params.id);
+                return res.status(404).json({ message: 'Product not found' });
+            }
+
+            product.is_featured = false;
+            await product.save();
+
+            const hostUrl = `${req.protocol}://${req.get('host')}`;
+            const formatted = formatProduct(product, hostUrl);
+
+            console.log('✅ Product unmarked as featured:', product.id);
+            return res.status(200).json(formatted);
+        } catch (error) {
+            console.error('❌ Error in unmarkAsFeatured:', error);
             return res.status(500).json({ error: error.message });
         }
     },
