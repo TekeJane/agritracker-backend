@@ -14,7 +14,7 @@ const subCategoryRoutes = require('./routes/subCategoryRoutes');
 const productRoutes = require('./routes/productRoutes');
 const cartRoutes = require('./routes/cartRoutes');
 const userRoutes = require('./routes/userRoutes');
-const forumRoutes = require('./routes/PostRoutes');
+const forumRoutes = require('./routes/postRoutes');
 const reviewRoutes = require('./routes/reviewRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const adminProductRoutes = require('./routes/adminProductRoutes');
@@ -30,7 +30,7 @@ const chatbotRoutes = require('./routes/chatbot');
 const notificationRoutes = require('./routes/notifications');
 const marketRoutes = require('./routes/market');
 const FeedbackRoutes = require('./routes/Feedback');
-const PostRoutes = require('./routes/PostRoutes');   // ✅ new Post routes (fixed filename casing)
+const PostRoutes = require('./routes/postRoutes');   // ✅ new Post routes (fixed filename casing)
 const diseaseRoutes = require('./routes/diseaseRoutes');   // ✅ plant disease detection
      // ✅ new plant routes
 
