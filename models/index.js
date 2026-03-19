@@ -16,14 +16,14 @@ const Ebook = require('./Ebook');
 const EbookOrder = require('./EbookOrder');
 const VideoCategory = require('./VideoCategory');
 const VideoTip = require('./VideoTip');
-const WebinarRequest = require('./webinarRequest')(sequelize, DataTypes);
-const Webinar = require('./webinar')(sequelize, DataTypes);
-const WebinarAttendee = require('./webinarAttendee')(sequelize, DataTypes);
-const WebinarQuestion = require('./webinarQuestion')(sequelize, DataTypes);
+const WebinarRequest = require('./WebinarRequest')(sequelize, DataTypes);
+const Webinar = require('./Webinar')(sequelize, DataTypes);
+const WebinarAttendee = require('./WebinarAttendee')(sequelize, DataTypes);
+const WebinarQuestion = require('./WebinarQuestion')(sequelize, DataTypes);
 const Notification= require('./Notification')(sequelize, DataTypes);
 const Feedback = require('./Feedback')(sequelize, DataTypes);
 const ProductPriceLog = require('./ProductPriceLog');
-const UserFollow = require('./userFollow');
+const UserFollow = require('./UserFollow');
 
 
 
