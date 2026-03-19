@@ -1,11 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const ProductController = require('../controllers/ProductController');
+const ProductController = require('../controllers/adminProductController'); // Make sure controller path is correct
 const { authenticate, isAdmin } = require('../middleware/auth');
-const upload = require('../middleware/upload'); // Assuming this exists
+const upload = require('../middleware/upload'); // Multer middleware
 const notifyUser = require('../services/notifyUser');
-
-// Example:
 
 // Public GET routes
 router.get('/', ProductController.getAllProducts);
@@ -14,14 +12,23 @@ router.get('/:id', ProductController.getProductById);
 router.get('/category/:categoryId', ProductController.getProductsByCategory);
 router.get('/subcategory/:subCategoryId', ProductController.getProductsBySubCategory);
 
-// Post product with images and videos
+// POST product (admin only) with images/videos
 router.post(
-  '/',
-  upload.fields([
-    { name: 'images', maxCount: 10 },
-    { name: 'videos', maxCount: 5 },
-  ]),
-  ProductController.createProduct,
+    '/',
+    authenticate,
+    isAdmin,
+    upload.fields([
+        { name: 'images', maxCount: 10 },
+        { name: 'videos', maxCount: 5 },
+    ]),
+    ProductController.createProduct
 );
+
+// Optional: mark/unmark featured (admin only)
+router.put('/featured/:id', authenticate, isAdmin, ProductController.markAsFeatured);
+router.put('/unfeatured/:id', authenticate, isAdmin, ProductController.unmarkAsFeatured);
+
+// Delete product (admin only)
+router.delete('/:id', authenticate, isAdmin, ProductController.deleteProduct);
 
 module.exports = router;

@@ -1,4 +1,4 @@
-const Product = require('../models/product');
+const Product = require('../models/Product'); // Ensure this matches your actual model filename
 
 // 1. Get all products
 const getAllProducts = async (req, res) => {
@@ -20,7 +20,31 @@ const getFeaturedProducts = async (req, res) => {
     }
 };
 
-// 3. Mark product as featured
+// 3. Create product
+const createProduct = async (req, res) => {
+    try {
+        const { name, description, price, categoryId, subCategoryId } = req.body;
+        const images = req.files['images'] ? req.files['images'].map(file => file.filename) : [];
+        const videos = req.files['videos'] ? req.files['videos'].map(file => file.filename) : [];
+
+        const product = await Product.create({
+            name,
+            description,
+            price,
+            categoryId,
+            subCategoryId,
+            images,
+            videos,
+            is_featured: false,
+        });
+
+        return res.status(201).json({ message: 'Product created', product });
+    } catch (err) {
+        return res.status(500).json({ message: 'Error creating product', error: err.message });
+    }
+};
+
+// 4. Mark product as featured
 const markAsFeatured = async (req, res) => {
     try {
         const { id } = req.params;
@@ -35,7 +59,7 @@ const markAsFeatured = async (req, res) => {
     }
 };
 
-// 4. Unmark featured
+// 5. Unmark featured
 const unmarkAsFeatured = async (req, res) => {
     try {
         const { id } = req.params;
@@ -50,7 +74,7 @@ const unmarkAsFeatured = async (req, res) => {
     }
 };
 
-// 5. Delete product
+// 6. Delete product
 const deleteProduct = async (req, res) => {
     try {
         const { id } = req.params;
@@ -67,6 +91,7 @@ const deleteProduct = async (req, res) => {
 module.exports = {
     getAllProducts,
     getFeaturedProducts,
+    createProduct,
     markAsFeatured,
     unmarkAsFeatured,
     deleteProduct,
