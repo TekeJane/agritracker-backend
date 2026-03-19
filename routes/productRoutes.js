@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const ProductController = require('../controllers/adminProductController'); // Make sure controller path is correct
+const ProductController = require('../controllers/ProductController');
 const { authenticate, isAdmin } = require('../middleware/auth');
 const upload = require('../middleware/upload'); // Multer middleware
 const notifyUser = require('../services/notifyUser');
