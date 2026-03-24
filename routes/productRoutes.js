@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const ProductController = require('../controllers/ProductController');
-const { authenticate, isAdmin } = require('../middleware/auth');
+const { authenticate, isAdmin, isAdminOrSeller } = require('../middleware/auth');
 const upload = require('../middleware/upload'); // Multer middleware
 const notifyUser = require('../services/notifyUser');
 
@@ -16,7 +16,7 @@ router.get('/subcategory/:subCategoryId', ProductController.getProductsBySubCate
 router.post(
     '/',
     authenticate,
-    isAdmin,
+    isAdminOrSeller,
     upload.fields([
         { name: 'images', maxCount: 10 },
         { name: 'videos', maxCount: 5 },
