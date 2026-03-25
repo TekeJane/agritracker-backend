@@ -16,9 +16,14 @@ function formatProduct(product, hostUrl) {
         }
 
         updatedImages = updatedImages.map(img => {
-            const fullUrl = img.startsWith('http') ? img : `${hostUrl}${img.startsWith('/') ? '' : '/'}${img}`;
-            console.log(`➡️ Image URL: ${fullUrl}`);
-            return fullUrl;
+            if (!img) return img;
+            const normalized = img.startsWith('http')
+                ? img
+                : img.includes('/uploads/')
+                    ? `${hostUrl}${img.startsWith('/') ? '' : '/'}${img}`
+                    : `${hostUrl}/uploads/${img.startsWith('/') ? img.replace(/^\\/+/, '') : img}`;
+            console.log(`➡️ Image URL: ${normalized}`);
+            return normalized;
         });
     } catch (e) {
         console.warn(`⚠️ Failed to parse images for product ID ${product.id}: ${e}`);
@@ -32,10 +37,13 @@ function formatProduct(product, hostUrl) {
         }
 
         updatedVideos = updatedVideos.map(video => {
-            const fullUrl = video.startsWith('http')
+            if (!video) return video;
+            const normalized = video.startsWith('http')
                 ? video
-                : `${hostUrl}${video.startsWith('/') ? '' : '/'}${video}`;
-            return fullUrl;
+                : video.includes('/uploads/')
+                    ? `${hostUrl}${video.startsWith('/') ? '' : '/'}${video}`
+                    : `${hostUrl}/uploads/${video.startsWith('/') ? video.replace(/^\\/+/, '') : video}`;
+            return normalized;
         });
     } catch (e) {
         console.warn(`⚠️ Failed to parse videos for product ID ${product.id}: ${e}`);
