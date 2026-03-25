@@ -44,7 +44,28 @@ exports.getPosts = async (req, res) => {
         });
 
         console.log(`✅ ${Posts.length} Post(s) retrieved.`);
-        res.json({ success: true, data: Posts });
+        const host = `${req.protocol}://${req.get('host')}`;
+        const withUrls = Posts.map(p => {
+            const json = p.toJSON();
+            if (json.User && json.User.profile_image) {
+                json.User.profile_image = json.User.profile_image.startsWith('http')
+                    ? json.User.profile_image
+                    : `${host}${json.User.profile_image.startsWith('/') ? '' : '/'}${json.User.profile_image}`;
+            }
+            if (json.Comments) {
+                json.Comments = json.Comments.map(c => {
+                    const cj = c;
+                    if (cj.User && cj.User.profile_image) {
+                        cj.User.profile_image = cj.User.profile_image.startsWith('http')
+                            ? cj.User.profile_image
+                            : `${host}${cj.User.profile_image.startsWith('/') ? '' : '/'}${cj.User.profile_image}`;
+                    }
+                    return cj;
+                });
+            }
+            return json;
+        });
+        res.json({ success: true, data: withUrls });
     } catch (error) {
         console.error('❌ Error in getPosts:', error);
         res.status(500).json({ success: false, message: 'Server error', error });
@@ -91,13 +112,18 @@ exports.createPost = async (req, res) => {
 exports.createComment = async (req, res) => {
     console.log('\n💬 [Post] /api/comments called');
     try {
-        const { user_id, Post_id, text } = req.body;
+        const { user_id, Post_id, post_id, text } = req.body;
+        const resolvedPostId = Post_id || post_id;
 
-        console.log(`➡️ Creating comment for Post_id ${Post_id} by user ${user_id}`);
+        console.log(`➡️ Creating comment for Post_id ${resolvedPostId} by user ${user_id}`);
+
+        if (!resolvedPostId || !user_id || !text) {
+            return res.status(400).json({ success: false, message: 'post_id, user_id and text are required' });
+        }
 
         const comment = await Comment.create({
             user_id,
-            Post_id,
+            Post_id: resolvedPostId,
             text
         });
 
