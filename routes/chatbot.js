@@ -60,13 +60,12 @@ router.post('/', async (req, res) => {
         }
 
         console.log('🤖 OpenRouter Reply:', reply);
-        res.json({ reply });
+        return res.json({ reply });
 
     } catch (err) {
         console.error('❌ OpenRouter API error:', err.response?.data || err.message);
-        res.status(500).json({
-            error: 'AI failed to respond due to a server or network issue. Please try again.',
-        });
+        const fallback = "🤖 Sorry, I'm having trouble reaching the AI service right now. Please try again in a moment.";
+        return res.json({ reply: fallback });
     }
 });
 
