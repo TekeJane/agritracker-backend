@@ -101,7 +101,18 @@ exports.createPost = async (req, res) => {
             }
         });
 
-        res.status(201).json({ success: true, data: PostWithUser });
+        const host = `${req.protocol}://${req.get('host')}`;
+        const json = PostWithUser.toJSON();
+        if (json.User && json.User.profile_image) {
+            json.User.profile_image = json.User.profile_image.startsWith('http')
+                ? json.User.profile_image
+                : `${host}${json.User.profile_image.startsWith('/') ? '' : '/'}${json.User.profile_image}`;
+        }
+        if (json.image_url && !json.image_url.startsWith('http')) {
+            json.image_url = `${host}${json.image_url.startsWith('/') ? '' : '/'}${json.image_url}`;
+        }
+
+        res.status(201).json({ success: true, data: json });
     } catch (error) {
         console.error('❌ Error in createPost:', error);
         res.status(500).json({ success: false, message: 'Failed to create Post', error });

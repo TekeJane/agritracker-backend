@@ -29,4 +29,15 @@ router.post('/Posts/:PostId/share', PostController.sharePost);
 router.post('/comments/:commentId/like', PostController.likeComment);
 router.post('/comments', PostController.createComment);
 
+// Lowercase aliases to match frontend calls (/api/posts...)
+router.get('/posts', PostController.getPosts);
+router.post('/posts', upload.single('image'), PostController.createPost);
+router.put('/posts/:PostId', upload.single('image'), PostController.updatePost);
+router.delete('/posts/:PostId', PostController.deletePost);
+router.post('/posts/:PostId/like', PostController.likePost);
+router.post('/posts/:PostId/dislike', PostController.dislikePost);
+router.post('/posts/:PostId/share', PostController.sharePost);
+router.post('/posts/comments/:commentId/like', PostController.likeComment);
+router.post('/posts/comments', PostController.createComment);
+
 module.exports = router;
