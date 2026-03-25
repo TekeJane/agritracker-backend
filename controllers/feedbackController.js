@@ -23,11 +23,12 @@ function buildTransporter() {
 async function sendFeedbackEmail({ type, message, rating, contact_info }) {
     const transporter = buildTransporter();
     const sender = process.env.EMAIL_USER || process.env.SMTP_USER;
+    const trimmedContact = String(contact_info || '').trim();
+    const looksLikeEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedContact);
 
-    await transporter.sendMail({
+    const mailOptions = {
         from: sender,
         to: companyFeedbackEmail,
-        replyTo: contact_info,
         subject: `AgriTracker Feedback: ${type}`,
         text: [
             `Feedback Type: ${type}`,
@@ -47,7 +48,13 @@ async function sendFeedbackEmail({ type, message, rating, contact_info }) {
                 <div style="padding: 12px; background: #f3f4f6; border-radius: 8px; white-space: pre-wrap;">${message}</div>
             </div>
         `,
-    });
+    };
+
+    if (looksLikeEmail) {
+        mailOptions.replyTo = trimmedContact;
+    }
+
+    await transporter.sendMail(mailOptions);
 }
 
 exports.submitFeedback = async (req, res) => {
@@ -59,7 +66,18 @@ exports.submitFeedback = async (req, res) => {
         }
 
         await Feedback.create({ type, message, rating, contact_info });
-        await sendFeedbackEmail({ type, message, rating, contact_info });
+
+        try {
+            await sendFeedbackEmail({ type, message, rating, contact_info });
+        } catch (mailError) {
+            console.error('Feedback email delivery error:', mailError);
+            return res.status(202).json({
+                message: 'Feedback saved. Email delivery needs user confirmation.',
+                deliveredTo: companyFeedbackEmail,
+                openEmailFallback: true,
+                warning: mailError.message || 'Email delivery failed',
+            });
+        }
 
         return res.status(200).json({
             message: 'Feedback submitted successfully',
