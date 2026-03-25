@@ -31,19 +31,4 @@ const isAdmin = (req, res, next) => {
     return res.status(403).json({ message: 'Forbidden: Admins only' });
 };
 
-// Allow admins and sellers (for product creation)
-const isAdminOrSeller = (req, res, next) => {
-    if (!req.user) {
-        return res.status(403).json({ message: 'Forbidden' });
-    }
-    if (
-        req.user.role === 'admin' ||
-        req.user.role === 'seller' ||          // if role is explicitly seller
-        req.user.account_type === 'seller'     // or account_type is seller
-    ) {
-        return next();
-    }
-    return res.status(403).json({ message: 'Forbidden: Admins or sellers only' });
-};
-
-module.exports = { authenticate, isAdmin, isAdminOrSeller };
+module.exports = { authenticate, isAdmin };

@@ -16,7 +16,6 @@ router.get('/subcategory/:subCategoryId', ProductController.getProductsBySubCate
 router.post(
     '/',
     authenticate,
-    isAdminOrSeller,
     upload.fields([
         { name: 'images', maxCount: 10 },
         { name: 'videos', maxCount: 5 },
