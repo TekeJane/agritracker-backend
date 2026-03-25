@@ -63,6 +63,7 @@ app.use('/api', advisoryRoutes);
 app.use('/api/chatbot', chatbotRoutes);
 app.use('/notifications', notificationRoutes);
 app.use('/api/market', marketRoutes);
+app.use('/feedback', feedbackRoutes);
 app.use('/Feedback', feedbackRoutes);
 app.use('/api', PostRoutes);   // ✅ mount the new PostController routes
 app.use('/api', diseaseRoutes); // ✅ plant disease detection
