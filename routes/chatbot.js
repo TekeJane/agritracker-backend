@@ -26,39 +26,51 @@ const upload = multer({
     limits: { fileSize: 15 * 1024 * 1024 }, // 15 MB
 });
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 const runChatCompletion = async (userMessage) => {
-    const response = await axios.post(
-        'https://openrouter.ai/api/v1/chat/completions',
-        {
-            model: "openai/gpt-4o",
-            messages: [
-                {
-                    role: "system",
-                    content: `You are an AI assistant for a Cameroon-based agritech app. Help users with:
+    const body = {
+        model: "openai/gpt-4o",
+        messages: [
+            {
+                role: "system",
+                content: `You are an AI assistant for a Cameroon-based agritech app. Help users with:
 - Registration
 - Selling crops
 - Checking market prices
 - Crop advisory
 - Contacting support`,
-                },
-                {
-                    role: "user",
-                    content: userMessage,
-                }
-            ],
-            max_tokens: 512,
-            temperature: 0.7,
-        },
-        {
-            headers: {
-                Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-                'Content-Type': 'application/json',
             },
-        }
-    );
+            { role: "user", content: userMessage },
+        ],
+        max_tokens: 512,
+        temperature: 0.7,
+    };
 
-    const reply = response.data?.choices?.[0]?.message?.content?.trim();
-    return reply || "🤖 I couldn’t process your request right now. Please try again shortly or rephrase your question.";
+    const headers = {
+        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+    };
+
+    // simple retry for rate-limit (429)
+    for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+            const response = await axios.post(
+                'https://openrouter.ai/api/v1/chat/completions',
+                body,
+                { headers, timeout: 30000 }
+            );
+            const reply = response.data?.choices?.[0]?.message?.content?.trim();
+            return reply || "🤖 I couldn’t process your request right now. Please try again shortly or rephrase your question.";
+        } catch (err) {
+            const status = err.response?.status;
+            if (status === 429 && attempt === 0) {
+                await sleep(2000);
+                continue;
+            }
+            throw err;
+        }
+    }
 };
 
 router.post('/', async (req, res) => {
@@ -95,29 +107,45 @@ router.post('/audio', upload.single('audio'), async (req, res) => {
             return res.status(500).json({ error: 'Audio transcription is not configured.' });
         }
 
-        const form = new FormData();
-        form.append('file', fs.createReadStream(req.file.path), {
-            filename: req.file.filename,
-            contentType: req.file.mimetype || 'audio/wav',
-        });
-        form.append('model', 'whisper-1');
-        form.append('language', 'en');
+        const transcribe = async () => {
+            const form = new FormData();
+            form.append('file', fs.createReadStream(req.file.path), {
+                filename: req.file.filename,
+                contentType: req.file.mimetype || 'audio/wav',
+            });
+            form.append('model', 'whisper-1');
+            form.append('language', 'en');
 
-        const whisperResp = await axios.post(
-            'https://api.openai.com/v1/audio/transcriptions',
-            form,
-            {
-                headers: {
-                    ...form.getHeaders(),
-                    Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-                },
-                maxContentLength: Infinity,
-                maxBodyLength: Infinity,
-                timeout: 30000,
+            return axios.post(
+                'https://api.openai.com/v1/audio/transcriptions',
+                form,
+                {
+                    headers: {
+                        ...form.getHeaders(),
+                        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+                    },
+                    maxContentLength: Infinity,
+                    maxBodyLength: Infinity,
+                    timeout: 30000,
+                }
+            );
+        };
+
+        let whisperResp;
+        for (let attempt = 0; attempt < 2; attempt++) {
+            try {
+                whisperResp = await transcribe();
+                break;
+            } catch (err) {
+                if (err.response?.status === 429 && attempt === 0) {
+                    await sleep(2000);
+                    continue;
+                }
+                throw err;
             }
-        );
+        }
 
-        const transcript = whisperResp.data?.text?.trim();
+        const transcript = whisperResp?.data?.text?.trim();
         console.log('🗣️ Transcribed text:', transcript);
 
         if (!transcript) {
