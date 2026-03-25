@@ -1,62 +1,53 @@
-const { Product, Category, SubCategory, User } = require('../models');        
-function formatProduct(product, hostUrl) {
-    console.log(`\n🔄 Formatting product ID=${product.id}`);
+const { Product, Category, SubCategory, User } = require('../models');
 
+function formatMediaUrls(mediaList, hostUrl) {
+    if (!mediaList) {
+        return [];
+    }
+
+    const items = Array.isArray(mediaList) ? mediaList : JSON.parse(mediaList);
+
+    return items.map((item) => {
+        if (!item) {
+            return item;
+        }
+
+        if (item.startsWith('http')) {
+            return item;
+        }
+
+        if (item.includes('/uploads/')) {
+            return `${hostUrl}${item.startsWith('/') ? '' : '/'}${item}`;
+        }
+
+        return `${hostUrl}/uploads/${item.startsWith('/') ? item.replace(/^\/+/, '') : item}`;
+    });
+}
+
+function formatProduct(product, hostUrl) {
     const now = new Date();
 
     let updatedImages = [];
     let updatedVideos = [];
-    try {
-        if (Array.isArray(product.images)) {
-            updatedImages = product.images;
-            console.log(`🖼️ Images already array for product ${product.id}`);
-        } else if (typeof product.images === 'string') {
-            updatedImages = JSON.parse(product.images);
-            console.log(`🧾 Parsed string images for product ${product.id}`);
-        }
 
-        updatedImages = updatedImages.map(img => {
-            if (!img) return img;
-            const normalized = img.startsWith('http')
-                ? img
-                : img.includes('/uploads/')
-                    ? `${hostUrl}${img.startsWith('/') ? '' : '/'}${img}`
-                    : `${hostUrl}/uploads/${img.startsWith('/') ? img.replace(/^\/+/, '') : img}`;
-            console.log(`➡️ Image URL: ${normalized}`);
-            return normalized;
-        });
-    } catch (e) {
-        console.warn(`⚠️ Failed to parse images for product ID ${product.id}: ${e}`);
+    try {
+        updatedImages = formatMediaUrls(product.images, hostUrl);
+    } catch (error) {
+        console.warn(`Failed to parse images for product ID ${product.id}:`, error.message);
     }
 
     try {
-        if (Array.isArray(product.videos)) {
-            updatedVideos = product.videos;
-        } else if (typeof product.videos === 'string') {
-            updatedVideos = JSON.parse(product.videos);
-        }
-
-        updatedVideos = updatedVideos.map(video => {
-            if (!video) return video;
-            const normalized = video.startsWith('http')
-                ? video
-                : video.includes('/uploads/')
-                    ? `${hostUrl}${video.startsWith('/') ? '' : '/'}${video}`
-                    : `${hostUrl}/uploads/${video.startsWith('/') ? video.replace(/^\/+/, '') : video}`;
-            return normalized;
-        });
-    } catch (e) {
-        console.warn(`⚠️ Failed to parse videos for product ID ${product.id}: ${e}`);
+        updatedVideos = formatMediaUrls(product.videos, hostUrl);
+    } catch (error) {
+        console.warn(`Failed to parse videos for product ID ${product.id}:`, error.message);
     }
 
     const isNew = new Date(product.createdAt) >= new Date(now - 48 * 60 * 60 * 1000);
-    console.log(`🆕 isNew = ${isNew} for product ${product.id}`);
-
     const seller = product.seller || {};
     const category = product.Category || {};
     const subCategory = product.SubCategory || {};
 
-    const result = {
+    return {
         ...product.toJSON(),
         images: updatedImages,
         videos: updatedVideos,
@@ -75,14 +66,16 @@ function formatProduct(product, hostUrl) {
         preorder_days: product.preorder_days || null,
         preorder_available_date: product.preorder_available_date || null,
     };
+}
 
-    console.log(`✅ Final formatted product:`, result);
-    return result;
+async function fetchProductWithRelations(productId) {
+    return Product.findByPk(productId, {
+        include: [Category, SubCategory, { model: User, as: 'seller' }],
+    });
 }
 
 const ProductController = {
     async getAllProducts(req, res) {
-        console.log('\n📥 GET all active products');
         try {
             const products = await Product.findAll({
                 where: { is_active: true },
@@ -90,19 +83,15 @@ const ProductController = {
                 order: [['createdAt', 'DESC']],
             });
 
-            console.log(`🔢 Total products fetched: ${products.length}`);
             const hostUrl = `${req.protocol}://${req.get('host')}`;
-            const formatted = products.map(p => formatProduct(p, hostUrl));
-
-            return res.status(200).json(formatted);
+            return res.status(200).json(products.map((product) => formatProduct(product, hostUrl)));
         } catch (error) {
-            console.error('❌ Error in getAllProducts:', error);
+            console.error('Error in getAllProducts:', error);
             return res.status(500).json({ error: error.message });
         }
     },
 
     async getFeaturedProducts(req, res) {
-        console.log('\n📥 GET featured products');
         try {
             const products = await Product.findAll({
                 where: { is_active: true, is_featured: true },
@@ -110,41 +99,31 @@ const ProductController = {
                 order: [['createdAt', 'DESC']],
             });
 
-            console.log(`🌟 Total featured products: ${products.length}`);
             const hostUrl = `${req.protocol}://${req.get('host')}`;
-            const formatted = products.map(p => formatProduct(p, hostUrl));
-
-            return res.status(200).json(formatted);
+            return res.status(200).json(products.map((product) => formatProduct(product, hostUrl)));
         } catch (error) {
-            console.error('❌ Error in getFeaturedProducts:', error);
+            console.error('Error in getFeaturedProducts:', error);
             return res.status(500).json({ error: error.message });
         }
     },
 
     async getProductById(req, res) {
-        console.log(`\n📥 GET product by ID: ${req.params.id}`);
         try {
-            const product = await Product.findByPk(req.params.id, {
-                include: [Category, SubCategory, { model: User, as: 'seller' }],
-            });
+            const product = await fetchProductWithRelations(req.params.id);
 
             if (!product) {
-                console.warn('⚠️ Product not found:', req.params.id);
                 return res.status(404).json({ message: 'Product not found' });
             }
 
             const hostUrl = `${req.protocol}://${req.get('host')}`;
-            const formatted = formatProduct(product, hostUrl);
-
-            return res.status(200).json(formatted);
+            return res.status(200).json(formatProduct(product, hostUrl));
         } catch (error) {
-            console.error('❌ Error in getProductById:', error);
+            console.error('Error in getProductById:', error);
             return res.status(500).json({ error: error.message });
         }
     },
 
     async getProductsByCategory(req, res) {
-        console.log(`\n📥 GET products by category ID: ${req.params.categoryId}`);
         try {
             const products = await Product.findAll({
                 where: { CategoryId: req.params.categoryId, is_active: true },
@@ -152,19 +131,15 @@ const ProductController = {
                 order: [['createdAt', 'DESC']],
             });
 
-            console.log(`🔢 Fetched ${products.length} products for category ${req.params.categoryId}`);
             const hostUrl = `${req.protocol}://${req.get('host')}`;
-            const formatted = products.map(p => formatProduct(p, hostUrl));
-
-            return res.status(200).json(formatted);
+            return res.status(200).json(products.map((product) => formatProduct(product, hostUrl)));
         } catch (error) {
-            console.error('❌ Error in getProductsByCategory:', error);
+            console.error('Error in getProductsByCategory:', error);
             return res.status(500).json({ error: error.message });
         }
     },
 
     async getProductsBySubCategory(req, res) {
-        console.log(`\n📥 GET products by subcategory ID: ${req.params.subCategoryId}`);
         try {
             const products = await Product.findAll({
                 where: { SubCategoryId: req.params.subCategoryId, is_active: true },
@@ -172,19 +147,15 @@ const ProductController = {
                 order: [['createdAt', 'DESC']],
             });
 
-            console.log(`🔢 Fetched ${products.length} products for subcategory ${req.params.subCategoryId}`);
             const hostUrl = `${req.protocol}://${req.get('host')}`;
-            const formatted = products.map(p => formatProduct(p, hostUrl));
-
-            return res.status(200).json(formatted);
+            return res.status(200).json(products.map((product) => formatProduct(product, hostUrl)));
         } catch (error) {
-            console.error('❌ Error in getProductsBySubCategory:', error);
+            console.error('Error in getProductsBySubCategory:', error);
             return res.status(500).json({ error: error.message });
         }
     },
 
     async createProduct(req, res) {
-        console.log('\n📥 CREATE product with data:', req.body);
         try {
             const {
                 name,
@@ -200,119 +171,93 @@ const ProductController = {
                 preorderDays,
             } = req.body;
 
+            if (!name || !price || !stock || !unit || !categoryId || !subCategoryId || !sellerId) {
+                return res.status(400).json({ error: 'Missing required product fields' });
+            }
+
             const imageFiles = req.files?.images || [];
             const videoFiles = req.files?.videos || [];
-
-            const imageUrls = imageFiles.map(file => {
-                const url = `/uploads/${file.filename}`;
-                console.log('📎 Uploaded image URL:', url);
-                return url;
-            });
-
-            const videoUrls = videoFiles.map(file => {
-                const url = `/uploads/${file.filename}`;
-                console.log('🎬 Uploaded video URL:', url);
-                return url;
-            });
+            const imageUrls = imageFiles.map((file) => `/uploads/${file.filename}`);
+            const videoUrls = videoFiles.map((file) => `/uploads/${file.filename}`);
 
             const isPreorderBool = isPreorder === 'true' || isPreorder === true;
             const parsedPreorderDays =
                 preorderDays !== undefined && preorderDays !== null && preorderDays !== ''
-                    ? parseInt(preorderDays)
+                    ? parseInt(preorderDays, 10)
                     : null;
             const preorderAvailableDate =
                 isPreorderBool && parsedPreorderDays
                     ? new Date(Date.now() + parsedPreorderDays * 24 * 60 * 60 * 1000)
                     : null;
 
-            const newProduct = {
+            const product = await Product.create({
                 name,
                 description,
                 price: parseFloat(price),
-                stock_quantity: parseInt(stock),
+                stock_quantity: parseInt(stock, 10),
                 unit,
-                is_featured: isFeatured === 'true',
+                is_featured: isFeatured === 'true' || isFeatured === true,
                 is_active: true,
                 images: imageUrls,
                 videos: videoUrls,
-                CategoryId: parseInt(categoryId),
-                SubCategoryId: parseInt(subCategoryId),
-                seller_id: parseInt(sellerId),
+                CategoryId: parseInt(categoryId, 10),
+                SubCategoryId: parseInt(subCategoryId, 10),
+                seller_id: parseInt(sellerId, 10),
                 is_preorder: isPreorderBool,
                 preorder_days: parsedPreorderDays,
                 preorder_available_date: preorderAvailableDate,
-            };
+            });
 
-            console.log('📦 Product to create:', newProduct);
-
-            const product = await Product.create(newProduct);
-            console.log('✅ Product created:', product.toJSON());
-
+            const fullProduct = await fetchProductWithRelations(product.id);
             const hostUrl = `${req.protocol}://${req.get('host')}`;
-            const formatted = formatProduct(product, hostUrl);
 
-            return res.status(201).json(formatted);
+            return res.status(201).json(formatProduct(fullProduct, hostUrl));
         } catch (error) {
-            console.error('❌ Error in createProduct:', error);
+            console.error('Error in createProduct:', error);
             return res.status(500).json({ error: error.message });
         }
     },
 
     async updateProduct(req, res) {
-        console.log(`\n📥 UPDATE product ID: ${req.params.id}`);
         try {
             const [updated] = await Product.update(req.body, {
                 where: { id: req.params.id },
             });
 
-            if (updated) {
-                const updatedProduct = await Product.findByPk(req.params.id, {
-                    include: [Category, SubCategory, { model: User, as: 'seller' }],
-                });
-
-                console.log('✅ Updated product found:', updatedProduct.toJSON());
-
-                const hostUrl = `${req.protocol}://${req.get('host')}`;
-                const formatted = formatProduct(updatedProduct, hostUrl);
-
-                return res.status(200).json(formatted);
+            if (!updated) {
+                return res.status(404).json({ message: 'Product not found' });
             }
 
-            console.warn('⚠️ Product not found to update:', req.params.id);
-            return res.status(404).json({ message: 'Product not found' });
+            const updatedProduct = await fetchProductWithRelations(req.params.id);
+            const hostUrl = `${req.protocol}://${req.get('host')}`;
+
+            return res.status(200).json(formatProduct(updatedProduct, hostUrl));
         } catch (error) {
-            console.error('❌ Error in updateProduct:', error);
+            console.error('Error in updateProduct:', error);
             return res.status(500).json({ error: error.message });
         }
     },
 
     async deleteProduct(req, res) {
-        console.log(`\n📥 DELETE product ID: ${req.params.id}`);
         try {
             const deleted = await Product.destroy({ where: { id: req.params.id } });
 
-            if (deleted) {
-                console.log('✅ Product deleted:', req.params.id);
-                return res.status(204).send();
+            if (!deleted) {
+                return res.status(404).json({ message: 'Product not found' });
             }
 
-            console.warn('⚠️ Product not found to delete:', req.params.id);
-            return res.status(404).json({ message: 'Product not found' });
+            return res.status(204).send();
         } catch (error) {
-            console.error('❌ Error in deleteProduct:', error);
+            console.error('Error in deleteProduct:', error);
             return res.status(500).json({ error: error.message });
         }
     },
 
     async markAsFeatured(req, res) {
-        console.log(`\n📌 MARK AS FEATURED product ID: ${req.params.id}`);
         try {
-            const product = await Product.findByPk(req.params.id, {
-                include: [Category, SubCategory, { model: User, as: 'seller' }],
-            });
+            const product = await fetchProductWithRelations(req.params.id);
 
             if (!product) {
-                console.warn('⚠️ Product not found to feature:', req.params.id);
                 return res.status(404).json({ message: 'Product not found' });
             }
 
@@ -320,25 +265,18 @@ const ProductController = {
             await product.save();
 
             const hostUrl = `${req.protocol}://${req.get('host')}`;
-            const formatted = formatProduct(product, hostUrl);
-
-            console.log('✅ Product marked as featured:', product.id);
-            return res.status(200).json(formatted);
+            return res.status(200).json(formatProduct(product, hostUrl));
         } catch (error) {
-            console.error('❌ Error in markAsFeatured:', error);
+            console.error('Error in markAsFeatured:', error);
             return res.status(500).json({ error: error.message });
         }
     },
 
     async unmarkAsFeatured(req, res) {
-        console.log(`\n📌 UNMARK FEATURED product ID: ${req.params.id}`);
         try {
-            const product = await Product.findByPk(req.params.id, {
-                include: [Category, SubCategory, { model: User, as: 'seller' }],
-            });
+            const product = await fetchProductWithRelations(req.params.id);
 
             if (!product) {
-                console.warn('⚠️ Product not found to unfeature:', req.params.id);
                 return res.status(404).json({ message: 'Product not found' });
             }
 
@@ -346,16 +284,12 @@ const ProductController = {
             await product.save();
 
             const hostUrl = `${req.protocol}://${req.get('host')}`;
-            const formatted = formatProduct(product, hostUrl);
-
-            console.log('✅ Product unmarked as featured:', product.id);
-            return res.status(200).json(formatted);
+            return res.status(200).json(formatProduct(product, hostUrl));
         } catch (error) {
-            console.error('❌ Error in unmarkAsFeatured:', error);
+            console.error('Error in unmarkAsFeatured:', error);
             return res.status(500).json({ error: error.message });
         }
     },
-
 };
 
 module.exports = ProductController;
