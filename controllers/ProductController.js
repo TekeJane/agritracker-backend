@@ -21,7 +21,7 @@ function formatProduct(product, hostUrl) {
                 ? img
                 : img.includes('/uploads/')
                     ? `${hostUrl}${img.startsWith('/') ? '' : '/'}${img}`
-                    : `${hostUrl}/uploads/${img.startsWith('/') ? img.replace(/^\\/+/, '') : img}`;
+                    : `${hostUrl}/uploads/${img.startsWith('/') ? img.replace(/^\/+/, '') : img}`;
             console.log(`➡️ Image URL: ${normalized}`);
             return normalized;
         });
@@ -42,7 +42,7 @@ function formatProduct(product, hostUrl) {
                 ? video
                 : video.includes('/uploads/')
                     ? `${hostUrl}${video.startsWith('/') ? '' : '/'}${video}`
-                    : `${hostUrl}/uploads/${video.startsWith('/') ? video.replace(/^\\/+/, '') : video}`;
+                    : `${hostUrl}/uploads/${video.startsWith('/') ? video.replace(/^\/+/, '') : video}`;
             return normalized;
         });
     } catch (e) {
