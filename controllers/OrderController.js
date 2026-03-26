@@ -14,7 +14,8 @@ const notifyUser = require('../services/notifyUser');
 
 
 const VALID_STATUSES = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
-const VALID_PAYMENT_STATUSES = ['unpaid', 'paid', 'refunded'];
+const VALID_PAYMENT_STATUSES = ['pending', 'paid', 'failed', 'refunded'];
+const MOBILE_MONEY_NOTE_MARKER = '[MOBILE_MONEY_META]';
 
 const SHIPPING_COSTS = {
     farmer_delivers: 0,
@@ -22,6 +23,60 @@ const SHIPPING_COSTS = {
     standard: 1000,
     express: 2000,
 };
+
+function buildOrderNotes(notes, mobileMoneyPayment) {
+    const visibleNotes = typeof notes === 'string' ? notes.trim() : '';
+    if (!mobileMoneyPayment) {
+        return visibleNotes || null;
+    }
+
+    const metadata = {
+        provider: mobileMoneyPayment.provider,
+        payer_phone_number: mobileMoneyPayment.payer_phone_number,
+        transaction_id: mobileMoneyPayment.transaction_id,
+        recipient_number: mobileMoneyPayment.recipient_number,
+        recipient_name: mobileMoneyPayment.recipient_name,
+        company_name: mobileMoneyPayment.company_name,
+        verification_status: mobileMoneyPayment.verification_status || 'submitted',
+        submitted_at: mobileMoneyPayment.submitted_at || new Date().toISOString(),
+    };
+
+    const serialized = `${MOBILE_MONEY_NOTE_MARKER}${JSON.stringify(metadata)}`;
+    return visibleNotes ? `${visibleNotes}\n\n${serialized}` : serialized;
+}
+
+function getMobileMoneyProviderLabel(paymentMethod) {
+    switch (paymentMethod) {
+        case 'mtn_mobile_money':
+            return 'MTN Mobile Money';
+        case 'orange_money':
+            return 'Orange Money';
+        default:
+            return 'Mobile Money';
+    }
+}
+
+async function notifyAdminsOfMobileMoneySubmission(order, buyerId) {
+    const admins = await User.findAll({
+        where: { role: 'admin' },
+        attributes: ['id'],
+    });
+
+    if (!admins.length) {
+        return;
+    }
+
+    await Promise.all(
+        admins.map((admin) =>
+            notifyUser(
+                admin.id,
+                'Payment Submitted',
+                `Order ${order.order_number} has a new mobile money payment confirmation from user ${buyerId}.`,
+                'order'
+            )
+        )
+    );
+}
 
 const OrderController = {
 
@@ -140,7 +195,30 @@ const OrderController = {
         const t = await sequelize.transaction();
 
         try {
-            const { shipping_address, shipping_method, payment_method, notes } = req.body;
+            const {
+                shipping_address,
+                shipping_method,
+                payment_method,
+                notes,
+                mobile_money_payment,
+            } = req.body;
+
+            const isMobileMoneyPayment = ['mtn_mobile_money', 'orange_money'].includes(payment_method);
+
+            if (isMobileMoneyPayment) {
+                const requiredFields = [
+                    mobile_money_payment?.provider,
+                    mobile_money_payment?.payer_phone_number,
+                    mobile_money_payment?.transaction_id,
+                ];
+
+                if (requiredFields.some((field) => !field || !field.toString().trim())) {
+                    await t.rollback();
+                    return res.status(400).json({
+                        message: 'Mobile money payment details are required before order confirmation',
+                    });
+                }
+            }
 
             const cartItems = await Cart.findAll({
                 where: { UserId: req.user.id },
@@ -179,7 +257,16 @@ const OrderController = {
                 shipping_address,
                 shipping_method,
                 payment_method,
-                notes,
+                notes: buildOrderNotes(notes, isMobileMoneyPayment ? {
+                    provider: mobile_money_payment.provider || getMobileMoneyProviderLabel(payment_method),
+                    payer_phone_number: mobile_money_payment.payer_phone_number,
+                    transaction_id: mobile_money_payment.transaction_id,
+                    recipient_number: mobile_money_payment.recipient_number || '+237 6 54 89 70 41',
+                    recipient_name: mobile_money_payment.recipient_name || 'Official Agritracker',
+                    company_name: mobile_money_payment.company_name || 'Agri_Tracker',
+                    verification_status: mobile_money_payment.verification_status || 'submitted',
+                    submitted_at: mobile_money_payment.submitted_at,
+                } : null),
             }, { transaction: t });
 
             // Create order items + update stock
@@ -218,7 +305,17 @@ const OrderController = {
             });
 
 // 🔔 Notify buyer
-            await notifyUser(req.user.id, "Order Placed", "Your order has been placed successfully!", "order");
+            if (isMobileMoneyPayment) {
+                await notifyUser(
+                    req.user.id,
+                    'Payment Submitted',
+                    `Your ${getMobileMoneyProviderLabel(payment_method)} payment for order ${completeOrder.order_number} has been submitted for review.`,
+                    'order'
+                );
+                await notifyAdminsOfMobileMoneySubmission(completeOrder, req.user.id);
+            } else {
+                await notifyUser(req.user.id, "Order Placed", "Your order has been placed successfully!", "order");
+            }
 
 // 🔔 Notify sellers (handle multiple vendors)
             const notifiedSellers = new Set();
