@@ -52,6 +52,13 @@ function formatProduct(product, hostUrl) {
         images: updatedImages,
         videos: updatedVideos,
         isNew,
+        unit: product.unit || null,
+        minimum_order_quantity: product.minimum_order_quantity || null,
+        variety: product.variety || null,
+        harvest_date: product.harvest_date || null,
+        shelf_life: product.shelf_life || null,
+        origin_region: product.origin_region || null,
+        origin_town: product.origin_town || null,
         userId: seller.id || null,
         sellerName: seller.full_name || 'Anonymous',
         sellerImage: seller.profile_image ? `${hostUrl}/uploads/${seller.profile_image}` : null,
@@ -163,6 +170,12 @@ const ProductController = {
                 price,
                 stock,
                 unit,
+                minimumOrderQuantity,
+                variety,
+                harvestDate,
+                shelfLife,
+                originRegion,
+                originTown,
                 categoryId,
                 subCategoryId,
                 isFeatured,
@@ -190,12 +203,25 @@ const ProductController = {
                     ? new Date(Date.now() + parsedPreorderDays * 24 * 60 * 60 * 1000)
                     : null;
 
+            const parsedMinimumOrderQuantity =
+                minimumOrderQuantity !== undefined &&
+                minimumOrderQuantity !== null &&
+                minimumOrderQuantity !== ''
+                    ? parseInt(minimumOrderQuantity, 10)
+                    : null;
+
             const product = await Product.create({
                 name,
                 description,
                 price: parseFloat(price),
                 stock_quantity: parseInt(stock, 10),
                 unit,
+                minimum_order_quantity: parsedMinimumOrderQuantity,
+                variety: variety || null,
+                harvest_date: harvestDate || null,
+                shelf_life: shelfLife || null,
+                origin_region: originRegion || null,
+                origin_town: originTown || null,
                 is_featured: isFeatured === 'true' || isFeatured === true,
                 is_active: true,
                 images: imageUrls,

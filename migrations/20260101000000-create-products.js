@@ -25,6 +25,34 @@ module.exports = {
         allowNull: false,
         defaultValue: 0
       },
+      unit: {
+        type: Sequelize.STRING,
+        allowNull: true
+      },
+      minimum_order_quantity: {
+        type: Sequelize.INTEGER,
+        allowNull: true
+      },
+      variety: {
+        type: Sequelize.STRING,
+        allowNull: true
+      },
+      harvest_date: {
+        type: Sequelize.DATEONLY,
+        allowNull: true
+      },
+      shelf_life: {
+        type: Sequelize.STRING,
+        allowNull: true
+      },
+      origin_region: {
+        type: Sequelize.STRING,
+        allowNull: true
+      },
+      origin_town: {
+        type: Sequelize.STRING,
+        allowNull: true
+      },
       images: {
         type: Sequelize.JSON,
         allowNull: true

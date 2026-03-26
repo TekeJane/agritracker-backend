@@ -19,6 +19,34 @@ const Product = sequelize.define('Product', {
         allowNull: false,
         defaultValue: 0,
     },
+    unit: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
+    minimum_order_quantity: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+    },
+    variety: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
+    harvest_date: {
+        type: DataTypes.DATEONLY,
+        allowNull: true,
+    },
+    shelf_life: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
+    origin_region: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
+    origin_town: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
     images: {
         type: DataTypes.JSON, // Array of image URLs
     },
