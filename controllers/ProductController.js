@@ -24,6 +24,26 @@ function formatMediaUrls(mediaList, hostUrl) {
     });
 }
 
+function buildUploadUrl(value, hostUrl) {
+    if (!value) {
+        return null;
+    }
+
+    if (value.startsWith('http://') || value.startsWith('https://')) {
+        return value;
+    }
+
+    if (value.startsWith('/uploads/')) {
+        return `${hostUrl}${value}`;
+    }
+
+    if (value.startsWith('uploads/')) {
+        return `${hostUrl}/${value}`;
+    }
+
+    return `${hostUrl}/uploads/${value.replace(/^\/+/, '')}`;
+}
+
 function formatProduct(product, hostUrl) {
     const now = new Date();
 
@@ -54,24 +74,38 @@ function formatProduct(product, hostUrl) {
         isNew,
         unit: product.unit || null,
         minimum_order_quantity: product.minimum_order_quantity || null,
+        minimumOrderQuantity: product.minimum_order_quantity || null,
         variety: product.variety || null,
         harvest_date: product.harvest_date || null,
+        harvestDate: product.harvest_date || null,
         shelf_life: product.shelf_life || null,
+        shelfLife: product.shelf_life || null,
         origin_region: product.origin_region || null,
+        originRegion: product.origin_region || null,
         origin_town: product.origin_town || null,
+        originTown: product.origin_town || null,
+        stock: product.stock_quantity,
+        stockQuantity: product.stock_quantity,
         userId: seller.id || null,
         sellerName: seller.full_name || 'Anonymous',
-        sellerImage: seller.profile_image ? `${hostUrl}/uploads/${seller.profile_image}` : null,
+        sellerFullName: seller.full_name || 'Anonymous',
+        sellerImage: buildUploadUrl(seller.profile_image, hostUrl),
+        sellerProfileImage: buildUploadUrl(seller.profile_image, hostUrl),
         sellerBio: seller.bio || '',
         facEbook: seller.facEbook || null,
         instagram: seller.instagram || null,
         twitter: seller.twitter || null,
         tiktok: seller.tiktok || null,
         category_name: category.name || null,
+        categoryName: category.name || null,
         sub_category_name: subCategory.name || null,
+        subCategoryName: subCategory.name || null,
         is_preorder: product.is_preorder || false,
+        isPreorder: product.is_preorder || false,
         preorder_days: product.preorder_days || null,
+        preorderDays: product.preorder_days || null,
         preorder_available_date: product.preorder_available_date || null,
+        preorderAvailableDate: product.preorder_available_date || null,
     };
 }
 
@@ -190,6 +224,11 @@ const ProductController = {
 
             const imageFiles = req.files?.images || [];
             const videoFiles = req.files?.videos || [];
+
+            if (imageFiles.length < 3) {
+                return res.status(400).json({ error: 'At least 3 product images are required' });
+            }
+
             const imageUrls = imageFiles.map((file) => `/uploads/${file.filename}`);
             const videoUrls = videoFiles.map((file) => `/uploads/${file.filename}`);
 
