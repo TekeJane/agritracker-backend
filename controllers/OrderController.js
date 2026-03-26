@@ -16,6 +16,13 @@ const notifyUser = require('../services/notifyUser');
 const VALID_STATUSES = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
 const VALID_PAYMENT_STATUSES = ['unpaid', 'paid', 'refunded'];
 
+const SHIPPING_COSTS = {
+    farmer_delivers: 0,
+    buyer_pickup: 0,
+    standard: 1000,
+    express: 2000,
+};
+
 const OrderController = {
 
     // controllers/OrderController.js
@@ -160,6 +167,9 @@ const OrderController = {
                 }
                 total_amount += item.Product.price * item.quantity;
             }
+
+            const shippingCost = SHIPPING_COSTS[shipping_method] ?? 0;
+            total_amount += shippingCost;
 
             // Create order
             const order = await Order.create({
