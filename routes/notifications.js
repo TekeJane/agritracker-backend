@@ -3,6 +3,27 @@ const express = require('express');
 const { Notification } = require('../models');
 const router = express.Router();
 
+router.patch('/:userId/read-all', async (req, res) => {
+    const { userId } = req.params;
+
+    try {
+        await Notification.update(
+            { is_read: true },
+            {
+                where: {
+                    user_id: userId,
+                    is_read: false,
+                },
+            }
+        );
+
+        return res.json({ message: 'Notifications marked as read' });
+    } catch (err) {
+        console.error('Error marking notifications as read:', err.message);
+        return res.status(500).json({ error: 'Failed to update notifications.' });
+    }
+});
+
 router.get('/:userId', async (req, res) => {
     const { userId } = req.params;
 

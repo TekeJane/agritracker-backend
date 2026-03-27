@@ -44,6 +44,15 @@ function buildUploadUrl(value, hostUrl) {
     return `${hostUrl}/uploads/${value.replace(/^\/+/, '')}`;
 }
 
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 function formatProduct(product, hostUrl) {
     const now = new Date();
 
@@ -161,6 +170,55 @@ const ProductController = {
         } catch (error) {
             console.error('Error in getProductById:', error);
             return res.status(500).json({ error: error.message });
+        }
+    },
+
+    async getProductSharePage(req, res) {
+        try {
+            const product = await fetchProductWithRelations(req.params.id);
+
+            if (!product) {
+                return res.status(404).send('<h1>Product not found</h1>');
+            }
+
+            const hostUrl = `${req.protocol}://${req.get('host')}`;
+            const formattedProduct = formatProduct(product, hostUrl);
+            const sellerName = formattedProduct.sellerFullName || formattedProduct.sellerName || 'Seller';
+            const productImage = formattedProduct.images?.[0] || '';
+            const productName = escapeHtml(formattedProduct.name);
+            const productDescription = escapeHtml(formattedProduct.description || 'No description available.');
+            const productPrice = Number(formattedProduct.price || 0).toFixed(0);
+            const imageMarkup = productImage
+                ? `<img src="${escapeHtml(productImage)}" alt="${productName}" style="width:100%;max-width:520px;height:280px;object-fit:cover;border-radius:24px;box-shadow:0 18px 40px rgba(15,23,42,0.16);" />`
+                : '<div style="width:100%;max-width:520px;height:280px;border-radius:24px;background:#d9f99d;display:flex;align-items:center;justify-content:center;color:#166534;font-size:20px;font-weight:700;">AgriTracker Product</div>';
+
+            return res.status(200).send(`<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>${productName} | AgriTracker</title>
+    <meta name="description" content="${productDescription}" />
+  </head>
+  <body style="margin:0;font-family:Arial,sans-serif;background:linear-gradient(180deg,#f7fee7 0%,#ffffff 55%);color:#0f172a;">
+    <main style="max-width:760px;margin:0 auto;padding:40px 20px 56px;">
+      <div style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;background:#dcfce7;color:#166534;font-weight:700;font-size:13px;">AgriTracker Verified Product</div>
+      <h1 style="margin:18px 0 12px;font-size:38px;line-height:1.1;color:#14532d;">${productName}</h1>
+      <p style="margin:0 0 24px;font-size:17px;line-height:1.7;color:#475569;">${productDescription}</p>
+      ${imageMarkup}
+      <section style="margin-top:28px;padding:24px;border-radius:24px;background:#ffffff;box-shadow:0 16px 40px rgba(15,23,42,0.08);">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:18px;">
+          <div><div style="font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;">Price</div><div style="margin-top:6px;font-size:28px;font-weight:800;color:#166534;">XAF ${escapeHtml(productPrice)}</div></div>
+          <div><div style="font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;">Seller</div><div style="margin-top:6px;font-size:18px;font-weight:700;">${escapeHtml(sellerName)}</div></div>
+          <div><div style="font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;">Company</div><div style="margin-top:6px;font-size:18px;font-weight:700;">AgriTracker</div></div>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>`);
+        } catch (error) {
+            console.error('Error in getProductSharePage:', error);
+            return res.status(500).send('<h1>Unable to load product</h1>');
         }
     },
 

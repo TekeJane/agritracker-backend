@@ -4,6 +4,15 @@ const { Feedback } = require('../models');
 const companyFeedbackEmail =
     process.env.COMPANY_FEEDBACK_EMAIL || 'officialagritracker@gmail.com';
 
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 function buildTransporter() {
     const user = process.env.EMAIL_USER || process.env.SMTP_USER;
     const pass = process.env.EMAIL_PASSWORD || process.env.SMTP_PASS;
@@ -31,21 +40,42 @@ async function sendFeedbackEmail({ type, message, rating, contact_info }) {
         to: companyFeedbackEmail,
         subject: `AgriTracker Feedback: ${type}`,
         text: [
+            'Hello AgriTracker Team,',
+            '',
+            'A new feedback message has been received from the app.',
+            '',
             `Feedback Type: ${type}`,
-            `Rating: ${rating ?? 'N/A'}`,
+            `Rating: ${rating ?? 'N/A'}/5`,
             `Contact Info: ${contact_info}`,
             '',
-            'Message:',
-            message,
+            'Message',
+            `${message}`,
+            '',
+            'Regards,',
+            'AgriTracker App',
         ].join('\n'),
         html: `
             <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #1f2937;">
                 <h2 style="color: #2e7d32;">New AgriTracker Feedback</h2>
-                <p><strong>Type:</strong> ${type}</p>
-                <p><strong>Rating:</strong> ${rating ?? 'N/A'}</p>
-                <p><strong>Contact Info:</strong> ${contact_info}</p>
-                <p><strong>Message:</strong></p>
-                <div style="padding: 12px; background: #f3f4f6; border-radius: 8px; white-space: pre-wrap;">${message}</div>
+                <p>Hello AgriTracker Team,</p>
+                <p>A new feedback message has been received from the app.</p>
+                <table style="border-collapse: collapse; width: 100%; margin: 20px 0;">
+                    <tr>
+                        <td style="padding: 8px 0; font-weight: 700; width: 140px;">Feedback Type</td>
+                        <td style="padding: 8px 0;">${escapeHtml(type)}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; font-weight: 700;">Rating</td>
+                        <td style="padding: 8px 0;">${escapeHtml(rating ?? 'N/A')}/5</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; font-weight: 700;">Contact Info</td>
+                        <td style="padding: 8px 0;">${escapeHtml(contact_info)}</td>
+                    </tr>
+                </table>
+                <p style="margin-bottom: 8px; font-weight: 700;">Message</p>
+                <div style="padding: 14px; background: #f3f4f6; border-radius: 10px; white-space: pre-wrap;">${escapeHtml(message)}</div>
+                <p style="margin-top: 20px;">Regards,<br/>AgriTracker App</p>
             </div>
         `,
     };

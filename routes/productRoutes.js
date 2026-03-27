@@ -10,6 +10,7 @@ router.get('/', ProductController.getAllProducts);
 router.get('/featured', ProductController.getFeaturedProducts);
 router.get('/category/:categoryId', ProductController.getProductsByCategory);
 router.get('/subcategory/:subCategoryId', ProductController.getProductsBySubCategory);
+router.get('/share/:id', ProductController.getProductSharePage);
 router.get('/:id', ProductController.getProductById);
 
 // POST product (seller or admin) with images/videos
