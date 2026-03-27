@@ -147,6 +147,32 @@ const videoController = {
         }
     },
 
+    async getVideosForAdminReview(req, res) {
+        try {
+            const approvedParam = String(req.query.approved ?? 'false').toLowerCase();
+            const isApproved = approvedParam == 'true';
+            console.log(`Fetching admin review videos (approved=${isApproved})...`);
+
+            const whereClause = { is_approved: isApproved };
+
+            if (req.query.category) {
+                whereClause['$VideoCategory.name$'] = req.query.category;
+            }
+
+            const videos = await VideoTip.findAll({
+                where: whereClause,
+                include: [VideoCategory, User],
+                order: [['createdAt', 'DESC']],
+            });
+
+            const host = `${req.protocol}://${req.get('host')}`;
+            res.json(videos.map((video) => formatVideo(video, host)));
+        } catch (err) {
+            console.error("Get admin review videos error:", err);
+            res.status(500).json({ error: err.message });
+        }
+    },
+
     // ✅ Approve a video (Admin)
     async approveVideo(req, res) {
         try {
