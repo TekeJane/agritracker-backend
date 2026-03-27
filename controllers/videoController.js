@@ -128,6 +128,10 @@ const videoController = {
             console.log("Fetching approved videos...");
             const whereClause = { is_approved: true };
 
+            if (req.query.category_id) {
+                whereClause.category_id = req.query.category_id;
+            }
+
             if (req.query.category) {
                 whereClause['$VideoCategory.name$'] = req.query.category;
                 console.log("Filtering by category:", req.query.category);
@@ -154,6 +158,10 @@ const videoController = {
             console.log(`Fetching admin review videos (approved=${isApproved})...`);
 
             const whereClause = { is_approved: isApproved };
+
+            if (req.query.category_id) {
+                whereClause.category_id = req.query.category_id;
+            }
 
             if (req.query.category) {
                 whereClause['$VideoCategory.name$'] = req.query.category;

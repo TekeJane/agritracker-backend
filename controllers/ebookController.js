@@ -85,6 +85,10 @@ const EbookController = {
                 whereClause.is_approved = true;
             }
 
+            if (req.query.category_id) {
+                whereClause.category_id = req.query.category_id;
+            }
+
             console.log('Fetching Ebooks with filter:', whereClause);
             const Ebooks = await Ebook.findAll({
                 where: whereClause,

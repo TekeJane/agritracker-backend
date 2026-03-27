@@ -28,9 +28,11 @@ const buildUserResponse = (user, baseUrl, sellerAverageRating = null, sellerRevi
             : null,
         bio: user.bio,
         facEbook: user.facEbook,
+        facebook: user.facEbook,
         instagram: user.instagram,
         twitter: user.twitter,
         tiktok: user.tiktok,
+        whatsapp: user.phone,
         created_at: user.createdAt,
         average_rating: parseFloat(averageRating.toFixed(1)),
         seller_review_count: sellerReviewCount ?? user.reviews?.length ?? 0,
@@ -137,17 +139,30 @@ const getUserProfile = async (req, res) => {
 const updateMyProfile = async (req, res) => {
     try {
         const userId = req.user.id;
-        const allowedFields = [
-            'full_name', 'phone', 'address', 'date_of_birth', 'bio',
-            'facEbook', 'instagram', 'twitter', 'tiktok', 'profile_image'
-        ];
-
         const updates = {};
-        allowedFields.forEach(field => {
-            if (req.body[field] !== undefined) {
-                updates[field] = req.body[field];
+        const directFieldMap = {
+            full_name: 'full_name',
+            phone: 'phone',
+            address: 'address',
+            date_of_birth: 'date_of_birth',
+            bio: 'bio',
+            facEbook: 'facEbook',
+            facebook: 'facEbook',
+            instagram: 'instagram',
+            twitter: 'twitter',
+            tiktok: 'tiktok',
+            profile_image: 'profile_image',
+        };
+
+        Object.entries(directFieldMap).forEach(([requestField, modelField]) => {
+            if (req.body[requestField] !== undefined) {
+                updates[modelField] = req.body[requestField];
             }
         });
+
+        if (req.body.whatsapp !== undefined && req.body.phone === undefined) {
+            updates.phone = req.body.whatsapp;
+        }
 
         if (req.file) {
             updates.profile_image = req.file.filename;
