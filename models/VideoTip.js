@@ -26,6 +26,10 @@ const VideoTip = sequelize.define('VideoTip', {
         allowNull: false,
         defaultValue: 'general',
     },
+    ebook_id: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+    },
     is_approved: {
         type: DataTypes.BOOLEAN,
         defaultValue: false,

@@ -28,6 +28,7 @@ router.post(
     upload.fields([
         { name: 'file', maxCount: 1 },
         { name: 'cover_image', maxCount: 1 },
+        { name: 'gallery_images', maxCount: 8 },
     ]),
     EbookController.uploadEbook
 );
@@ -68,6 +69,7 @@ router.get('/categories', EbookController.getEbookCategories);
 router.get('/Ebooks/categories', EbookController.getEbookCategories);
 router.get('/subcategories', EbookController.getEbookSubCategories);
 router.get('/subcategories/category/:categoryId', EbookController.getEbookSubCategories);
+router.get('/details/:id', EbookController.getEbookById);
 router.post(
     '/subcategories',
     authenticate,

@@ -33,6 +33,39 @@ const Ebook = sequelize.define('Ebook', {
     cover_image: {
         type: DataTypes.STRING,
     },
+    gallery_images: {
+        type: DataTypes.TEXT,
+        get() {
+            const raw = this.getDataValue('gallery_images');
+            if (!raw) return [];
+            try {
+                return JSON.parse(raw);
+            } catch (_) {
+                return [];
+            }
+        },
+        set(value) {
+            this.setDataValue('gallery_images', JSON.stringify(value || []));
+        },
+    },
+    origin_region: {
+        type: DataTypes.STRING,
+    },
+    origin_town: {
+        type: DataTypes.STRING,
+    },
+    posted_at: {
+        type: DataTypes.DATE,
+    },
+    is_preorder: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+    },
+    preorder_days: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+    },
     is_approved: {
         type: DataTypes.BOOLEAN,
         defaultValue: false

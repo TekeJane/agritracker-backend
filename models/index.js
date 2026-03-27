@@ -127,6 +127,9 @@ VideoTip.belongsTo(User, { foreignKey: 'uploaded_by' });
 VideoCategory.hasMany(VideoTip, { foreignKey: 'category_id' });
 VideoTip.belongsTo(VideoCategory, { foreignKey: 'category_id' });
 
+Ebook.hasMany(VideoTip, { foreignKey: 'ebook_id', as: 'ebookVideos' });
+VideoTip.belongsTo(Ebook, { foreignKey: 'ebook_id' });
+
 // === Webinar Relationships ===
 
 // WebinarRequest belongsTo User

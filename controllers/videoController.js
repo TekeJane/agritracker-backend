@@ -64,6 +64,10 @@ function buildVideoFilters(query = {}) {
         whereClause.content_source = query.content_source;
     }
 
+    if (query.ebook_id) {
+        whereClause.ebook_id = query.ebook_id;
+    }
+
     return whereClause;
 }
 
@@ -72,7 +76,7 @@ const videoController = {
     async uploadVideo(req, res) {
         try {
             console.log("Uploading video...");
-            const { title, description, category_id, creator_link, content_source } = req.body;
+            const { title, description, category_id, creator_link, content_source, ebook_id } = req.body;
             console.log("Request body:", req.body);
 
             const videoFile = req.files?.video_url?.[0];
@@ -134,6 +138,7 @@ const videoController = {
                 uploaded_by: req.user.id,
                 creator_link: creator_link || null,
                 content_source: normalizedContentSource,
+                ebook_id: ebook_id || null,
                 is_approved: isAdminUpload,
             });
 

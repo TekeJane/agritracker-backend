@@ -1,4 +1,4 @@
-const { User, Product, Review } = require('../models');
+const { User, Product, Review, Ebook, EbookCategory, EbookSubCategory } = require('../models');
 
 const getBaseUrl = (req) => {
     const envBaseUrl = process.env.BASE_URL;
@@ -6,6 +6,14 @@ const getBaseUrl = (req) => {
         return envBaseUrl.endsWith('/') ? envBaseUrl : `${envBaseUrl}/`;
     }
     return `${req.protocol}://${req.get('host')}/`;
+};
+
+const buildMediaUrl = (baseUrl, value) => {
+    if (!value) return null;
+    if (String(value).startsWith('http://') || String(value).startsWith('https://')) {
+        return value;
+    }
+    return `${baseUrl}${String(value).replace(/\\/g, '/').replace(/^\/+/, '')}`;
 };
 
 const buildUserResponse = (user, baseUrl, sellerAverageRating = null, sellerReviewCount = null) => {
@@ -24,7 +32,7 @@ const buildUserResponse = (user, baseUrl, sellerAverageRating = null, sellerRevi
         address: user.address,
         date_of_birth: user.date_of_birth,
         profile_image: user.profile_image
-            ? `${baseUrl}uploads/${user.profile_image}`
+            ? buildMediaUrl(baseUrl, `uploads/${user.profile_image}`)
             : null,
         bio: user.bio,
         facEbook: user.facEbook,
@@ -36,7 +44,18 @@ const buildUserResponse = (user, baseUrl, sellerAverageRating = null, sellerRevi
         created_at: user.createdAt,
         average_rating: parseFloat(averageRating.toFixed(1)),
         seller_review_count: sellerReviewCount ?? user.reviews?.length ?? 0,
-        products: user.products ?? []
+        products: user.products ?? [],
+        ebooks: (user.Ebooks ?? []).map((ebook) => ({
+            ...ebook.toJSON(),
+            cover_image: buildMediaUrl(baseUrl, ebook.cover_image),
+            gallery_images: (ebook.gallery_images ?? []).map((image) =>
+                buildMediaUrl(baseUrl, image)
+            ),
+            file_url: buildMediaUrl(baseUrl, ebook.file_url),
+            category_name: ebook.EbookCategory?.name ?? null,
+            sub_category_name: ebook.EbookSubCategory?.name ?? null,
+            author_name: user.full_name,
+        })),
     };
 };
 
@@ -58,7 +77,8 @@ const getMyProfile = async (req, res) => {
             attributes: { exclude: ['password'] },
             include: [
                 { model: Product, as: 'products' },
-                { model: Review, as: 'reviews', attributes: ['rating'] }
+                { model: Review, as: 'reviews', attributes: ['rating'] },
+                { model: Ebook, include: [EbookCategory, EbookSubCategory] },
             ]
         });
 
@@ -109,7 +129,8 @@ const getUserProfile = async (req, res) => {
             attributes: { exclude: ['password'] },
             include: [
                 { model: Product, as: 'products' },
-                { model: Review, as: 'reviews', attributes: ['rating'] }
+                { model: Review, as: 'reviews', attributes: ['rating'] },
+                { model: Ebook, include: [EbookCategory, EbookSubCategory] },
             ]
         });
 
@@ -174,7 +195,8 @@ const updateMyProfile = async (req, res) => {
             attributes: { exclude: ['password'] },
             include: [
                 { model: Product, as: 'products' },
-                { model: Review, as: 'reviews', attributes: ['rating'] }
+                { model: Review, as: 'reviews', attributes: ['rating'] },
+                { model: Ebook, include: [EbookCategory, EbookSubCategory] },
             ]
         });
 

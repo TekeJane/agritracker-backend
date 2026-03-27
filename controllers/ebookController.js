@@ -12,14 +12,19 @@ function buildPublicUrl(value, host) {
 
 function formatEbook(ebook, host) {
     const item = ebook.toJSON ? ebook.toJSON() : ebook;
+    const galleryImages = Array.isArray(item.gallery_images) ? item.gallery_images : [];
     return {
         ...item,
         cover_image: buildPublicUrl(item.cover_image, host),
         file_url: buildPublicUrl(item.file_url, host),
+        gallery_images: galleryImages.map((image) => buildPublicUrl(image, host)),
         author_name: item.User?.full_name || item.author_name || 'Author',
+        author_id: item.User?.id || item.author_id || null,
+        author_profile_image: buildPublicUrl(item.User?.profile_image || item.author_profile_image, host),
         category_name: item.EbookCategory?.name || item.category_name || null,
         sub_category_id: item.sub_category_id || item.EbookSubCategory?.id || null,
         sub_category_name: item.EbookSubCategory?.name || item.sub_category_name || null,
+        posted_at: item.posted_at || item.createdAt,
     };
 }
 
@@ -29,7 +34,20 @@ const EbookController = {
             console.log('📝 Incoming Ebook request:', req.body);
             console.log('📎 Uploaded files:', req.files);
 
-            const { title, description, price, category_id, sub_category_id, format, printing_cost } = req.body;
+            const {
+                title,
+                description,
+                price,
+                category_id,
+                sub_category_id,
+                format,
+                printing_cost,
+                origin_region,
+                origin_town,
+                posted_at,
+                is_preorder,
+                preorder_days,
+            } = req.body;
 
             if (!title || !description || !price || !category_id) {
                 return res.status(400).json({ error: 'Missing required fields.' });
@@ -38,6 +56,7 @@ const EbookController = {
             // Handle uploaded files
             const coverImageFile = req.files?.cover_image?.[0];
             const pdfFile = req.files?.file?.[0];
+            const galleryImageFiles = req.files?.gallery_images || [];
 
             if (!coverImageFile) {
                 return res.status(400).json({ error: 'Cover image is required.' });
@@ -45,6 +64,7 @@ const EbookController = {
 
             const cover_image = coverImageFile.path; // full path to uploaded file
             const file_url = pdfFile ? pdfFile.path : null;
+            const gallery_images = galleryImageFiles.map((file) => file.path);
 
             const createdEbook = await Ebook.create({
                 title,
@@ -54,9 +74,15 @@ const EbookController = {
                 printing_cost: printing_cost || 0,
                 file_url,
                 cover_image,
+                gallery_images,
                 author_id: req.user.id, // assuming `req.user` is populated by auth middleware
                 category_id,
                 sub_category_id: sub_category_id || null,
+                origin_region: origin_region || null,
+                origin_town: origin_town || null,
+                posted_at: posted_at || new Date(),
+                is_preorder: String(is_preorder).toLowerCase() === 'true',
+                preorder_days: preorder_days ? parseInt(preorder_days, 10) : null,
                 is_approved: true,
                 is_featured: false,
             });
@@ -100,6 +126,9 @@ const EbookController = {
             }
             if (req.query.sub_category_id) {
                 whereClause.sub_category_id = req.query.sub_category_id;
+            }
+            if (req.query.author_id) {
+                whereClause.author_id = req.query.author_id;
             }
 
             console.log('Fetching Ebooks with filter:', whereClause);
@@ -147,6 +176,24 @@ const EbookController = {
         } catch (err) {
             console.error('Error creating category:', err);
             res.status(500).json({ error: err.message });
+        }
+    },
+
+    async getEbookById(req, res) {
+        try {
+            const ebook = await Ebook.findByPk(req.params.id, {
+                include: [EbookCategory, EbookSubCategory, User],
+            });
+
+            if (!ebook) {
+                return res.status(404).json({ error: 'Ebook not found' });
+            }
+
+            const host = `${req.protocol}://${req.get('host')}`;
+            return res.json(formatEbook(ebook, host));
+        } catch (err) {
+            console.error('Error fetching ebook by id:', err);
+            return res.status(500).json({ error: err.message });
         }
     },
 

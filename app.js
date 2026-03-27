@@ -143,6 +143,55 @@ const ensureEbookSubCategorySchema = async () => {
         console.log('ðŸŸ¢ Ebooks.is_featured column ensured');
     }
 
+    if (!ebookTable.gallery_images) {
+        await queryInterface.addColumn('Ebooks', 'gallery_images', {
+            type: Sequelize.TEXT,
+            allowNull: true,
+        });
+        console.log('ðŸŸ¢ Ebooks.gallery_images column ensured');
+    }
+
+    if (!ebookTable.origin_region) {
+        await queryInterface.addColumn('Ebooks', 'origin_region', {
+            type: Sequelize.STRING,
+            allowNull: true,
+        });
+        console.log('ðŸŸ¢ Ebooks.origin_region column ensured');
+    }
+
+    if (!ebookTable.origin_town) {
+        await queryInterface.addColumn('Ebooks', 'origin_town', {
+            type: Sequelize.STRING,
+            allowNull: true,
+        });
+        console.log('ðŸŸ¢ Ebooks.origin_town column ensured');
+    }
+
+    if (!ebookTable.posted_at) {
+        await queryInterface.addColumn('Ebooks', 'posted_at', {
+            type: Sequelize.DATE,
+            allowNull: true,
+        });
+        console.log('ðŸŸ¢ Ebooks.posted_at column ensured');
+    }
+
+    if (!ebookTable.is_preorder) {
+        await queryInterface.addColumn('Ebooks', 'is_preorder', {
+            type: Sequelize.BOOLEAN,
+            allowNull: false,
+            defaultValue: false,
+        });
+        console.log('ðŸŸ¢ Ebooks.is_preorder column ensured');
+    }
+
+    if (!ebookTable.preorder_days) {
+        await queryInterface.addColumn('Ebooks', 'preorder_days', {
+            type: Sequelize.INTEGER,
+            allowNull: true,
+        });
+        console.log('ðŸŸ¢ Ebooks.preorder_days column ensured');
+    }
+
     const videoTable = await queryInterface.describeTable('VideoTips');
     if (!videoTable.creator_link) {
         await queryInterface.addColumn('VideoTips', 'creator_link', {
@@ -159,6 +208,20 @@ const ensureEbookSubCategorySchema = async () => {
             defaultValue: 'general',
         });
         console.log('ðŸŸ¢ VideoTips.content_source column ensured');
+    }
+
+    if (!videoTable.ebook_id) {
+        await queryInterface.addColumn('VideoTips', 'ebook_id', {
+            type: Sequelize.INTEGER,
+            allowNull: true,
+            references: {
+                model: 'Ebooks',
+                key: 'id',
+            },
+            onUpdate: 'CASCADE',
+            onDelete: 'SET NULL',
+        });
+        console.log('ðŸŸ¢ VideoTips.ebook_id column ensured');
     }
 };
 
