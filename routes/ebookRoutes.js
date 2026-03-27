@@ -65,6 +65,31 @@ router.post(
 
 // ✅ Get all Ebook categories (public)
 router.get('/categories', EbookController.getEbookCategories);
+router.get('/Ebooks/categories', EbookController.getEbookCategories);
+router.put(
+    '/categories/:id',
+    authenticate,
+    authorizeAdmin,
+    EbookController.updateEbookCategory
+);
+router.put(
+    '/Ebooks/categories/:id',
+    authenticate,
+    authorizeAdmin,
+    EbookController.updateEbookCategory
+);
+router.delete(
+    '/categories/:id',
+    authenticate,
+    authorizeAdmin,
+    EbookController.deleteEbookCategory
+);
+router.delete(
+    '/Ebooks/categories/:id',
+    authenticate,
+    authorizeAdmin,
+    EbookController.deleteEbookCategory
+);
 
 // ✅ User purchases an Ebook
 router.post('/purchase', authenticate, EbookController.purchaseEbook);

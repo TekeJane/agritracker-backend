@@ -68,30 +68,41 @@ const videoController = {
                 return res.status(400).json({ error: 'Video file required' });
             }
 
+            if (!title || !category_id) {
+                return res.status(400).json({ error: 'Title and category are required' });
+            }
+
             let thumbnailPath = req.files?.thumbnail_image?.[0]?.path || null;
 
             if (!thumbnailPath) {
+                const thumbnailDir = path.join('uploads', 'thumbnails');
+                fs.mkdirSync(thumbnailDir, { recursive: true });
                 thumbnailPath = `uploads/thumbnails/${Date.now()}_thumbnail.png`;
                 console.log("Thumbnail will be saved to:", thumbnailPath);
 
-                await new Promise((resolve, reject) => {
-                    ffmpeg(videoFile.path)
-                        .on('end', () => {
-                            console.log("Thumbnail generated.");
-                            resolve();
-                        })
-                        .on('error', (err) => {
-                            console.error("FFmpeg error:", err);
-                            reject(err);
-                        })
-                        .screenshots({
-                            count: 1,
-                            folder: path.dirname(thumbnailPath),
-                            filename: path.basename(thumbnailPath),
-                            size: '320x240',
-                            timemarks: ['3']
-                        });
-                });
+                try {
+                    await new Promise((resolve, reject) => {
+                        ffmpeg(videoFile.path)
+                            .on('end', () => {
+                                console.log("Thumbnail generated.");
+                                resolve();
+                            })
+                            .on('error', (err) => {
+                                console.error("FFmpeg error:", err);
+                                reject(err);
+                            })
+                            .screenshots({
+                                count: 1,
+                                folder: path.dirname(thumbnailPath),
+                                filename: path.basename(thumbnailPath),
+                                size: '320x240',
+                                timemarks: ['3']
+                            });
+                    });
+                } catch (thumbnailError) {
+                    console.error("Thumbnail generation failed, continuing without thumbnail:", thumbnailError);
+                    thumbnailPath = null;
+                }
             }
 
             const video = await VideoTip.create({
@@ -215,6 +226,41 @@ const videoController = {
         } catch (err) {
             console.error("Create category error:", err);
             res.status(500).json({ error: err.message });
+        }
+    },
+
+    async updateCategory(req, res) {
+        try {
+            const category = await VideoCategory.findByPk(req.params.id);
+            if (!category) {
+                return res.status(404).json({ error: 'Category not found' });
+            }
+
+            const { name, description, is_active } = req.body;
+            if (name !== undefined) category.name = name;
+            if (description !== undefined) category.description = description;
+            if (is_active !== undefined) category.is_active = is_active;
+
+            await category.save();
+            return res.json(category);
+        } catch (err) {
+            console.error("Update category error:", err);
+            return res.status(500).json({ error: err.message });
+        }
+    },
+
+    async deleteCategory(req, res) {
+        try {
+            const category = await VideoCategory.findByPk(req.params.id);
+            if (!category) {
+                return res.status(404).json({ error: 'Category not found' });
+            }
+
+            await category.destroy();
+            return res.json({ message: 'Category deleted successfully' });
+        } catch (err) {
+            console.error("Delete category error:", err);
+            return res.status(500).json({ error: err.message });
         }
     },
 

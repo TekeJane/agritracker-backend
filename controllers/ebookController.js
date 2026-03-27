@@ -136,6 +136,41 @@ const EbookController = {
         }
     },
 
+    async updateEbookCategory(req, res) {
+        try {
+            const category = await EbookCategory.findByPk(req.params.id);
+            if (!category) {
+                return res.status(404).json({ error: 'Category not found' });
+            }
+
+            const { name, description, is_active } = req.body;
+            if (name !== undefined) category.name = name;
+            if (description !== undefined) category.description = description;
+            if (is_active !== undefined) category.is_active = is_active;
+
+            await category.save();
+            return res.json(category);
+        } catch (err) {
+            console.error('Error updating category:', err);
+            return res.status(500).json({ error: err.message });
+        }
+    },
+
+    async deleteEbookCategory(req, res) {
+        try {
+            const category = await EbookCategory.findByPk(req.params.id);
+            if (!category) {
+                return res.status(404).json({ error: 'Category not found' });
+            }
+
+            await category.destroy();
+            return res.json({ message: 'Category deleted successfully' });
+        } catch (err) {
+            console.error('Error deleting category:', err);
+            return res.status(500).json({ error: err.message });
+        }
+    },
+
     async getEbookCategories(req, res) {
         try {
             console.log('Fetching active Ebook categories');

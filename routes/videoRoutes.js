@@ -64,6 +64,31 @@ router.post(
   videoController.createCategory,
 );
 router.get('/categories', videoController.getCategories);
+router.get('/videos/categories', videoController.getCategories);
+router.put(
+  '/categories/:id',
+  authenticate,
+  authorizeAdmin,
+  videoController.updateCategory,
+);
+router.put(
+  '/videos/categories/:id',
+  authenticate,
+  authorizeAdmin,
+  videoController.updateCategory,
+);
+router.delete(
+  '/categories/:id',
+  authenticate,
+  authorizeAdmin,
+  videoController.deleteCategory,
+);
+router.delete(
+  '/videos/categories/:id',
+  authenticate,
+  authorizeAdmin,
+  videoController.deleteCategory,
+);
 
 router.get('/random', videoController.getRandomApprovedVideo);
 router.get('/random-multiple', videoController.getRandomVideos);
