@@ -119,6 +119,19 @@ router.post('/Ebooks/purchase', authenticate, EbookController.purchaseEbook);
 router.put('/:id', authenticate, EbookController.updateEbook);
 router.put('/Ebooks/:id', authenticate, EbookController.updateEbook);
 
+router.put(
+    '/:id/feature',
+    authenticate,
+    authorizeAdmin,
+    EbookController.featureEbook
+);
+router.put(
+    '/:id/unfeature',
+    authenticate,
+    authorizeAdmin,
+    EbookController.unfeatureEbook
+);
+
 // ✅ Delete Ebook (author only or admin)
 router.delete('/:id', authenticate, EbookController.deleteEbook);
 router.delete('/Ebooks/:id', authenticate, EbookController.deleteEbook);

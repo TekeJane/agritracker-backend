@@ -36,6 +36,11 @@ const Ebook = sequelize.define('Ebook', {
     is_approved: {
         type: DataTypes.BOOLEAN,
         defaultValue: false
+    },
+    is_featured: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false
     }
 });
 

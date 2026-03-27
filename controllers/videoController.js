@@ -47,9 +47,24 @@ function formatVideo(video, host) {
         thumbnail: buildPublicUrl(item.thumbnail_url, host),
         thumbnail_url: buildPublicUrl(item.thumbnail_url, host),
         video_url: buildPublicUrl(item.video_url, host),
+        category_name: item.VideoCategory?.name || item.category_name || null,
         creator_name: creator.full_name || item.creator_name || 'Creator',
         creator_link: item.creator_link || buildCreatorLink(creator),
     };
+}
+
+function buildVideoFilters(query = {}) {
+    const whereClause = {};
+
+    if (query.category_id) {
+        whereClause.category_id = query.category_id;
+    }
+
+    if (query.content_source) {
+        whereClause.content_source = query.content_source;
+    }
+
+    return whereClause;
 }
 
 const videoController = {
@@ -57,7 +72,7 @@ const videoController = {
     async uploadVideo(req, res) {
         try {
             console.log("Uploading video...");
-            const { title, description, category_id } = req.body;
+            const { title, description, category_id, creator_link, content_source } = req.body;
             console.log("Request body:", req.body);
 
             const videoFile = req.files?.video_url?.[0];
@@ -105,6 +120,11 @@ const videoController = {
                 }
             }
 
+            const isAdminUpload = req.user.role === 'admin';
+            const normalizedContentSource = isAdminUpload
+                ? (content_source || 'feature_video')
+                : 'ebook_clip';
+
             const video = await VideoTip.create({
                 title,
                 description,
@@ -112,7 +132,9 @@ const videoController = {
                 thumbnail_url: thumbnailPath,
                 category_id,
                 uploaded_by: req.user.id,
-                is_approved: req.user.role === 'admin',
+                creator_link: creator_link || null,
+                content_source: normalizedContentSource,
+                is_approved: isAdminUpload,
             });
 
             console.log("Video record created:", video.toJSON());
@@ -137,11 +159,10 @@ const videoController = {
     async getApprovedVideos(req, res) {
         try {
             console.log("Fetching approved videos...");
-            const whereClause = { is_approved: true };
-
-            if (req.query.category_id) {
-                whereClause.category_id = req.query.category_id;
-            }
+            const whereClause = {
+                is_approved: true,
+                ...buildVideoFilters(req.query),
+            };
 
             if (req.query.category) {
                 whereClause['$VideoCategory.name$'] = req.query.category;
@@ -168,11 +189,10 @@ const videoController = {
             const isApproved = approvedParam == 'true';
             console.log(`Fetching admin review videos (approved=${isApproved})...`);
 
-            const whereClause = { is_approved: isApproved };
-
-            if (req.query.category_id) {
-                whereClause.category_id = req.query.category_id;
-            }
+            const whereClause = {
+                is_approved: isApproved,
+                ...buildVideoFilters(req.query),
+            };
 
             if (req.query.category) {
                 whereClause['$VideoCategory.name$'] = req.query.category;
@@ -325,8 +345,11 @@ const videoController = {
     async getRandomApprovedVideo(req, res) {
         try {
             console.log("🎥 Fetching random approved video...");
-
-            const count = await VideoTip.count({ where: { is_approved: true } });
+            const whereClause = {
+                is_approved: true,
+                ...buildVideoFilters(req.query),
+            };
+            const count = await VideoTip.count({ where: whereClause });
 
             if (count === 0) {
                 return res.status(404).json({ error: 'No approved videos found' });
@@ -335,7 +358,7 @@ const videoController = {
             const randomOffset = Math.floor(Math.random() * count);
 
             const video = await VideoTip.findOne({
-                where: { is_approved: true },
+                where: whereClause,
                 offset: randomOffset,
                 limit: 1,
                 include: [VideoCategory, User]
@@ -358,12 +381,16 @@ const videoController = {
 
     async getRandomVideos(req, res) {
         try {
-            const count = await VideoTip.count({ where: { is_approved: true } });
+            const whereClause = {
+                is_approved: true,
+                ...buildVideoFilters(req.query),
+            };
+            const count = await VideoTip.count({ where: whereClause });
             const limit = parseInt(req.query.limit) || 4;
             const randomOffset = Math.max(0, Math.floor(Math.random() * Math.max(1, count - limit)));
 
             const videos = await VideoTip.findAll({
-                where: { is_approved: true },
+                where: whereClause,
                 include: [VideoCategory, User],
                 offset: randomOffset,
                 limit,

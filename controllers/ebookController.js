@@ -57,7 +57,8 @@ const EbookController = {
                 author_id: req.user.id, // assuming `req.user` is populated by auth middleware
                 category_id,
                 sub_category_id: sub_category_id || null,
-                is_approved: false,
+                is_approved: true,
+                is_featured: false,
             });
 
             const fullEbook = await Ebook.findByPk(createdEbook.id, {
@@ -67,7 +68,7 @@ const EbookController = {
 
             console.log('✅ Ebook created:', fullEbook);
             res.status(201).json({
-                message: 'Ebook submitted for review.',
+                message: 'Ebook uploaded successfully.',
                 Ebook: formatEbook(fullEbook, host),
             });
         } catch (err) {
@@ -88,6 +89,12 @@ const EbookController = {
                 whereClause.is_approved = true;
             }
 
+            if (req.query.featured === 'true') {
+                whereClause.is_featured = true;
+            } else if (req.query.featured === 'false') {
+                whereClause.is_featured = false;
+            }
+
             if (req.query.category_id) {
                 whereClause.category_id = req.query.category_id;
             }
@@ -99,6 +106,7 @@ const EbookController = {
             const Ebooks = await Ebook.findAll({
                 where: whereClause,
                 include: [EbookCategory, EbookSubCategory, User],
+                order: [['createdAt', 'DESC']],
             });
 
             console.log('Ebooks fetched:', Ebooks.length);
@@ -139,6 +147,38 @@ const EbookController = {
         } catch (err) {
             console.error('Error creating category:', err);
             res.status(500).json({ error: err.message });
+        }
+    },
+
+    async featureEbook(req, res) {
+        try {
+            const { id } = req.params;
+            const ebook = await Ebook.findByPk(id);
+            if (!ebook) return res.status(404).json({ error: 'Ebook not found' });
+
+            ebook.is_featured = true;
+            await ebook.save();
+
+            return res.json({ message: 'Ebook marked as featured.' });
+        } catch (err) {
+            console.error('Error featuring Ebook:', err);
+            return res.status(500).json({ error: err.message });
+        }
+    },
+
+    async unfeatureEbook(req, res) {
+        try {
+            const { id } = req.params;
+            const ebook = await Ebook.findByPk(id);
+            if (!ebook) return res.status(404).json({ error: 'Ebook not found' });
+
+            ebook.is_featured = false;
+            await ebook.save();
+
+            return res.json({ message: 'Ebook removed from featured.' });
+        } catch (err) {
+            console.error('Error unfeaturing Ebook:', err);
+            return res.status(500).json({ error: err.message });
         }
     },
 

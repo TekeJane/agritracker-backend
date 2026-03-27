@@ -18,6 +18,14 @@ const VideoTip = sequelize.define('VideoTip', {
     thumbnail_url: {
         type: DataTypes.STRING,
     },
+    creator_link: {
+        type: DataTypes.STRING,
+    },
+    content_source: {
+        type: DataTypes.ENUM('general', 'feature_video', 'ebook_clip'),
+        allowNull: false,
+        defaultValue: 'general',
+    },
     is_approved: {
         type: DataTypes.BOOLEAN,
         defaultValue: false,

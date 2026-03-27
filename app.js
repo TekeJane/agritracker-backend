@@ -133,6 +133,33 @@ const ensureEbookSubCategorySchema = async () => {
         });
         console.log('🟢 Ebooks.sub_category_id column ensured');
     }
+
+    if (!ebookTable.is_featured) {
+        await queryInterface.addColumn('Ebooks', 'is_featured', {
+            type: Sequelize.BOOLEAN,
+            allowNull: false,
+            defaultValue: false,
+        });
+        console.log('ðŸŸ¢ Ebooks.is_featured column ensured');
+    }
+
+    const videoTable = await queryInterface.describeTable('VideoTips');
+    if (!videoTable.creator_link) {
+        await queryInterface.addColumn('VideoTips', 'creator_link', {
+            type: Sequelize.STRING,
+            allowNull: true,
+        });
+        console.log('ðŸŸ¢ VideoTips.creator_link column ensured');
+    }
+
+    if (!videoTable.content_source) {
+        await queryInterface.addColumn('VideoTips', 'content_source', {
+            type: Sequelize.ENUM('general', 'feature_video', 'ebook_clip'),
+            allowNull: false,
+            defaultValue: 'general',
+        });
+        console.log('ðŸŸ¢ VideoTips.content_source column ensured');
+    }
 };
 
 // Test database connection
