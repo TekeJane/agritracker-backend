@@ -66,6 +66,26 @@ router.post(
 // ✅ Get all Ebook categories (public)
 router.get('/categories', EbookController.getEbookCategories);
 router.get('/Ebooks/categories', EbookController.getEbookCategories);
+router.get('/subcategories', EbookController.getEbookSubCategories);
+router.get('/subcategories/category/:categoryId', EbookController.getEbookSubCategories);
+router.post(
+    '/subcategories',
+    authenticate,
+    authorizeAdmin,
+    EbookController.createEbookSubCategory
+);
+router.put(
+    '/subcategories/:id',
+    authenticate,
+    authorizeAdmin,
+    EbookController.updateEbookSubCategory
+);
+router.delete(
+    '/subcategories/:id',
+    authenticate,
+    authorizeAdmin,
+    EbookController.deleteEbookSubCategory
+);
 router.put(
     '/categories/:id',
     authenticate,

@@ -3,6 +3,7 @@ const app = express();
 const cors = require('cors');
 require('dotenv').config();
 const path = require('path');
+const Sequelize = require('sequelize');
 
 const sequelize = require('./config/db');
 
@@ -69,6 +70,71 @@ app.use('/api', PostRoutes);   // ✅ mount the new PostController routes
 app.use('/api', diseaseRoutes); // ✅ plant disease detection
  // ✅ mount the new Plant routes
 
+const ensureEbookSubCategorySchema = async () => {
+    const queryInterface = sequelize.getQueryInterface();
+    const tables = await queryInterface.showAllTables();
+    const normalizedTables = tables.map((table) =>
+        typeof table === 'string' ? table : table.tableName
+    );
+
+    if (!normalizedTables.includes('EbookSubCategories')) {
+        await queryInterface.createTable('EbookSubCategories', {
+            id: {
+                allowNull: false,
+                autoIncrement: true,
+                primaryKey: true,
+                type: Sequelize.INTEGER,
+            },
+            name: {
+                type: Sequelize.STRING,
+                allowNull: false,
+            },
+            description: {
+                type: Sequelize.TEXT,
+            },
+            category_id: {
+                type: Sequelize.INTEGER,
+                allowNull: false,
+                references: {
+                    model: 'EbookCategories',
+                    key: 'id',
+                },
+                onUpdate: 'CASCADE',
+                onDelete: 'CASCADE',
+            },
+            is_active: {
+                type: Sequelize.BOOLEAN,
+                allowNull: false,
+                defaultValue: true,
+            },
+            createdAt: {
+                allowNull: false,
+                type: Sequelize.DATE,
+            },
+            updatedAt: {
+                allowNull: false,
+                type: Sequelize.DATE,
+            },
+        });
+        console.log('🟢 EbookSubCategories table ensured');
+    }
+
+    const ebookTable = await queryInterface.describeTable('Ebooks');
+    if (!ebookTable.sub_category_id) {
+        await queryInterface.addColumn('Ebooks', 'sub_category_id', {
+            type: Sequelize.INTEGER,
+            allowNull: true,
+            references: {
+                model: 'EbookSubCategories',
+                key: 'id',
+            },
+            onUpdate: 'CASCADE',
+            onDelete: 'SET NULL',
+        });
+        console.log('🟢 Ebooks.sub_category_id column ensured');
+    }
+};
+
 // Test database connection
 const testConnection = async () => {
     try {
@@ -85,7 +151,8 @@ const testConnection = async () => {
 testConnection().then(connected => {
     if (connected) {
         // Sync database and start server
-        sequelize.sync({ force: false })
+        ensureEbookSubCategorySchema()
+            .then(() => sequelize.sync({ force: false }))
             .then(() => {
                 console.log('🟢 Database synced');
                 const PORT = process.env.PORT || 3000;

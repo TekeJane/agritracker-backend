@@ -12,6 +12,7 @@ const OrderItem = require('./OrderItem');
 const Cart = require('./Cart');
 const Review = require('./review')(sequelize, DataTypes);
 const EbookCategory = require('./EbookCategory');
+const EbookSubCategory = require('./EbookSubCategory');
 const Ebook = require('./Ebook');
 const EbookOrder = require('./EbookOrder');
 const VideoCategory = require('./VideoCategory');
@@ -107,6 +108,12 @@ Ebook.belongsTo(User, { foreignKey: 'author_id' });
 EbookCategory.hasMany(Ebook, { foreignKey: 'category_id' });
 Ebook.belongsTo(EbookCategory, { foreignKey: 'category_id' });
 
+EbookCategory.hasMany(EbookSubCategory, { foreignKey: 'category_id' });
+EbookSubCategory.belongsTo(EbookCategory, { foreignKey: 'category_id' });
+
+EbookSubCategory.hasMany(Ebook, { foreignKey: 'sub_category_id' });
+Ebook.belongsTo(EbookSubCategory, { foreignKey: 'sub_category_id' });
+
 User.hasMany(EbookOrder, { foreignKey: 'user_id' });
 EbookOrder.belongsTo(User, { foreignKey: 'user_id' });
 
@@ -172,6 +179,7 @@ module.exports = {
     Cart,
     Review,
     EbookCategory,
+    EbookSubCategory,
     Ebook,
     EbookOrder,
     VideoCategory,

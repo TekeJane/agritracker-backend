@@ -1,4 +1,4 @@
-const { Ebook, EbookCategory, EbookOrder, User } = require('../models');
+const { Ebook, EbookCategory, EbookSubCategory, EbookOrder, User } = require('../models');
 
 function buildPublicUrl(value, host) {
     if (!value) return null;
@@ -18,6 +18,8 @@ function formatEbook(ebook, host) {
         file_url: buildPublicUrl(item.file_url, host),
         author_name: item.User?.full_name || item.author_name || 'Author',
         category_name: item.EbookCategory?.name || item.category_name || null,
+        sub_category_id: item.sub_category_id || item.EbookSubCategory?.id || null,
+        sub_category_name: item.EbookSubCategory?.name || item.sub_category_name || null,
     };
 }
 
@@ -27,7 +29,7 @@ const EbookController = {
             console.log('📝 Incoming Ebook request:', req.body);
             console.log('📎 Uploaded files:', req.files);
 
-            const { title, description, price, category_id, format, printing_cost } = req.body;
+            const { title, description, price, category_id, sub_category_id, format, printing_cost } = req.body;
 
             if (!title || !description || !price || !category_id) {
                 return res.status(400).json({ error: 'Missing required fields.' });
@@ -54,11 +56,12 @@ const EbookController = {
                 cover_image,
                 author_id: req.user.id, // assuming `req.user` is populated by auth middleware
                 category_id,
+                sub_category_id: sub_category_id || null,
                 is_approved: false,
             });
 
             const fullEbook = await Ebook.findByPk(createdEbook.id, {
-                include: [EbookCategory, User],
+                include: [EbookCategory, EbookSubCategory, User],
             });
             const host = `${req.protocol}://${req.get('host')}`;
 
@@ -88,11 +91,14 @@ const EbookController = {
             if (req.query.category_id) {
                 whereClause.category_id = req.query.category_id;
             }
+            if (req.query.sub_category_id) {
+                whereClause.sub_category_id = req.query.sub_category_id;
+            }
 
             console.log('Fetching Ebooks with filter:', whereClause);
             const Ebooks = await Ebook.findAll({
                 where: whereClause,
-                include: [EbookCategory, User],
+                include: [EbookCategory, EbookSubCategory, User],
             });
 
             console.log('Ebooks fetched:', Ebooks.length);
@@ -174,11 +180,93 @@ const EbookController = {
     async getEbookCategories(req, res) {
         try {
             console.log('Fetching active Ebook categories');
-            const categories = await EbookCategory.findAll({ where: { is_active: true } });
+            const categories = await EbookCategory.findAll({
+                where: { is_active: true },
+                include: [{
+                    model: EbookSubCategory,
+                    where: { is_active: true },
+                    required: false,
+                }],
+            });
             res.json(categories);
         } catch (err) {
             console.error('Error fetching categories:', err);
             res.status(500).json({ error: err.message });
+        }
+    },
+
+    async createEbookSubCategory(req, res) {
+        try {
+            const { name, description, category_id } = req.body;
+            if (!name || !category_id) {
+                return res.status(400).json({ error: 'name and category_id are required' });
+            }
+
+            const subCategory = await EbookSubCategory.create({
+                name,
+                description,
+                category_id,
+            });
+
+            return res.status(201).json(subCategory);
+        } catch (err) {
+            console.error('Error creating ebook subcategory:', err);
+            return res.status(500).json({ error: err.message });
+        }
+    },
+
+    async getEbookSubCategories(req, res) {
+        try {
+            const whereClause = { is_active: true };
+            if (req.params.categoryId) {
+                whereClause.category_id = req.params.categoryId;
+            }
+
+            const subCategories = await EbookSubCategory.findAll({
+                where: whereClause,
+                order: [['name', 'ASC']],
+            });
+
+            return res.json(subCategories);
+        } catch (err) {
+            console.error('Error fetching ebook subcategories:', err);
+            return res.status(500).json({ error: err.message });
+        }
+    },
+
+    async updateEbookSubCategory(req, res) {
+        try {
+            const subCategory = await EbookSubCategory.findByPk(req.params.id);
+            if (!subCategory) {
+                return res.status(404).json({ error: 'Subcategory not found' });
+            }
+
+            const { name, description, category_id, is_active } = req.body;
+            if (name !== undefined) subCategory.name = name;
+            if (description !== undefined) subCategory.description = description;
+            if (category_id !== undefined) subCategory.category_id = category_id;
+            if (is_active !== undefined) subCategory.is_active = is_active;
+
+            await subCategory.save();
+            return res.json(subCategory);
+        } catch (err) {
+            console.error('Error updating ebook subcategory:', err);
+            return res.status(500).json({ error: err.message });
+        }
+    },
+
+    async deleteEbookSubCategory(req, res) {
+        try {
+            const subCategory = await EbookSubCategory.findByPk(req.params.id);
+            if (!subCategory) {
+                return res.status(404).json({ error: 'Subcategory not found' });
+            }
+
+            await subCategory.destroy();
+            return res.json({ message: 'Subcategory deleted successfully' });
+        } catch (err) {
+            console.error('Error deleting ebook subcategory:', err);
+            return res.status(500).json({ error: err.message });
         }
     },
 
@@ -219,7 +307,7 @@ const EbookController = {
             const { id } = req.params;
             console.log('User', req.user.id, 'attempting to update Ebook:', id);
             const Ebook = await Ebook.findByPk(id);
-            if (!Ebook || Ebook.author_id !== req.user.id)
+            if (!Ebook || (Ebook.author_id !== req.user.id && req.user.role !== 'admin'))
                 return res.status(403).json({ error: 'Not allowed' });
 
             await Ebook.update(req.body);
@@ -236,7 +324,7 @@ const EbookController = {
             const { id } = req.params;
             console.log('User', req.user.id, 'attempting to delete Ebook:', id);
             const Ebook = await Ebook.findByPk(id);
-            if (!Ebook || Ebook.author_id !== req.user.id)
+            if (!Ebook || (Ebook.author_id !== req.user.id && req.user.role !== 'admin'))
                 return res.status(403).json({ error: 'Not allowed' });
 
             await Ebook.destroy();
@@ -257,7 +345,7 @@ const EbookController = {
 
             const Ebooks = await Ebook.findAll({
                 where: { is_approved: true },
-                include: [EbookCategory, User],
+                include: [EbookCategory, EbookSubCategory, User],
                 offset: randomOffset,
                 limit,
             });

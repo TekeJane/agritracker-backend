@@ -2,6 +2,7 @@ const { DataTypes } = require('sequelize');
 const sequelize = require('../config/db');
 const User = require('./user');
 const EbookCategory = require('./EbookCategory');
+const EbookSubCategory = require('./EbookSubCategory');
 
 const Ebook = sequelize.define('Ebook', {
     title: {
@@ -44,5 +45,8 @@ Ebook.belongsTo(User, { foreignKey: 'author_id' });
 
 EbookCategory.hasMany(Ebook, { foreignKey: 'category_id' });
 Ebook.belongsTo(EbookCategory, { foreignKey: 'category_id' });
+
+EbookSubCategory.hasMany(Ebook, { foreignKey: 'sub_category_id' });
+Ebook.belongsTo(EbookSubCategory, { foreignKey: 'sub_category_id' });
 
 module.exports = Ebook;
