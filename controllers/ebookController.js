@@ -18,6 +18,12 @@ function formatEbook(ebook, host) {
         cover_image: buildPublicUrl(item.cover_image, host),
         file_url: buildPublicUrl(item.file_url, host),
         gallery_images: galleryImages.map((image) => buildPublicUrl(image, host)),
+        keywords: Array.isArray(item.keywords)
+            ? item.keywords
+            : String(item.keywords || '')
+                .split(',')
+                .map((value) => value.trim())
+                .filter(Boolean),
         author_name: item.User?.full_name || item.author_name || 'Author',
         author_id: item.User?.id || item.author_id || null,
         author_profile_image: buildPublicUrl(item.User?.profile_image || item.author_profile_image, host),
@@ -42,6 +48,7 @@ const EbookController = {
                 sub_category_id,
                 format,
                 printing_cost,
+                keywords,
                 origin_region,
                 origin_town,
                 posted_at,
@@ -72,6 +79,7 @@ const EbookController = {
                 price,
                 format: format || 'Ebook',
                 printing_cost: printing_cost || 0,
+                keywords: String(keywords || ''),
                 file_url,
                 cover_image,
                 gallery_images,

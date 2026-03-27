@@ -12,6 +12,25 @@ const Ebook = sequelize.define('Ebook', {
     description: {
         type: DataTypes.TEXT,
     },
+    keywords: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        get() {
+            const raw = this.getDataValue('keywords');
+            if (!raw) return [];
+            return String(raw)
+                .split(',')
+                .map((item) => item.trim())
+                .filter(Boolean);
+        },
+        set(value) {
+            if (Array.isArray(value)) {
+                this.setDataValue('keywords', value.map((item) => String(item).trim()).filter(Boolean).join(', '));
+                return;
+            }
+            this.setDataValue('keywords', value || null);
+        },
+    },
     price: {
         type: DataTypes.DECIMAL,
         allowNull: false

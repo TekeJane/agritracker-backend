@@ -167,6 +167,14 @@ const ensureEbookSubCategorySchema = async () => {
         console.log('ðŸŸ¢ Ebooks.origin_town column ensured');
     }
 
+    if (!ebookTable.keywords) {
+        await queryInterface.addColumn('Ebooks', 'keywords', {
+            type: Sequelize.TEXT,
+            allowNull: true,
+        });
+        console.log('Ebooks.keywords column ensured');
+    }
+
     if (!ebookTable.posted_at) {
         await queryInterface.addColumn('Ebooks', 'posted_at', {
             type: Sequelize.DATE,
