@@ -156,6 +156,8 @@ OrderItem.belongsTo(Order, { foreignKey: 'OrderId' });
 Product.hasMany(OrderItem, { foreignKey: 'ProductId' });
 OrderItem.belongsTo(Product, { foreignKey: 'ProductId' });
 
+Product.hasMany(ProductPriceLog, { foreignKey: 'product_id', as: 'PriceLogs' });
+ProductPriceLog.belongsTo(Product, { foreignKey: 'product_id', as: 'Product' });
 
 
 
