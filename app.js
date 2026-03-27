@@ -201,6 +201,14 @@ const ensureEbookSubCategorySchema = async () => {
     }
 
     const videoTable = await queryInterface.describeTable('VideoTips');
+    if (!videoTable.creator_name) {
+        await queryInterface.addColumn('VideoTips', 'creator_name', {
+            type: Sequelize.STRING,
+            allowNull: true,
+        });
+        console.log('ðŸŸ¢ VideoTips.creator_name column ensured');
+    }
+
     if (!videoTable.creator_link) {
         await queryInterface.addColumn('VideoTips', 'creator_link', {
             type: Sequelize.STRING,

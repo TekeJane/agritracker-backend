@@ -76,7 +76,7 @@ const videoController = {
     async uploadVideo(req, res) {
         try {
             console.log("Uploading video...");
-            const { title, description, category_id, creator_link, content_source, ebook_id } = req.body;
+            const { title, description, category_id, creator_name, creator_link, content_source, ebook_id } = req.body;
             console.log("Request body:", req.body);
 
             const videoFile = req.files?.video_url?.[0];
@@ -136,6 +136,7 @@ const videoController = {
                 thumbnail_url: thumbnailPath,
                 category_id,
                 uploaded_by: req.user.id,
+                creator_name: creator_name || null,
                 creator_link: creator_link || null,
                 content_source: normalizedContentSource,
                 ebook_id: ebook_id || null,
