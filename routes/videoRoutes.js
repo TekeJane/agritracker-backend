@@ -12,6 +12,7 @@ router.post(
   upload.fields([
     { name: 'video_url', maxCount: 1 },
     { name: 'thumbnail_image', maxCount: 1 },
+    { name: 'creator_image', maxCount: 1 },
   ]),
   videoController.uploadVideo,
 );

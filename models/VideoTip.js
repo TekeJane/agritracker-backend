@@ -18,6 +18,9 @@ const VideoTip = sequelize.define('VideoTip', {
     thumbnail_url: {
         type: DataTypes.STRING,
     },
+    creator_image: {
+        type: DataTypes.STRING,
+    },
     creator_name: {
         type: DataTypes.STRING,
     },

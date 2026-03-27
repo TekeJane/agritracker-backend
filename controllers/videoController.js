@@ -47,6 +47,7 @@ function formatVideo(video, host) {
         thumbnail: buildPublicUrl(item.thumbnail_url, host),
         thumbnail_url: buildPublicUrl(item.thumbnail_url, host),
         video_url: buildPublicUrl(item.video_url, host),
+        creator_image: buildPublicUrl(item.creator_image, host),
         category_name: item.VideoCategory?.name || item.category_name || null,
         creator_name: creator.full_name || item.creator_name || 'Creator',
         creator_link: item.creator_link || buildCreatorLink(creator),
@@ -92,6 +93,7 @@ const videoController = {
             }
 
             let thumbnailPath = req.files?.thumbnail_image?.[0]?.path || null;
+            const creatorImagePath = req.files?.creator_image?.[0]?.path || null;
 
             if (!thumbnailPath) {
                 const thumbnailDir = path.join('uploads', 'thumbnails');
@@ -136,6 +138,7 @@ const videoController = {
                 thumbnail_url: thumbnailPath,
                 category_id,
                 uploaded_by: req.user.id,
+                creator_image: creatorImagePath,
                 creator_name: creator_name || null,
                 creator_link: creator_link || null,
                 content_source: normalizedContentSource,
