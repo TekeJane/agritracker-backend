@@ -3,6 +3,8 @@ const {
     OrderItem,
     Cart,
     Product,
+    Ebook,
+    EbookOrder,
     User,
     Category,
     SubCategory,
@@ -108,6 +110,30 @@ const OrderController = {
             return res.status(200).json(orders);
         } catch (error) {
             console.error('❌ Error fetching seller product orders:', error.message);
+            return res.status(500).json({ error: error.message });
+        }
+    },
+
+    async getOrdersForMyEbooks(req, res) {
+        try {
+            const ebookOrders = await EbookOrder.findAll({
+                include: [
+                    {
+                        model: Ebook,
+                        where: { author_id: req.user.id },
+                        required: true,
+                    },
+                    {
+                        model: User,
+                        attributes: ['id', 'full_name', 'phone', 'email'],
+                    },
+                ],
+                order: [['createdAt', 'DESC']],
+            });
+
+            return res.status(200).json(ebookOrders);
+        } catch (error) {
+            console.error('Error fetching author ebook orders:', error.message);
             return res.status(500).json({ error: error.message });
         }
     },

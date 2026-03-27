@@ -37,6 +37,12 @@ router.get('/', EbookController.listApprovedEbooks);
 
 // ✅ Admin approves an Ebook
 router.put(
+    '/:id/approve',
+    authenticate,
+    authorizeAdmin,
+    EbookController.approveEbook
+);
+router.put(
     '/Ebooks/:id/approve',
     authenticate,
     authorizeAdmin,
@@ -44,6 +50,12 @@ router.put(
 );
 
 // ✅ Admin creates a category
+router.post(
+    '/categories',
+    authenticate,
+    authorizeAdmin,
+    EbookController.createEbookCategory
+);
 router.post(
     '/Ebooks/categories',
     authenticate,
@@ -55,12 +67,15 @@ router.post(
 router.get('/categories', EbookController.getEbookCategories);
 
 // ✅ User purchases an Ebook
+router.post('/purchase', authenticate, EbookController.purchaseEbook);
 router.post('/Ebooks/purchase', authenticate, EbookController.purchaseEbook);
 
 // ✅ Update Ebook (author only or admin, depending on logic)
+router.put('/:id', authenticate, EbookController.updateEbook);
 router.put('/Ebooks/:id', authenticate, EbookController.updateEbook);
 
 // ✅ Delete Ebook (author only or admin)
+router.delete('/:id', authenticate, EbookController.deleteEbook);
 router.delete('/Ebooks/:id', authenticate, EbookController.deleteEbook);
 
 router.get('/random', EbookController.getRandomEbooks);

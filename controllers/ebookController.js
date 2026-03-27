@@ -145,21 +145,25 @@ const EbookController = {
 
     async purchaseEbook(req, res) {
         try {
-            const { Ebook_id } = req.body;
-            console.log('User', req.user.id, 'attempting to purchase Ebook:', Ebook_id);
+            const ebookId = req.body.Ebook_id || req.body.ebook_id || req.body.ebookId;
+            console.log('User', req.user.id, 'attempting to purchase Ebook:', ebookId);
 
-            const Ebook = await Ebook.findByPk(Ebook_id);
+            if (!ebookId) {
+                return res.status(400).json({ error: 'ebook_id is required' });
+            }
+
+            const Ebook = await Ebook.findByPk(ebookId);
             if (!Ebook || !Ebook.is_approved) return res.status(400).json({ error: 'Ebook not available' });
 
             const existing = await EbookOrder.findOne({
-                where: { user_id: req.user.id, Ebook_id }
+                where: { user_id: req.user.id, Ebook_id: ebookId }
             });
 
             if (existing) return res.status(409).json({ error: 'Already purchased' });
 
             const order = await EbookOrder.create({
                 user_id: req.user.id,
-                Ebook_id,
+                Ebook_id: ebookId,
                 price_paid: Ebook.price
             });
 

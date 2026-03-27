@@ -3,34 +3,69 @@ const router = express.Router();
 const videoController = require('../controllers/videoController');
 const { authenticate, authorizeAdmin } = require('../middleware/authMiddleware');
 const multer = require('multer');
+
 const upload = multer({ dest: 'uploads/' });
 
-
-
-router.post('/', authenticate, upload.fields([  { name: 'video_url', maxCount: 1 },
+router.post(
+  '/',
+  authenticate,
+  upload.fields([
+    { name: 'video_url', maxCount: 1 },
     { name: 'thumbnail_image', maxCount: 1 },
-]), videoController.uploadVideo);
+  ]),
+  videoController.uploadVideo,
+);
 
+router.get('/', videoController.getApprovedVideos);
+router.get(
+  '/admin/review',
+  authenticate,
+  authorizeAdmin,
+  videoController.getVideosForAdminReview,
+);
 
-router.get('/', videoController.getApprovedVideos); // ✅ correct
-
-
-
+router.delete('/:id', authenticate, videoController.deleteVideo);
 router.delete('/videos/:id', authenticate, videoController.deleteVideo);
+router.put(
+  '/:id/approve',
+  authenticate,
+  authorizeAdmin,
+  videoController.approveVideo,
+);
+router.put(
+  '/videos/:id/approve',
+  authenticate,
+  authorizeAdmin,
+  videoController.approveVideo,
+);
+router.delete(
+  '/:id/reject',
+  authenticate,
+  authorizeAdmin,
+  videoController.rejectVideo,
+);
+router.delete(
+  '/videos/:id/reject',
+  authenticate,
+  authorizeAdmin,
+  videoController.rejectVideo,
+);
 
-
-// Approve a video
-router.put('/videos/:id/approve', authenticate, authorizeAdmin, videoController.approveVideo);
-router.delete('/videos/:id/reject', authenticate, authorizeAdmin, videoController.rejectVideo);
-
-// Video Categories
-router.post('/videos/categories', authenticate, authorizeAdmin, videoController.createCategory);
-router.get('/categories', videoController.getCategories); // ✅ correct
+router.post(
+  '/categories',
+  authenticate,
+  authorizeAdmin,
+  videoController.createCategory,
+);
+router.post(
+  '/videos/categories',
+  authenticate,
+  authorizeAdmin,
+  videoController.createCategory,
+);
+router.get('/categories', videoController.getCategories);
 
 router.get('/random', videoController.getRandomApprovedVideo);
-
 router.get('/random-multiple', videoController.getRandomVideos);
-
-
 
 module.exports = router;

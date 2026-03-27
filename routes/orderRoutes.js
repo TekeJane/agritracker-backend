@@ -11,6 +11,7 @@ router.use(authenticate);
 
 // Important: Specific routes first
 router.get('/my-products/orders', OrderController.getOrdersForMyProducts);
+router.get('/my-ebooks/orders', OrderController.getOrdersForMyEbooks);
 
 // User routes
 router.get('/', OrderController.getUserOrders);
