@@ -231,6 +231,28 @@ const ensureEbookSubCategorySchema = async () => {
         });
         console.log('ðŸŸ¢ VideoTips.ebook_id column ensured');
     }
+    const reviewTable = await queryInterface.describeTable('Reviews');
+    if (!reviewTable.ebookId) {
+        await queryInterface.addColumn('Reviews', 'ebookId', {
+            type: Sequelize.INTEGER,
+            allowNull: true,
+            references: {
+                model: 'Ebooks',
+                key: 'id',
+            },
+            onUpdate: 'CASCADE',
+            onDelete: 'CASCADE',
+        });
+        console.log('Reviews.ebookId column ensured');
+    }
+
+    if (reviewTable.productId && reviewTable.productId.allowNull === false) {
+        await queryInterface.changeColumn('Reviews', 'productId', {
+            type: Sequelize.INTEGER,
+            allowNull: true,
+        });
+        console.log('Reviews.productId nullability updated');
+    }
 };
 
 // Test database connection

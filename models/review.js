@@ -12,13 +12,18 @@ module.exports = (sequelize, DataTypes) => {
         },
         productId: {
             type: DataTypes.INTEGER,
-            allowNull: false,
+            allowNull: true,
+        },
+        ebookId: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
         },
 
     });
 
     Review.associate = models => {
         Review.belongsTo(models.Product, { foreignKey: 'productId' });
+        Review.belongsTo(models.Ebook, { foreignKey: 'ebookId' });
     };
 
     return Review;

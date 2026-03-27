@@ -91,6 +91,8 @@ User.belongsToMany(User, {
 // ✅ Review associations
 Product.hasMany(Review, { foreignKey: 'productId', onDelete: 'CASCADE' });
 Review.belongsTo(Product, { foreignKey: 'productId' });
+Ebook.hasMany(Review, { foreignKey: 'ebookId', onDelete: 'CASCADE' });
+Review.belongsTo(Ebook, { foreignKey: 'ebookId' });
 
 User.hasMany(Review, { foreignKey: 'user_id', as: 'reviews' }); // ✅ CORRECT
 Review.belongsTo(User, { foreignKey: 'user_id', as: 'user' });  // optional but consistent
