@@ -1,5 +1,26 @@
 const { Ebook, EbookCategory, EbookOrder, User } = require('../models');
 
+function buildPublicUrl(value, host) {
+    if (!value) return null;
+    if (value.startsWith('http://') || value.startsWith('https://')) {
+        return value;
+    }
+
+    const normalized = value.replace(/\\/g, '/').replace(/^\/+/, '');
+    return `${host}/${normalized}`;
+}
+
+function formatEbook(ebook, host) {
+    const item = ebook.toJSON ? ebook.toJSON() : ebook;
+    return {
+        ...item,
+        cover_image: buildPublicUrl(item.cover_image, host),
+        file_url: buildPublicUrl(item.file_url, host),
+        author_name: item.User?.full_name || item.author_name || 'Author',
+        category_name: item.EbookCategory?.name || item.category_name || null,
+    };
+}
+
 const EbookController = {
     async uploadEbook(req, res) {
         try {
@@ -23,7 +44,7 @@ const EbookController = {
             const cover_image = coverImageFile.path; // full path to uploaded file
             const file_url = pdfFile ? pdfFile.path : null;
 
-            const Ebook = await Ebook.create({
+            const createdEbook = await Ebook.create({
                 title,
                 description,
                 price,
@@ -36,10 +57,15 @@ const EbookController = {
                 is_approved: false,
             });
 
-            console.log('✅ Ebook created:', Ebook);
+            const fullEbook = await Ebook.findByPk(createdEbook.id, {
+                include: [EbookCategory, User],
+            });
+            const host = `${req.protocol}://${req.get('host')}`;
+
+            console.log('✅ Ebook created:', fullEbook);
             res.status(201).json({
                 message: 'Ebook submitted for review.',
-                Ebook,
+                Ebook: formatEbook(fullEbook, host),
             });
         } catch (err) {
             console.error('❌ Error uploading Ebook:', err);
@@ -66,7 +92,8 @@ const EbookController = {
             });
 
             console.log('Ebooks fetched:', Ebooks.length);
-            res.json(Ebooks);
+            const host = `${req.protocol}://${req.get('host')}`;
+            res.json(Ebooks.map((ebook) => formatEbook(ebook, host)));
         } catch (err) {
             console.error('Error listing Ebooks:', err);
             res.status(500).json({ error: err.message });
@@ -192,7 +219,8 @@ const EbookController = {
                 limit,
             });
 
-            return res.json(Ebooks);
+            const host = `${req.protocol}://${req.get('host')}`;
+            return res.json(Ebooks.map((ebook) => formatEbook(ebook, host)));
         } catch (err) {
             console.error("Error fetching random Ebooks:", err);
             res.status(500).json({ error: err.message });

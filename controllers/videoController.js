@@ -8,6 +8,49 @@ const fs = require('fs');
 const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
 ffmpeg.setFfmpegPath(ffmpegPath);
 
+function buildPublicUrl(value, host) {
+    if (!value) return null;
+    if (value.startsWith('http://') || value.startsWith('https://')) {
+        return value;
+    }
+
+    const normalized = value.replace(/\\/g, '/').replace(/^\/+/, '');
+    return `${host}/${normalized}`;
+}
+
+function buildCreatorLink(user) {
+    if (!user) return '';
+    if (user.facEbook) {
+        const handle = String(user.facEbook).trim().replace(/^@/, '');
+        return handle.startsWith('http') ? handle : `https://www.facebook.com/${handle}`;
+    }
+    if (user.instagram) {
+        const handle = String(user.instagram).trim().replace(/^@/, '');
+        return handle.startsWith('http') ? handle : `https://www.instagram.com/${handle}`;
+    }
+    if (user.twitter) {
+        const handle = String(user.twitter).trim().replace(/^@/, '');
+        return handle.startsWith('http') ? handle : `https://twitter.com/${handle}`;
+    }
+    if (user.tiktok) {
+        const handle = String(user.tiktok).trim().replace(/^@/, '');
+        return handle.startsWith('http') ? handle : `https://www.tiktok.com/@${handle}`;
+    }
+    return '';
+}
+
+function formatVideo(video, host) {
+    const item = video.toJSON ? video.toJSON() : video;
+    const creator = item.User || {};
+    return {
+        ...item,
+        thumbnail: buildPublicUrl(item.thumbnail_url, host),
+        thumbnail_url: buildPublicUrl(item.thumbnail_url, host),
+        video_url: buildPublicUrl(item.video_url, host),
+        creator_name: creator.full_name || item.creator_name || 'Creator',
+        creator_link: item.creator_link || buildCreatorLink(creator),
+    };
+}
 
 const videoController = {
     // ✅ Create a video tip
@@ -25,27 +68,31 @@ const videoController = {
                 return res.status(400).json({ error: 'Video file required' });
             }
 
-            const thumbnailPath = `uploads/thumbnails/${Date.now()}_thumbnail.png`;
-            console.log("Thumbnail will be saved to:", thumbnailPath);
+            let thumbnailPath = req.files?.thumbnail_image?.[0]?.path || null;
 
-            await new Promise((resolve, reject) => {
-                ffmpeg(videoFile.path)
-                    .on('end', () => {
-                        console.log("Thumbnail generated.");
-                        resolve();
-                    })
-                    .on('error', (err) => {
-                        console.error("FFmpeg error:", err);
-                        reject(err);
-                    })
-                    .screenshots({
-                        count: 1,
-                        folder: path.dirname(thumbnailPath),
-                        filename: path.basename(thumbnailPath),
-                        size: '320x240',
-                        timemarks: ['3']
-                    });
-            });
+            if (!thumbnailPath) {
+                thumbnailPath = `uploads/thumbnails/${Date.now()}_thumbnail.png`;
+                console.log("Thumbnail will be saved to:", thumbnailPath);
+
+                await new Promise((resolve, reject) => {
+                    ffmpeg(videoFile.path)
+                        .on('end', () => {
+                            console.log("Thumbnail generated.");
+                            resolve();
+                        })
+                        .on('error', (err) => {
+                            console.error("FFmpeg error:", err);
+                            reject(err);
+                        })
+                        .screenshots({
+                            count: 1,
+                            folder: path.dirname(thumbnailPath),
+                            filename: path.basename(thumbnailPath),
+                            size: '320x240',
+                            timemarks: ['3']
+                        });
+                });
+            }
 
             const video = await VideoTip.create({
                 title,
@@ -54,11 +101,21 @@ const videoController = {
                 thumbnail_url: thumbnailPath,
                 category_id,
                 uploaded_by: req.user.id,
+                is_approved: req.user.role === 'admin',
             });
 
             console.log("Video record created:", video.toJSON());
+            const fullVideo = await VideoTip.findByPk(video.id, {
+                include: [VideoCategory, User],
+            });
+            const host = `${req.protocol}://${req.get('host')}`;
 
-            res.status(201).json({ message: 'Video uploaded and awaiting approval', video });
+            res.status(201).json({
+                message: req.user.role === 'admin'
+                    ? 'Video uploaded successfully'
+                    : 'Video uploaded and awaiting approval',
+                video: formatVideo(fullVideo, host),
+            });
         } catch (err) {
             console.error("Upload error:", err);
             res.status(500).json({ error: err.message });
@@ -82,7 +139,8 @@ const videoController = {
             });
 
             console.log(`Fetched ${videos.length} videos`);
-            res.json(videos);
+            const host = `${req.protocol}://${req.get('host')}`;
+            res.json(videos.map((video) => formatVideo(video, host)));
         } catch (err) {
             console.error("Get approved videos error:", err);
             res.status(500).json({ error: err.message });
@@ -208,11 +266,7 @@ const videoController = {
             }
 
             const host = `${req.protocol}://${req.get('host')}`;
-            const fullVideo = {
-                ...video.toJSON(),
-                thumbnail: video.thumbnail_url.startsWith('http') ? video.thumbnail_url : `${host}/${video.thumbnail_url}`,
-                video_url: video.video_url.startsWith('http') ? video.video_url : `${host}/${video.video_url}`,
-            };
+            const fullVideo = formatVideo(video, host);
 
             console.log('✅ Random video fetched');
             return res.status(200).json(fullVideo);
@@ -235,7 +289,8 @@ const videoController = {
                 limit,
             });
 
-            return res.json(videos);
+            const host = `${req.protocol}://${req.get('host')}`;
+            return res.json(videos.map((video) => formatVideo(video, host)));
         } catch (err) {
             console.error("Error fetching random videos:", err);
             res.status(500).json({ error: err.message });
