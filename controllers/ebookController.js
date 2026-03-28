@@ -839,6 +839,11 @@ const EbookController = {
                 note,
                 delivery_method,
                 selected_format,
+                quantity,
+                shipping_method,
+                shipping_cost,
+                digital_delivery,
+                digital_delivery_method,
             } = req.body;
 
             if (!ebook_id || !payment_method || !customer_email || !customer_phone) {
@@ -850,24 +855,15 @@ const EbookController = {
                 return res.status(404).json({ error: 'Ebook not found or not approved' });
             }
 
-            const existing = await EbookOrder.findOne({
-                where: {
-                    user_id: req.user.id,
-                    Ebook_id: ebook_id,
-                    payment_status: 'completed',
-                },
-            });
-
-            if (existing) {
-                return res.status(409).json({ error: 'You already purchased this ebook' });
-            }
-
             const pricing = getOrderPricing(ebook, selected_format);
+            const orderQuantity = Math.max(parseInt(quantity, 10) || 1, 1);
+            const shippingAmount = Math.max(parseNumber(shipping_cost, 0), 0);
+            const totalPrice = (pricing.totalPrice * orderQuantity) + shippingAmount;
             const order = await EbookOrder.create({
                 order_id: `EBOOK-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
                 user_id: req.user.id,
                 Ebook_id: ebook_id,
-                price_paid: pricing.totalPrice,
+                price_paid: totalPrice,
                 payment_method,
                 customer_email,
                 customer_phone,
@@ -883,8 +879,13 @@ const EbookController = {
                 metadata: {
                     checkout_source: 'mobile_app',
                     selected_format: pricing.chosenVariant.key,
+                    quantity: orderQuantity,
                     base_price: pricing.basePrice,
                     printing_cost: pricing.printingCost,
+                    shipping_method: shipping_method || null,
+                    shipping_cost: shippingAmount,
+                    digital_delivery:
+                        digital_delivery_method || digital_delivery || null,
                     royalty_percentage: pricing.chosenVariant.variant.royalty_percentage || 0,
                 },
             });
