@@ -1,4 +1,4 @@
-const { Ebook, EbookCategory, EbookSubCategory, EbookOrder, User } = require('../models');
+const { Ebook, EbookCategory, EbookSubCategory, EbookOrder, User, Review } = require('../models');
 
 function buildPublicUrl(value, host) {
     if (!value) return null;
@@ -30,8 +30,58 @@ function formatEbook(ebook, host) {
         category_name: item.EbookCategory?.name || item.category_name || null,
         sub_category_id: item.sub_category_id || item.EbookSubCategory?.id || null,
         sub_category_name: item.EbookSubCategory?.name || item.sub_category_name || null,
+        ratings_count: item.ratings_count || 0,
+        ratings_average: item.ratings_average || 0,
+        isPurchased: item.isPurchased || false,
         posted_at: item.posted_at || item.createdAt,
     };
+}
+
+async function enrichEbookMetrics(ebookOrEbooks, userId = null) {
+    const ebooks = Array.isArray(ebookOrEbooks) ? ebookOrEbooks : [ebookOrEbooks];
+    const ebookIds = ebooks.map((ebook) => ebook.id);
+    if (ebookIds.length === 0) return Array.isArray(ebookOrEbooks) ? [] : ebookOrEbooks;
+
+    const reviews = await Review.findAll({
+        where: { ebookId: ebookIds },
+        attributes: ['ebookId', 'rating'],
+    });
+
+    const purchases = userId
+        ? await EbookOrder.findAll({
+            where: {
+                user_id: userId,
+                Ebook_id: ebookIds,
+                payment_status: 'completed',
+            },
+            attributes: ['Ebook_id'],
+        })
+        : [];
+
+    const ratingsByEbook = new Map();
+    for (const review of reviews) {
+        const key = Number(review.ebookId);
+        const current = ratingsByEbook.get(key) || { count: 0, total: 0 };
+        current.count += 1;
+        current.total += Number(review.rating || 0);
+        ratingsByEbook.set(key, current);
+    }
+
+    const purchasedIds = new Set(
+        purchases.map((item) => Number(item.Ebook_id))
+    );
+
+    for (const ebook of ebooks) {
+        const metrics = ratingsByEbook.get(Number(ebook.id)) || { count: 0, total: 0 };
+        ebook.setDataValue('ratings_count', metrics.count);
+        ebook.setDataValue(
+            'ratings_average',
+            metrics.count > 0 ? Number((metrics.total / metrics.count).toFixed(1)) : 0
+        );
+        ebook.setDataValue('isPurchased', purchasedIds.has(Number(ebook.id)));
+    }
+
+    return Array.isArray(ebookOrEbooks) ? ebooks : ebooks[0];
 }
 
 const EbookController = {
@@ -98,6 +148,7 @@ const EbookController = {
             const fullEbook = await Ebook.findByPk(createdEbook.id, {
                 include: [EbookCategory, EbookSubCategory, User],
             });
+            await enrichEbookMetrics(fullEbook, req.user?.id);
             const host = `${req.protocol}://${req.get('host')}`;
 
             console.log('✅ Ebook created:', fullEbook);
@@ -147,6 +198,7 @@ const EbookController = {
             });
 
             console.log('Ebooks fetched:', Ebooks.length);
+            await enrichEbookMetrics(Ebooks, req.user?.id);
             const host = `${req.protocol}://${req.get('host')}`;
             res.json(Ebooks.map((ebook) => formatEbook(ebook, host)));
         } catch (err) {
@@ -197,6 +249,7 @@ const EbookController = {
                 return res.status(404).json({ error: 'Ebook not found' });
             }
 
+            await enrichEbookMetrics(ebook, req.user?.id);
             const host = `${req.protocol}://${req.get('host')}`;
             return res.json(formatEbook(ebook, host));
         } catch (err) {
@@ -384,9 +437,12 @@ const EbookController = {
             if (existing) return res.status(409).json({ error: 'Already purchased' });
 
             const order = await EbookOrder.create({
+                order_id: `EBOOK-${Date.now()}`,
                 user_id: req.user.id,
                 Ebook_id: ebookId,
-                price_paid: Ebook.price
+                price_paid: Ebook.price,
+                payment_status: 'completed',
+                paid_at: new Date(),
             });
 
             console.log('Ebook purchased:', order);
@@ -394,6 +450,86 @@ const EbookController = {
         } catch (err) {
             console.error('Error purchasing Ebook:', err);
             res.status(500).json({ error: err.message });
+        }
+    },
+
+    async createCheckoutOrder(req, res) {
+        try {
+            const {
+                ebook_id,
+                payment_method,
+                customer_email,
+                customer_phone,
+                customer_address,
+                note,
+                delivery_method,
+            } = req.body;
+
+            if (!ebook_id || !payment_method || !customer_email || !customer_phone) {
+                return res.status(400).json({ error: 'Missing required checkout fields' });
+            }
+
+            const ebook = await Ebook.findByPk(ebook_id);
+            if (!ebook || !ebook.is_approved) {
+                return res.status(404).json({ error: 'Ebook not found or not approved' });
+            }
+
+            const existing = await EbookOrder.findOne({
+                where: {
+                    user_id: req.user.id,
+                    Ebook_id: ebook_id,
+                    payment_status: 'completed',
+                },
+            });
+
+            if (existing) {
+                return res.status(409).json({ error: 'You already purchased this ebook' });
+            }
+
+            const order = await EbookOrder.create({
+                order_id: `EBOOK-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+                user_id: req.user.id,
+                Ebook_id: ebook_id,
+                price_paid: ebook.price,
+                payment_method,
+                customer_email,
+                customer_phone,
+                customer_address: customer_address || null,
+                note: note || null,
+                delivery_method: delivery_method || 'digital_download',
+                payment_status: 'completed',
+                paid_at: new Date(),
+                purchased_at: new Date(),
+                transaction_id: `TXN-${Date.now()}`,
+                metadata: {
+                    checkout_source: 'mobile_app',
+                },
+            });
+
+            return res.status(201).json({
+                message: 'Ebook order created successfully',
+                order,
+            });
+        } catch (err) {
+            console.error('Error creating ebook checkout order:', err);
+            return res.status(500).json({ error: err.message });
+        }
+    },
+
+    async getPurchaseStatus(req, res) {
+        try {
+            const order = await EbookOrder.findOne({
+                where: {
+                    user_id: req.user.id,
+                    Ebook_id: req.params.id,
+                    payment_status: 'completed',
+                },
+            });
+
+            return res.json({ isPurchased: !!order, order: order || null });
+        } catch (err) {
+            console.error('Error checking ebook purchase status:', err);
+            return res.status(500).json({ error: err.message });
         }
     },
 

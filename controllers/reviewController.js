@@ -1,4 +1,4 @@
-const { Review, Product, Ebook, User } = require('../models');
+const { Review, Product, Ebook, User, EbookOrder } = require('../models');
 
 const includeUser = [
     {
@@ -76,9 +76,13 @@ const ReviewController = {
     async addEbookReview(req, res) {
         const ebookId = req.params.ebookId;
         const { rating, comment } = req.body;
-        const user_id = req.user?.id || req.body.user_id;
+        const user_id = req.user?.id;
 
         try {
+            if (!user_id) {
+                return res.status(401).json({ error: 'Authentication required' });
+            }
+
             const ebook = await Ebook.findByPk(ebookId);
             if (!ebook) {
                 return res.status(404).json({ error: 'Ebook not found' });
@@ -91,6 +95,20 @@ const ReviewController = {
             const existing = await Review.findOne({ where: { ebookId, user_id } });
             if (existing) {
                 return res.status(400).json({ error: 'You already reviewed this ebook.' });
+            }
+
+            const purchase = await EbookOrder.findOne({
+                where: {
+                    user_id,
+                    Ebook_id: ebookId,
+                    payment_status: 'completed',
+                },
+            });
+
+            if (!purchase) {
+                return res.status(403).json({
+                    error: 'Purchase this ebook first before submitting a review.',
+                });
             }
 
             const newReview = await Review.create({

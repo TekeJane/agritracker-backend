@@ -1,4 +1,4 @@
-const { User, Product, Review, Ebook, EbookCategory, EbookSubCategory } = require('../models');
+const { User, Product, Review, Ebook, EbookCategory, EbookSubCategory, EbookOrder } = require('../models');
 
 const getBaseUrl = (req) => {
     const envBaseUrl = process.env.BASE_URL;
@@ -16,10 +16,22 @@ const buildMediaUrl = (baseUrl, value) => {
     return `${baseUrl}${String(value).replace(/\\/g, '/').replace(/^\/+/, '')}`;
 };
 
-const buildUserResponse = (user, baseUrl, sellerAverageRating = null, sellerReviewCount = null) => {
+const buildUserResponse = (
+    user,
+    baseUrl,
+    sellerAverageRating = null,
+    sellerReviewCount = null,
+    authorAverageRating = null,
+    authorReviewCount = null,
+    authorOrderCount = 0
+) => {
+    const combinedReviewCount = (sellerReviewCount ?? user.reviews?.length ?? 0) + (authorReviewCount ?? 0);
+    const weightedRatingTotal =
+        ((typeof sellerAverageRating === 'number' ? sellerAverageRating : 0) * (sellerReviewCount ?? user.reviews?.length ?? 0)) +
+        ((typeof authorAverageRating === 'number' ? authorAverageRating : 0) * (authorReviewCount ?? 0));
     const averageRating =
-        typeof sellerAverageRating === 'number'
-            ? sellerAverageRating
+        combinedReviewCount > 0
+            ? weightedRatingTotal / combinedReviewCount
             : user.reviews?.length > 0
                 ? user.reviews.reduce((acc, r) => acc + r.rating, 0) / user.reviews.length
                 : 0;
@@ -43,10 +55,21 @@ const buildUserResponse = (user, baseUrl, sellerAverageRating = null, sellerRevi
         whatsapp: user.phone,
         created_at: user.createdAt,
         average_rating: parseFloat(averageRating.toFixed(1)),
-        seller_review_count: sellerReviewCount ?? user.reviews?.length ?? 0,
+        seller_review_count: combinedReviewCount,
+        author_order_count: authorOrderCount,
         products: user.products ?? [],
         ebooks: (user.Ebooks ?? []).map((ebook) => ({
             ...ebook.toJSON(),
+            ratings_count: ebook.Reviews?.length ?? 0,
+            ratings_average:
+                ebook.Reviews?.isNotEmpty == true
+                    ? Number(
+                        (
+                            ebook.Reviews.reduce((acc, review) => acc + review.rating, 0) /
+                            ebook.Reviews.length
+                        ).toFixed(1)
+                    )
+                    : 0,
             cover_image: buildMediaUrl(baseUrl, ebook.cover_image),
             gallery_images: (ebook.gallery_images ?? []).map((image) =>
                 buildMediaUrl(baseUrl, image)
@@ -78,7 +101,10 @@ const getMyProfile = async (req, res) => {
             include: [
                 { model: Product, as: 'products' },
                 { model: Review, as: 'reviews', attributes: ['rating'] },
-                { model: Ebook, include: [EbookCategory, EbookSubCategory] },
+                {
+                    model: Ebook,
+                    include: [EbookCategory, EbookSubCategory, { model: Review, attributes: ['rating'] }],
+                },
             ]
         });
 
@@ -99,15 +125,28 @@ const getMyProfile = async (req, res) => {
             include: [{ model: Product, where: { seller_id: user.id }, attributes: [] }],
             attributes: ['rating']
         });
+        const authorReviews = await Review.findAll({
+            include: [{ model: Ebook, where: { author_id: user.id }, attributes: [] }],
+            attributes: ['rating']
+        });
+        const authorOrdersCount = await EbookOrder.count({
+            include: [{ model: Ebook, where: { author_id: user.id }, attributes: [] }],
+        });
         const sellerAverageRating = sellerReviews.length > 0
             ? sellerReviews.reduce((acc, r) => acc + r.rating, 0) / sellerReviews.length
+            : 0;
+        const authorAverageRating = authorReviews.length > 0
+            ? authorReviews.reduce((acc, r) => acc + r.rating, 0) / authorReviews.length
             : 0;
 
         const responsePayload = buildUserResponse(
             user,
             getBaseUrl(req),
             sellerAverageRating,
-            sellerReviews.length
+            sellerReviews.length,
+            authorAverageRating,
+            authorReviews.length,
+            authorOrdersCount
         );
         console.log("📦 Response payload being sent:", responsePayload);
 
@@ -130,7 +169,10 @@ const getUserProfile = async (req, res) => {
             include: [
                 { model: Product, as: 'products' },
                 { model: Review, as: 'reviews', attributes: ['rating'] },
-                { model: Ebook, include: [EbookCategory, EbookSubCategory] },
+                {
+                    model: Ebook,
+                    include: [EbookCategory, EbookSubCategory, { model: Review, attributes: ['rating'] }],
+                },
             ]
         });
 
@@ -142,12 +184,30 @@ const getUserProfile = async (req, res) => {
             include: [{ model: Product, where: { seller_id: user.id }, attributes: [] }],
             attributes: ['rating']
         });
+        const authorReviews = await Review.findAll({
+            include: [{ model: Ebook, where: { author_id: user.id }, attributes: [] }],
+            attributes: ['rating']
+        });
+        const authorOrdersCount = await EbookOrder.count({
+            include: [{ model: Ebook, where: { author_id: user.id }, attributes: [] }],
+        });
         const sellerAverageRating = sellerReviews.length > 0
             ? sellerReviews.reduce((acc, r) => acc + r.rating, 0) / sellerReviews.length
             : 0;
+        const authorAverageRating = authorReviews.length > 0
+            ? authorReviews.reduce((acc, r) => acc + r.rating, 0) / authorReviews.length
+            : 0;
 
         return res.status(200).json(
-            buildUserResponse(user, getBaseUrl(req), sellerAverageRating, sellerReviews.length)
+            buildUserResponse(
+                user,
+                getBaseUrl(req),
+                sellerAverageRating,
+                sellerReviews.length,
+                authorAverageRating,
+                authorReviews.length,
+                authorOrdersCount
+            )
         );
 
     } catch (error) {
@@ -196,7 +256,10 @@ const updateMyProfile = async (req, res) => {
             include: [
                 { model: Product, as: 'products' },
                 { model: Review, as: 'reviews', attributes: ['rating'] },
-                { model: Ebook, include: [EbookCategory, EbookSubCategory] },
+                {
+                    model: Ebook,
+                    include: [EbookCategory, EbookSubCategory, { model: Review, attributes: ['rating'] }],
+                },
             ]
         });
 
@@ -204,13 +267,31 @@ const updateMyProfile = async (req, res) => {
             include: [{ model: Product, where: { seller_id: updatedUser.id }, attributes: [] }],
             attributes: ['rating']
         });
+        const authorReviews = await Review.findAll({
+            include: [{ model: Ebook, where: { author_id: updatedUser.id }, attributes: [] }],
+            attributes: ['rating']
+        });
+        const authorOrdersCount = await EbookOrder.count({
+            include: [{ model: Ebook, where: { author_id: updatedUser.id }, attributes: [] }],
+        });
         const sellerAverageRating = sellerReviews.length > 0
             ? sellerReviews.reduce((acc, r) => acc + r.rating, 0) / sellerReviews.length
+            : 0;
+        const authorAverageRating = authorReviews.length > 0
+            ? authorReviews.reduce((acc, r) => acc + r.rating, 0) / authorReviews.length
             : 0;
 
         return res.status(200).json({
             message: 'Profile updated',
-            user: buildUserResponse(updatedUser, getBaseUrl(req), sellerAverageRating, sellerReviews.length)
+            user: buildUserResponse(
+                updatedUser,
+                getBaseUrl(req),
+                sellerAverageRating,
+                sellerReviews.length,
+                authorAverageRating,
+                authorReviews.length,
+                authorOrdersCount
+            )
         });
 
     } catch (error) {

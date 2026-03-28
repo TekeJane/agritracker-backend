@@ -200,6 +200,32 @@ const ensureEbookSubCategorySchema = async () => {
         console.log('ðŸŸ¢ Ebooks.preorder_days column ensured');
     }
 
+    const ebookOrderTable = await queryInterface.describeTable('EbookOrders');
+    const ebookOrderColumns = {
+        order_id: { type: Sequelize.STRING, allowNull: true },
+        payment_method: { type: Sequelize.STRING, allowNull: true },
+        customer_email: { type: Sequelize.STRING, allowNull: true },
+        customer_phone: { type: Sequelize.STRING, allowNull: true },
+        customer_address: { type: Sequelize.TEXT, allowNull: true },
+        note: { type: Sequelize.TEXT, allowNull: true },
+        payment_status: {
+            type: Sequelize.STRING,
+            allowNull: false,
+            defaultValue: 'pending',
+        },
+        paid_at: { type: Sequelize.DATE, allowNull: true },
+        transaction_id: { type: Sequelize.STRING, allowNull: true },
+        delivery_method: { type: Sequelize.STRING, allowNull: true },
+        metadata: { type: Sequelize.JSON, allowNull: true },
+    };
+
+    for (const [columnName, definition] of Object.entries(ebookOrderColumns)) {
+        if (!ebookOrderTable[columnName]) {
+            await queryInterface.addColumn('EbookOrders', columnName, definition);
+            console.log(`EbookOrders.${columnName} column ensured`);
+        }
+    }
+
     const videoTable = await queryInterface.describeTable('VideoTips');
     if (!videoTable.creator_image) {
         await queryInterface.addColumn('VideoTips', 'creator_image', {
