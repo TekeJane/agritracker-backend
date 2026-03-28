@@ -253,6 +253,21 @@ function resolveVariantForOrder(ebook, selectedFormat) {
     return preferred;
 }
 
+function getOrderPricing(ebook, selectedFormat) {
+    const chosenVariant = resolveVariantForOrder(ebook, selectedFormat);
+    const basePrice = parseNumber(chosenVariant.variant.price || ebook.price, 0);
+    const printingCost = chosenVariant.key === 'ebook'
+        ? 0
+        : parseNumber(chosenVariant.variant.printing_cost, 0);
+
+    return {
+        chosenVariant,
+        basePrice,
+        printingCost,
+        totalPrice: basePrice + printingCost,
+    };
+}
+
 function formatEbook(ebook, host) {
     const item = ebook.toJSON ? ebook.toJSON() : ebook;
     const galleryImages = Array.isArray(item.gallery_images) ? item.gallery_images : [];
@@ -791,16 +806,18 @@ const EbookController = {
             });
             if (existing) return res.status(409).json({ error: 'Already purchased' });
 
-            const chosenVariant = resolveVariantForOrder(ebook, selectedFormat);
+            const pricing = getOrderPricing(ebook, selectedFormat);
             const order = await EbookOrder.create({
                 order_id: `EBOOK-${Date.now()}`,
                 user_id: req.user.id,
                 Ebook_id: ebookId,
-                price_paid: chosenVariant.variant.price || ebook.price,
+                price_paid: pricing.totalPrice,
                 payment_status: 'completed',
                 paid_at: new Date(),
                 metadata: {
-                    selected_format: chosenVariant.key,
+                    selected_format: pricing.chosenVariant.key,
+                    base_price: pricing.basePrice,
+                    printing_cost: pricing.printingCost,
                 },
             });
 
@@ -845,12 +862,12 @@ const EbookController = {
                 return res.status(409).json({ error: 'You already purchased this ebook' });
             }
 
-            const chosenVariant = resolveVariantForOrder(ebook, selected_format);
+            const pricing = getOrderPricing(ebook, selected_format);
             const order = await EbookOrder.create({
                 order_id: `EBOOK-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
                 user_id: req.user.id,
                 Ebook_id: ebook_id,
-                price_paid: chosenVariant.variant.price || ebook.price,
+                price_paid: pricing.totalPrice,
                 payment_method,
                 customer_email,
                 customer_phone,
@@ -858,16 +875,17 @@ const EbookController = {
                 note: note || null,
                 delivery_method:
                     delivery_method ||
-                    (chosenVariant.key === 'ebook' ? 'digital_download' : 'shipping'),
+                    (pricing.chosenVariant.key === 'ebook' ? 'digital_download' : 'shipping'),
                 payment_status: 'completed',
                 paid_at: new Date(),
                 purchased_at: new Date(),
                 transaction_id: `TXN-${Date.now()}`,
                 metadata: {
                     checkout_source: 'mobile_app',
-                    selected_format: chosenVariant.key,
-                    printing_cost: chosenVariant.variant.printing_cost || 0,
-                    royalty_percentage: chosenVariant.variant.royalty_percentage || 0,
+                    selected_format: pricing.chosenVariant.key,
+                    base_price: pricing.basePrice,
+                    printing_cost: pricing.printingCost,
+                    royalty_percentage: pricing.chosenVariant.variant.royalty_percentage || 0,
                 },
             });
 
