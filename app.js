@@ -200,6 +200,47 @@ const ensureEbookSubCategorySchema = async () => {
         console.log('ðŸŸ¢ Ebooks.preorder_days column ensured');
     }
 
+    if (!ebookTable.book_metadata) {
+        await queryInterface.addColumn('Ebooks', 'book_metadata', {
+            type: Sequelize.TEXT,
+            allowNull: true,
+        });
+        console.log('Ebooks.book_metadata column ensured');
+    }
+
+    if (!ebookTable.format_variants) {
+        await queryInterface.addColumn('Ebooks', 'format_variants', {
+            type: Sequelize.TEXT,
+            allowNull: true,
+        });
+        console.log('Ebooks.format_variants column ensured');
+    }
+
+    if (!ebookTable.validation_report) {
+        await queryInterface.addColumn('Ebooks', 'validation_report', {
+            type: Sequelize.TEXT,
+            allowNull: true,
+        });
+        console.log('Ebooks.validation_report column ensured');
+    }
+
+    if (!ebookTable.publication_status) {
+        await queryInterface.addColumn('Ebooks', 'publication_status', {
+            type: Sequelize.STRING,
+            allowNull: false,
+            defaultValue: 'published',
+        });
+        console.log('Ebooks.publication_status column ensured');
+    }
+
+    if (!ebookTable.last_draft_saved_at) {
+        await queryInterface.addColumn('Ebooks', 'last_draft_saved_at', {
+            type: Sequelize.DATE,
+            allowNull: true,
+        });
+        console.log('Ebooks.last_draft_saved_at column ensured');
+    }
+
     const ebookOrderTable = await queryInterface.describeTable('EbookOrders');
     const ebookOrderColumns = {
         order_id: { type: Sequelize.STRING, allowNull: true },

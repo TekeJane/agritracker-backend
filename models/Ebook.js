@@ -67,6 +67,63 @@ const Ebook = sequelize.define('Ebook', {
             this.setDataValue('gallery_images', JSON.stringify(value || []));
         },
     },
+    book_metadata: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        get() {
+            const raw = this.getDataValue('book_metadata');
+            if (!raw) return {};
+            try {
+                return JSON.parse(raw);
+            } catch (_) {
+                return {};
+            }
+        },
+        set(value) {
+            this.setDataValue('book_metadata', JSON.stringify(value || {}));
+        },
+    },
+    format_variants: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        get() {
+            const raw = this.getDataValue('format_variants');
+            if (!raw) return {};
+            try {
+                return JSON.parse(raw);
+            } catch (_) {
+                return {};
+            }
+        },
+        set(value) {
+            this.setDataValue('format_variants', JSON.stringify(value || {}));
+        },
+    },
+    validation_report: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+        get() {
+            const raw = this.getDataValue('validation_report');
+            if (!raw) return null;
+            try {
+                return JSON.parse(raw);
+            } catch (_) {
+                return null;
+            }
+        },
+        set(value) {
+            this.setDataValue('validation_report', value ? JSON.stringify(value) : null);
+        },
+    },
+    publication_status: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        defaultValue: 'published',
+    },
+    last_draft_saved_at: {
+        type: DataTypes.DATE,
+        allowNull: true,
+    },
     origin_region: {
         type: DataTypes.STRING,
     },

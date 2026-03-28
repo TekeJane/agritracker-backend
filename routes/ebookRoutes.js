@@ -29,9 +29,19 @@ router.post(
         { name: 'file', maxCount: 1 },
         { name: 'cover_image', maxCount: 1 },
         { name: 'gallery_images', maxCount: 8 },
+        { name: 'ebook_file', maxCount: 1 },
+        { name: 'ebook_cover_image', maxCount: 1 },
+        { name: 'ebook_print_ready_cover', maxCount: 1 },
+        { name: 'paperback_file', maxCount: 1 },
+        { name: 'paperback_cover_image', maxCount: 1 },
+        { name: 'paperback_print_ready_cover', maxCount: 1 },
+        { name: 'hardcover_file', maxCount: 1 },
+        { name: 'hardcover_cover_image', maxCount: 1 },
+        { name: 'hardcover_print_ready_cover', maxCount: 1 },
     ]),
     EbookController.uploadEbook
 );
+router.post('/drafts', authenticate, EbookController.saveDraft);
 
 // ✅ Get list of approved Ebooks (public)
 router.get('/', EbookController.listApprovedEbooks);
