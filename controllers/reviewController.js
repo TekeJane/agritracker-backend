@@ -1,4 +1,4 @@
-const { Review, Product, Ebook, User, EbookOrder } = require('../models');
+const { Review, Product, Ebook, User, EbookOrder, OrderItem, Order } = require('../models');
 
 const includeUser = [
     {
@@ -46,17 +46,47 @@ const ReviewController = {
     async addReview(req, res) {
         const productId = req.params.productId;
         const { rating, comment } = req.body;
-        const user_id = req.user?.id || req.body.user_id;
+        const user_id = req.user?.id;
 
         try {
+            if (!user_id) {
+                return res.status(401).json({ error: 'Authentication required' });
+            }
+
             const product = await Product.findByPk(productId);
             if (!product) {
                 return res.status(404).json({ error: 'Product not found' });
             }
 
+            if (Number(product.seller_id) === Number(user_id)) {
+                return res.status(400).json({
+                    error: 'Sellers cannot review their own products.',
+                });
+            }
+
             const existing = await Review.findOne({ where: { productId, user_id } });
             if (existing) {
                 return res.status(400).json({ error: 'You already reviewed this product.' });
+            }
+
+            const purchase = await OrderItem.findOne({
+                where: { ProductId: productId },
+                include: [
+                    {
+                        model: Order,
+                        required: true,
+                        where: {
+                            UserId: user_id,
+                            payment_status: 'paid',
+                        },
+                    },
+                ],
+            });
+
+            if (!purchase) {
+                return res.status(403).json({
+                    error: 'Buy and pay for this product first before submitting a review.',
+                });
             }
 
             const newReview = await Review.create({
