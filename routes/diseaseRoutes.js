@@ -10,6 +10,7 @@ const upload = multer({ dest: 'uploads/disease/' });
 const OPENAI_MODEL = process.env.OPENAI_PLANT_MODEL || 'gpt-4o-mini';
 const OPENROUTER_MODEL =
   process.env.OPENROUTER_PLANT_MODEL || 'openai/gpt-4o-mini';
+const REQUEST_TIMEOUT_MS = 45000;
 
 const SYSTEM_PROMPT = `You are Plant AI Doctor, a careful agronomist and plant-vision assistant.
 Analyze one crop image and return only valid JSON.
@@ -35,6 +36,43 @@ function normalizeArray(value) {
   }
 
   return [];
+}
+
+function sanitizeModelName(value, fallback) {
+  const trimmed = value?.toString().trim();
+  if (!trimmed) return fallback;
+  if (trimmed.startsWith('sk-')) {
+    console.warn(
+      `[PLANT AI] Ignoring invalid model env value that looks like an API key. Using fallback model ${fallback}.`,
+    );
+    return fallback;
+  }
+  return trimmed;
+}
+
+function extractJsonObject(raw) {
+  if (!raw || typeof raw !== 'string') return null;
+  const first = raw.indexOf('{');
+  const last = raw.lastIndexOf('}');
+  if (first === -1 || last === -1 || last <= first) return null;
+  return raw.slice(first, last + 1);
+}
+
+function parseAiJson(content) {
+  if (!content) return null;
+  if (typeof content === 'object') return content;
+
+  try {
+    return JSON.parse(content);
+  } catch (_) {
+    const extracted = extractJsonObject(content);
+    if (!extracted) return null;
+    try {
+      return JSON.parse(extracted);
+    } catch (_) {
+      return null;
+    }
+  }
 }
 
 function clampNumber(value, min, max, fallback) {
@@ -288,11 +326,12 @@ function sanitizeDiagnosis(raw, { cropType, weather }) {
 
 async function sendToOpenAI(imageDataUrl, contextPayload) {
   if (!process.env.OPENAI_API_KEY) return null;
+  const model = sanitizeModelName(OPENAI_MODEL, 'gpt-4o-mini');
 
   const response = await axios.post(
     'https://api.openai.com/v1/chat/completions',
     {
-      model: OPENAI_MODEL,
+      model,
       temperature: 0.2,
       response_format: { type: 'json_object' },
       messages: [
@@ -323,21 +362,25 @@ async function sendToOpenAI(imageDataUrl, contextPayload) {
         Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
         'Content-Type': 'application/json',
       },
-      timeout: 45000,
+      timeout: REQUEST_TIMEOUT_MS,
     },
   );
 
   const content = response.data?.choices?.[0]?.message?.content?.trim();
-  return content ? JSON.parse(content) : null;
+  return parseAiJson(content);
 }
 
 async function sendToOpenRouter(imageDataUrl, contextPayload) {
   if (!process.env.OPENROUTER_API_KEY) return null;
+  const model = sanitizeModelName(
+    OPENROUTER_MODEL,
+    'openai/gpt-4o-mini',
+  );
 
   const response = await axios.post(
     'https://openrouter.ai/api/v1/chat/completions',
     {
-      model: OPENROUTER_MODEL,
+      model,
       temperature: 0.2,
       response_format: { type: 'json_object' },
       messages: [
@@ -368,12 +411,12 @@ async function sendToOpenRouter(imageDataUrl, contextPayload) {
         Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
         'Content-Type': 'application/json',
       },
-      timeout: 45000,
+      timeout: REQUEST_TIMEOUT_MS,
     },
   );
 
   const content = response.data?.choices?.[0]?.message?.content?.trim();
-  return content ? JSON.parse(content) : null;
+  return parseAiJson(content);
 }
 
 router.post(
