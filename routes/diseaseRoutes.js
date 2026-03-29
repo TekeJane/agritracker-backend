@@ -18,7 +18,8 @@ Be cautious: do not invent certainty. If the image is unclear, say so.
 When possible, identify the most likely crop, the most likely disease or issue, severity, confidence, why you think so, immediate actions, long-term care, prevention, and spread risk.
 If you can estimate affected areas, provide up to 3 normalized focus regions using x, y, width, height values between 0 and 1.
 If the plant appears healthy, set isHealthy to true and explain why.
-Include a short disclaimer that this is AI guidance and severe cases should be reviewed by a local agronomist.`;
+Include a short disclaimer that this is AI guidance and severe cases should be reviewed by a local agronomist.
+Prioritize crop-specific reasoning when the crop is known, but stay fully usable for any crop, including crops outside the examples provided.`;
 
 function normalizeArray(value) {
   if (!value) return [];
@@ -73,6 +74,38 @@ function parseAiJson(content) {
       return null;
     }
   }
+}
+
+function buildCropGuidance(cropType) {
+  const normalized = cropType?.toString().trim().toLowerCase() || '';
+  const general =
+    'Work for any crop. If the supplied crop label seems wrong, say that clearly and infer the crop only when visual evidence is strong. Distinguish disease from nutrient deficiency, insect damage, sun scorch, herbicide injury, edema, water stress, and physical injury. When uncertain, explicitly lower confidence.';
+
+  if (!normalized) {
+    return `${general} No crop was supplied, so first infer the crop family only if the image supports it.`;
+  }
+
+  if (normalized.contains('tomato')) {
+    return `${general} For tomato, carefully differentiate early blight, late blight, septoria leaf spot, bacterial spot, leaf mold, mosaic virus, spider mite stippling, sunscald, and calcium-related blossom-end rot or nutrient stress. Pay attention to concentric lesions, water-soaked tissue, yellow halos, fruit lesions, and lower-leaf progression.`;
+  }
+
+  if (normalized.contains('maize') || normalized.contains('corn')) {
+    return `${general} For maize, check for northern corn leaf blight, gray leaf spot, rust, maize streak virus, fall armyworm feeding, nutrient striping, drought curling, and stalk stress. Pay attention to elongated cigar lesions, rectangular gray lesions, rust pustules, whorl feeding, and striped chlorosis.`;
+  }
+
+  if (normalized.contains('pepper') || normalized.contains('chili')) {
+    return `${general} For pepper, differentiate bacterial leaf spot, anthracnose, cercospora leaf spot, mosaic virus, mite damage, edema, blossom-end rot, and sunscald. Pay attention to greasy lesions, fruit sunken spots, puckering, leaf curling, and fruit-end collapse.`;
+  }
+
+  if (normalized.contains('cassava')) {
+    return `${general} For cassava, consider cassava mosaic disease, cassava brown streak disease, bacterial blight, red mite damage, anthracnose, nutrient deficiency, and drought stress. Watch for mosaic mottling, leaf distortion, stem lesions, dieback, and root-quality implications if visible.`;
+  }
+
+  if (normalized.contains('plantain') || normalized.contains('banana')) {
+    return `${general} For plantain or banana, differentiate black sigatoka, yellow sigatoka, bunchy top, bacterial wilt, cigar-end rot, weevil stress, and wind tearing. Focus on elongated streaks, necrotic margins, cigar-shaped fruit-end decay, wilt pattern, and pseudostem or leaf-emergence abnormalities.`;
+  }
+
+  return `${general} The crop label is "${cropType}". Use that label as context, but remain cautious and describe what visual evidence supports or weakens the diagnosis for this specific crop.`;
 }
 
 function clampNumber(value, min, max, fallback) {
@@ -327,6 +360,7 @@ function sanitizeDiagnosis(raw, { cropType, weather }) {
 async function sendToOpenAI(imageDataUrl, contextPayload) {
   if (!process.env.OPENAI_API_KEY) return null;
   const model = sanitizeModelName(OPENAI_MODEL, 'gpt-4o-mini');
+  const cropGuidance = buildCropGuidance(contextPayload.cropType);
 
   const response = await axios.post(
     'https://api.openai.com/v1/chat/completions',
@@ -345,6 +379,8 @@ async function sendToOpenAI(imageDataUrl, contextPayload) {
                 `Return JSON with keys: isHealthy, cropName, analysisQuality, summary, mostProbableDisease, diseases, suggestions, environment, disclaimer.\n` +
                 `For mostProbableDisease include: name, probability, severity, status, summary, plainLanguage, treatment, prevention, spreadRisk, focusRegions.\n` +
                 `Treatment must include arrays immediateActions, longTermCare, chemical, biological.\n` +
+                `Be strict about uncertainty and avoid over-diagnosing from weak visual evidence.\n` +
+                `Crop-specific guidance: ${cropGuidance}\n` +
                 `SpreadRisk must include level, score, reason.\n` +
                 `Context:\n${JSON.stringify(contextPayload)}`,
             },
@@ -376,6 +412,7 @@ async function sendToOpenRouter(imageDataUrl, contextPayload) {
     OPENROUTER_MODEL,
     'openai/gpt-4o-mini',
   );
+  const cropGuidance = buildCropGuidance(contextPayload.cropType);
 
   const response = await axios.post(
     'https://openrouter.ai/api/v1/chat/completions',
@@ -394,6 +431,8 @@ async function sendToOpenRouter(imageDataUrl, contextPayload) {
                 `Return JSON with keys: isHealthy, cropName, analysisQuality, summary, mostProbableDisease, diseases, suggestions, environment, disclaimer.\n` +
                 `For mostProbableDisease include: name, probability, severity, status, summary, plainLanguage, treatment, prevention, spreadRisk, focusRegions.\n` +
                 `Treatment must include arrays immediateActions, longTermCare, chemical, biological.\n` +
+                `Be strict about uncertainty and avoid over-diagnosing from weak visual evidence.\n` +
+                `Crop-specific guidance: ${cropGuidance}\n` +
                 `SpreadRisk must include level, score, reason.\n` +
                 `Context:\n${JSON.stringify(contextPayload)}`,
             },
