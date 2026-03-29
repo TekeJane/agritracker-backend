@@ -62,6 +62,7 @@ function defaultVariant(key) {
         print_ready_cover_url: null,
         price: 0,
         printing_cost: 0,
+        stock_quantity: 0,
         royalty_percentage: 0,
         isbn_mode: 'free',
         isbn_value: null,
@@ -94,6 +95,7 @@ function normalizeEditionVariant(key, input, req) {
         print_ready_cover_url: printReadyCover?.path || raw.print_ready_cover_url || null,
         price: parseNumber(raw.price, 0),
         printing_cost: parseNumber(raw.printing_cost, 0),
+        stock_quantity: Math.max(parseInt(raw.stock_quantity, 10) || 0, 0),
         royalty_percentage: parseNumber(raw.royalty_percentage, 0),
         isbn_mode: raw.isbn_mode || 'free',
         isbn_value: raw.isbn_value || null,
@@ -117,6 +119,7 @@ function normalizeDraftVariant(key, input) {
         enabled: parseBoolean(raw.enabled),
         price: parseNumber(raw.price, 0),
         printing_cost: parseNumber(raw.printing_cost, 0),
+        stock_quantity: Math.max(parseInt(raw.stock_quantity, 10) || 0, 0),
         royalty_percentage: parseNumber(raw.royalty_percentage, 0),
         currency: raw.currency || 'XAF',
         upload_status: raw.upload_status || (parseBoolean(raw.enabled) ? 'draft' : 'pending'),
@@ -543,14 +546,23 @@ const EbookController = {
     async listApprovedEbooks(req, res) {
         try {
             const approved = req.query.approved;
+            const adminView = String(req.query.admin_view || '').toLowerCase() === 'true';
             const whereClause = {};
 
             if (approved === 'false') {
                 whereClause.is_approved = false;
-                whereClause.publication_status = req.query.publication_status || 'draft';
+                if (req.query.publication_status) {
+                    whereClause.publication_status = req.query.publication_status;
+                } else if (!adminView) {
+                    whereClause.publication_status = 'draft';
+                }
             } else {
                 whereClause.is_approved = true;
-                whereClause.publication_status = req.query.publication_status || 'published';
+                if (req.query.publication_status) {
+                    whereClause.publication_status = req.query.publication_status;
+                } else if (!adminView) {
+                    whereClause.publication_status = 'published';
+                }
             }
 
             if (req.query.featured === 'true') {

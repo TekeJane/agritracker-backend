@@ -49,7 +49,7 @@ function formatVideo(video, host) {
         video_url: buildPublicUrl(item.video_url, host),
         creator_image: buildPublicUrl(item.creator_image, host),
         category_name: item.VideoCategory?.name || item.category_name || null,
-        creator_name: creator.full_name || item.creator_name || 'Creator',
+        creator_name: item.creator_name || creator.full_name || 'Creator',
         creator_link: item.creator_link || buildCreatorLink(creator),
     };
 }
