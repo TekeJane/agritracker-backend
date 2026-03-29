@@ -44,7 +44,7 @@ exports.requestWebinar = async (req, res) => {
 exports.getPendingRequests = async (req, res) => {
     console.log('📥 [REQUEST] Fetching pending webinar requests');
     try {
-        const baseUrl = 'http://10.0.2.2:3000/uploads/'; // Change to your production domain if needed
+        const baseUrl = `${req.protocol}://${req.get('host')}/uploads/`;
 
         const requests = await WebinarRequest.findAll({
             where: { status: 'pending' },

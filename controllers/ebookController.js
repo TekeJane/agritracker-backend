@@ -1,4 +1,5 @@
 const { Ebook, EbookCategory, EbookSubCategory, EbookOrder, User, Review } = require('../models');
+const { toUploadDbPath } = require('../config/uploadPaths');
 
 const EDITION_KEYS = ['ebook', 'paperback', 'hardcover'];
 
@@ -8,7 +9,7 @@ function buildPublicUrl(value, host) {
         return value;
     }
 
-    const normalized = value.replace(/\\/g, '/').replace(/^\/+/, '');
+    const normalized = toUploadDbPath(value).replace(/^\/+/, '');
     return `${host}/${normalized}`;
 }
 
@@ -90,9 +91,9 @@ function normalizeEditionVariant(key, input, req) {
         ...base,
         label: raw.label || base.label,
         enabled,
-        manuscript_url: manuscript?.path || raw.manuscript_url || null,
-        cover_image: cover?.path || raw.cover_image || null,
-        print_ready_cover_url: printReadyCover?.path || raw.print_ready_cover_url || null,
+        manuscript_url: toUploadDbPath(manuscript?.path) || raw.manuscript_url || null,
+        cover_image: toUploadDbPath(cover?.path) || raw.cover_image || null,
+        print_ready_cover_url: toUploadDbPath(printReadyCover?.path) || raw.print_ready_cover_url || null,
         price: parseNumber(raw.price, 0),
         printing_cost: parseNumber(raw.printing_cost, 0),
         stock_quantity: Math.max(parseInt(raw.stock_quantity, 10) || 0, 0),
@@ -381,7 +382,7 @@ const EbookController = {
             const bookMetadata = buildBookMetadata(req);
             const formatVariants = buildFormatVariants(req);
             const primary = choosePrimaryVariant(format, formatVariants);
-            const galleryImages = getArrayFiles(req, 'gallery_images').map((file) => file.path);
+            const galleryImages = getArrayFiles(req, 'gallery_images').map((file) => toUploadDbPath(file.path));
             const validationReport = runAutomatedChecks({
                 title,
                 description,
@@ -396,8 +397,14 @@ const EbookController = {
                 });
             }
 
-            const coverImage = getFirstFile(req, 'cover_image')?.path || primary.variant.cover_image || null;
-            const fileUrl = getFirstFile(req, 'file')?.path || primary.variant.manuscript_url || null;
+            const coverImage =
+                toUploadDbPath(getFirstFile(req, 'cover_image')?.path) ||
+                primary.variant.cover_image ||
+                null;
+            const fileUrl =
+                toUploadDbPath(getFirstFile(req, 'file')?.path) ||
+                primary.variant.manuscript_url ||
+                null;
 
             const createdEbook = await Ebook.create({
                 title,

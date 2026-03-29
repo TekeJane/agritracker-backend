@@ -1,11 +1,9 @@
 const { VideoTip, VideoCategory, User } = require('../models');
-const multer = require('multer');
-const upload = multer({ dest: 'uploads/' });
-const { authenticate } = require('../middleware/authMiddleware');
 const ffmpeg = require('fluent-ffmpeg');
 const path = require('path');
 const fs = require('fs');
 const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
+const { ensureUploadDir, toUploadDbPath } = require('../config/uploadPaths');
 ffmpeg.setFfmpegPath(ffmpegPath);
 
 function buildPublicUrl(value, host) {
@@ -96,9 +94,11 @@ const videoController = {
             const creatorImagePath = req.files?.creator_image?.[0]?.path || null;
 
             if (!thumbnailPath) {
-                const thumbnailDir = path.join('uploads', 'thumbnails');
-                fs.mkdirSync(thumbnailDir, { recursive: true });
-                thumbnailPath = `uploads/thumbnails/${Date.now()}_thumbnail.png`;
+                const thumbnailDir = ensureUploadDir('thumbnails');
+                thumbnailPath = path.join(
+                    thumbnailDir,
+                    `${Date.now()}_thumbnail.png`
+                );
                 console.log("Thumbnail will be saved to:", thumbnailPath);
 
                 try {
@@ -134,11 +134,11 @@ const videoController = {
             const video = await VideoTip.create({
                 title,
                 description,
-                video_url: videoFile.path,
-                thumbnail_url: thumbnailPath,
+                video_url: toUploadDbPath(videoFile.path),
+                thumbnail_url: toUploadDbPath(thumbnailPath),
                 category_id,
                 uploaded_by: req.user.id,
-                creator_image: creatorImagePath,
+                creator_image: toUploadDbPath(creatorImagePath),
                 creator_name: creator_name || null,
                 creator_link: creator_link || null,
                 content_source: normalizedContentSource,

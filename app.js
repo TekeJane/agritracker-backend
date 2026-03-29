@@ -4,6 +4,7 @@ const cors = require('cors');
 require('dotenv').config();
 const path = require('path');
 const Sequelize = require('sequelize');
+const { primaryUploadDir, legacyUploadDir } = require('./config/uploadPaths');
 
 const sequelize = require('./config/db');
 
@@ -39,7 +40,10 @@ const diseaseRoutes = require('./routes/diseaseRoutes');   // ✅ plant disease 
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', express.static(primaryUploadDir));
+if (legacyUploadDir !== primaryUploadDir) {
+    app.use('/uploads', express.static(legacyUploadDir));
+}
 
 // Routes
 app.use('/api/auth', authRoutes);

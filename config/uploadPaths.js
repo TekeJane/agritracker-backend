@@ -1,0 +1,46 @@
+const fs = require('fs');
+const path = require('path');
+
+const backendRoot = path.resolve(__dirname, '..');
+const primaryUploadDir = path.join(backendRoot, 'uploads');
+const legacyUploadDir = path.join(process.cwd(), 'uploads');
+
+function ensureDir(dirPath) {
+  if (!fs.existsSync(dirPath)) {
+    fs.mkdirSync(dirPath, { recursive: true });
+  }
+}
+
+function ensureUploadDir(subdir = '') {
+  const targetDir = subdir
+    ? path.join(primaryUploadDir, subdir)
+    : primaryUploadDir;
+  ensureDir(targetDir);
+  return targetDir;
+}
+
+function toUploadDbPath(filePath) {
+  if (!filePath) return null;
+
+  const normalized = filePath.replace(/\\/g, '/');
+  const uploadsIndex = normalized.toLowerCase().lastIndexOf('/uploads/');
+  if (uploadsIndex >= 0) {
+    return normalized.substring(uploadsIndex);
+  }
+
+  if (normalized.toLowerCase().startsWith('uploads/')) {
+    return `/${normalized}`;
+  }
+
+  return `/uploads/${path.basename(normalized)}`;
+}
+
+ensureDir(primaryUploadDir);
+
+module.exports = {
+  backendRoot,
+  primaryUploadDir,
+  legacyUploadDir,
+  ensureUploadDir,
+  toUploadDbPath,
+};

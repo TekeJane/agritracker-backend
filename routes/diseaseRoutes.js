@@ -3,9 +3,10 @@ const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
+const { ensureUploadDir } = require('../config/uploadPaths');
 
 const router = express.Router();
-const upload = multer({ dest: 'uploads/disease/' });
+const upload = multer({ dest: ensureUploadDir('disease') });
 
 const OPENAI_MODEL = process.env.OPENAI_PLANT_MODEL || 'gpt-4o-mini';
 const OPENROUTER_MODEL =

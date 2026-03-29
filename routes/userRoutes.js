@@ -6,9 +6,10 @@ const { changePassword, registerUser } = require('../controllers/userController'
 const { followUser, unfollowUser, getFollowing } = require('../controllers/followController');
 const { getUserProfile } = require('../controllers/myProfileController');
 const { authenticate } = require('../middleware/auth'); // ??
+const { ensureUploadDir } = require('../config/uploadPaths');
 
 const storage = multer.diskStorage({
-    destination: (req, file, cb) => cb(null, 'uploads/'),
+    destination: (req, file, cb) => cb(null, ensureUploadDir()),
     filename: (req, file, cb) => {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
         cb(null, uniqueSuffix + path.extname(file.originalname));

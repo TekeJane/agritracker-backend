@@ -3,8 +3,9 @@ const router = express.Router();
 const videoController = require('../controllers/videoController');
 const { authenticate, authorizeAdmin } = require('../middleware/authMiddleware');
 const multer = require('multer');
+const { ensureUploadDir } = require('../config/uploadPaths');
 
-const upload = multer({ dest: 'uploads/' });
+const upload = multer({ dest: ensureUploadDir() });
 
 router.post(
   '/',

@@ -4,11 +4,12 @@ const EbookController = require('../controllers/ebookController');
 const { authenticate, authorizeAdmin } = require('../middleware/authMiddleware');
 const multer = require('multer');
 const path = require('path');
+const { ensureUploadDir } = require('../config/uploadPaths');
 
 // === Multer Setup ===
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, 'uploads/'); // Make sure this folder exists
+        cb(null, ensureUploadDir());
     },
     filename: function (req, file, cb) {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
