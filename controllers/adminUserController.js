@@ -1,10 +1,12 @@
 const { Sequelize } = require('sequelize');
 const User = require('../models/user');
 const BlockedUser = require('../models/BlockedUser');
+const { buildPublicMediaUrl } = require('../utils/publicMediaUrl');
 
 // ✅ View all users (non-admin)
 const getUsers = async (req, res) => {
     try {
+        const host = `${req.protocol}://${req.get('host')}`;
         const users = await User.findAll({
             where: { role: 'user' },
             attributes: {
@@ -16,7 +18,15 @@ const getUsers = async (req, res) => {
             },
             order: [['createdAt', 'DESC']],
         });
-        res.status(200).json({ users });
+        res.status(200).json({
+            users: users.map((user) => {
+                const item = user.toJSON();
+                return {
+                    ...item,
+                    profile_image: buildPublicMediaUrl(item.profile_image, host),
+                };
+            }),
+        });
     } catch (err) {
         res.status(500).json({ message: 'Server error', error: err.message });
     }

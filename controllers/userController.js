@@ -1,5 +1,6 @@
 const bcrypt = require('bcrypt');
 const User = require('../models/user');
+const { toUploadDbPath } = require('../config/uploadPaths');
 
 const registerUser = async (req, res) => {
     try {
@@ -31,7 +32,7 @@ const registerUser = async (req, res) => {
             password: hashedPassword,
             address,
             date_of_birth,
-            profile_image: req.file ? req.file.filename : null,
+            profile_image: req.file ? toUploadDbPath(req.file.path) : null,
             account_type, // <-- Save it
         });
 

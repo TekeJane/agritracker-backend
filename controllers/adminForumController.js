@@ -1,12 +1,14 @@
 const ForumMessage = require('../models/Post');
 const User = require('../models/user');
 const { Op } = require('sequelize');
+const { buildPublicMediaUrl } = require('../utils/publicMediaUrl');
 
 ForumMessage.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
 
 // ✅ Get all messages with user details
 const getAllMessages = async (req, res) => {
     try {
+        const host = `${req.protocol}://${req.get('host')}`;
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
         const offset = (page - 1) * limit;
@@ -24,7 +26,21 @@ const getAllMessages = async (req, res) => {
             order: [['createdAt', 'DESC']]
         });
 
-        res.status(200).json({ messages });
+        res.status(200).json({
+            messages: messages.map((message) => {
+                const item = message.toJSON();
+                return {
+                    ...item,
+                    image_url: buildPublicMediaUrl(item.image_url, host),
+                    user: item.user
+                        ? {
+                            ...item.user,
+                            profile_image: buildPublicMediaUrl(item.user.profile_image, host),
+                        }
+                        : item.user,
+                };
+            }),
+        });
     } catch (err) {
         console.error("❌ Error fetching messages:", err);
         res.status(500).json({ message: 'Server error' });

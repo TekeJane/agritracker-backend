@@ -1,4 +1,5 @@
 const { User, Product, Review, Ebook, EbookCategory, EbookSubCategory, EbookOrder } = require('../models');
+const { toUploadDbPath } = require('../config/uploadPaths');
 
 const getBaseUrl = (req) => {
     const envBaseUrl = process.env.BASE_URL;
@@ -10,10 +11,15 @@ const getBaseUrl = (req) => {
 
 const buildMediaUrl = (baseUrl, value) => {
     if (!value) return null;
-    if (String(value).startsWith('http://') || String(value).startsWith('https://')) {
-        return value;
+    const raw = String(value).trim();
+    if (raw.startsWith('http://') || raw.startsWith('https://')) {
+        return raw;
     }
-    return `${baseUrl}${String(value).replace(/\\/g, '/').replace(/^\/+/, '')}`;
+    const normalized = raw.replace(/\\/g, '/').replace(/^\/+/, '');
+    if (normalized.startsWith('uploads/')) {
+        return `${baseUrl}${normalized}`;
+    }
+    return `${baseUrl}uploads/${normalized}`;
 };
 
 const buildUserResponse = (
@@ -46,7 +52,7 @@ const buildUserResponse = (
         address: user.address,
         date_of_birth: user.date_of_birth,
         profile_image: user.profile_image
-            ? buildMediaUrl(baseUrl, `uploads/${user.profile_image}`)
+            ? buildMediaUrl(baseUrl, user.profile_image)
             : null,
         bio: user.bio,
         facEbook: user.facEbook,
@@ -248,7 +254,7 @@ const updateMyProfile = async (req, res) => {
         }
 
         if (req.file) {
-            updates.profile_image = req.file.filename;
+            updates.profile_image = toUploadDbPath(req.file.path);
         }
 
         await User.update(updates, { where: { id: userId } });

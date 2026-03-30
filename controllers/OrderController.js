@@ -4,6 +4,7 @@ const {
     Cart,
     Product,
     Ebook,
+    EbookCategory,
     EbookOrder,
     User,
     Category,
@@ -122,6 +123,7 @@ const OrderController = {
                         model: Ebook,
                         where: { author_id: req.user.id },
                         required: true,
+                        include: [EbookCategory],
                     },
                     {
                         model: User,
@@ -131,7 +133,24 @@ const OrderController = {
                 order: [['createdAt', 'DESC']],
             });
 
-            return res.status(200).json(ebookOrders);
+            return res.status(200).json(
+                ebookOrders.map((order) => {
+                    const item = order.toJSON();
+                    return {
+                        ...item,
+                        notes: item.note ?? item.notes ?? null,
+                        Ebook: item.Ebook
+                            ? {
+                                ...item.Ebook,
+                                category_name:
+                                    item.Ebook.category_name ||
+                                    item.Ebook.EbookCategory?.name ||
+                                    null,
+                            }
+                            : item.Ebook,
+                    };
+                })
+            );
         } catch (error) {
             console.error('Error fetching author ebook orders:', error.message);
             return res.status(500).json({ error: error.message });
