@@ -318,6 +318,42 @@ const ensureEbookSubCategorySchema = async () => {
         });
         console.log('ðŸŸ¢ VideoTips.ebook_id column ensured');
     }
+    if (!videoTable.likes_count) {
+        await queryInterface.addColumn('VideoTips', 'likes_count', {
+            type: Sequelize.INTEGER,
+            allowNull: false,
+            defaultValue: 0,
+        });
+        console.log('VideoTips.likes_count column ensured');
+    }
+
+    if (!videoTable.dislikes_count) {
+        await queryInterface.addColumn('VideoTips', 'dislikes_count', {
+            type: Sequelize.INTEGER,
+            allowNull: false,
+            defaultValue: 0,
+        });
+        console.log('VideoTips.dislikes_count column ensured');
+    }
+
+    if (!videoTable.shares_count) {
+        await queryInterface.addColumn('VideoTips', 'shares_count', {
+            type: Sequelize.INTEGER,
+            allowNull: false,
+            defaultValue: 0,
+        });
+        console.log('VideoTips.shares_count column ensured');
+    }
+
+    if (!videoTable.downloads_count) {
+        await queryInterface.addColumn('VideoTips', 'downloads_count', {
+            type: Sequelize.INTEGER,
+            allowNull: false,
+            defaultValue: 0,
+        });
+        console.log('VideoTips.downloads_count column ensured');
+    }
+
     const reviewTable = await queryInterface.describeTable('Reviews');
     if (!reviewTable.ebookId) {
         await queryInterface.addColumn('Reviews', 'ebookId', {

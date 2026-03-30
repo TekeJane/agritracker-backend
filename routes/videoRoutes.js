@@ -19,6 +19,14 @@ router.post(
 );
 
 router.get('/', videoController.getApprovedVideos);
+router.get('/random', videoController.getRandomApprovedVideo);
+router.get('/random-multiple', videoController.getRandomVideos);
+router.get('/share/:id', videoController.getVideoSharePage);
+router.get('/:id', videoController.getVideoById);
+router.post('/:id/like', authenticate, videoController.likeVideo);
+router.post('/:id/dislike', authenticate, videoController.dislikeVideo);
+router.post('/:id/share', videoController.shareVideo);
+router.post('/:id/download', videoController.registerDownload);
 router.get(
   '/admin/review',
   authenticate,
@@ -91,8 +99,5 @@ router.delete(
   authorizeAdmin,
   videoController.deleteCategory,
 );
-
-router.get('/random', videoController.getRandomApprovedVideo);
-router.get('/random-multiple', videoController.getRandomVideos);
 
 module.exports = router;

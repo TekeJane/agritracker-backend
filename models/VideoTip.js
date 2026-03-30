@@ -40,6 +40,26 @@ const VideoTip = sequelize.define('VideoTip', {
         type: DataTypes.BOOLEAN,
         defaultValue: false,
     },
+    likes_count: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0,
+    },
+    dislikes_count: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0,
+    },
+    shares_count: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0,
+    },
+    downloads_count: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0,
+    },
 });
 
 // Associations

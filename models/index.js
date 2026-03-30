@@ -17,6 +17,7 @@ const Ebook = require('./Ebook');
 const EbookOrder = require('./EbookOrder');
 const VideoCategory = require('./VideoCategory');
 const VideoTip = require('./VideoTip');
+const VideoReaction = require('./VideoReaction');
 const WebinarRequest = require('./WebinarRequest')(sequelize, DataTypes);
 const Webinar = require('./Webinar')(sequelize, DataTypes);
 const WebinarAttendee = require('./WebinarAttendee')(sequelize, DataTypes);
@@ -132,6 +133,12 @@ VideoTip.belongsTo(VideoCategory, { foreignKey: 'category_id' });
 Ebook.hasMany(VideoTip, { foreignKey: 'ebook_id', as: 'ebookVideos' });
 VideoTip.belongsTo(Ebook, { foreignKey: 'ebook_id' });
 
+User.hasMany(VideoReaction, { foreignKey: 'user_id' });
+VideoReaction.belongsTo(User, { foreignKey: 'user_id' });
+
+VideoTip.hasMany(VideoReaction, { foreignKey: 'video_id', as: 'reactions' });
+VideoReaction.belongsTo(VideoTip, { foreignKey: 'video_id' });
+
 // === Webinar Relationships ===
 
 // WebinarRequest belongsTo User
@@ -189,6 +196,7 @@ module.exports = {
     EbookOrder,
     VideoCategory,
     VideoTip,
+    VideoReaction,
     WebinarRequest,
     Webinar,
     WebinarAttendee,
