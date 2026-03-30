@@ -26,6 +26,13 @@ If the plant appears healthy, set isHealthy to true and explain why.
 Include a short disclaimer that this is AI guidance and severe cases should be reviewed by a local agronomist.
 Prioritize crop-specific reasoning when the crop is known, but stay fully usable for any crop, including crops outside the examples provided.`;
 
+const FOLLOW_UP_SYSTEM_PROMPT = `You are Plant AI Doctor, a conversational agronomy assistant.
+Answer follow-up questions about a plant diagnosis in a natural, helpful, real-time way.
+Use the provided diagnosis as context, but do not pretend you are certain when the diagnosis confidence is low.
+If the diagnosis provider is local or fallback, say that image-based AI diagnosis was limited and give the best practical next steps.
+Keep answers specific to the user question, practical, and easy to follow.
+Do not output JSON.`;
+
 function normalizeArray(value) {
   if (!value) return [];
   if (Array.isArray(value)) {
@@ -273,12 +280,6 @@ function sanitizeDiagnosis(raw, { cropType, weather }) {
         .slice(0, 3)
     : [];
 
-  const allowFocusRegions =
-    !raw.isHealthy &&
-    probability >= 0.55 &&
-    raw.analysisQuality?.toString().trim() !== 'fallback' &&
-    focusRegions.length > 0;
-
   const weatherRisk = buildWeatherRisk(weather);
 
   return {
@@ -328,7 +329,7 @@ function sanitizeDiagnosis(raw, { cropType, weather }) {
           disease.spreadRisk?.reason?.toString().trim() ||
           weatherRisk.message,
       },
-      focusRegions: allowFocusRegions ? focusRegions : [],
+      focusRegions: [],
     },
     diseases: Array.isArray(raw.diseases) && raw.diseases.length
       ? raw.diseases.map((item) => ({
@@ -644,6 +645,99 @@ async function sendToOpenRouter(imageDataUrl, contextPayload) {
   return parseAiJson(responseContent);
 }
 
+function buildDiagnosisChatFallback({
+  diagnosis,
+  question,
+  weather,
+}) {
+  const disease = diagnosis?.mostProbableDisease || {};
+  const cropName = diagnosis?.cropName || 'the crop';
+  const diseaseName = disease?.name || 'the detected issue';
+  const confidence = Number(disease?.probability ?? 0);
+  const immediateActions = normalizeArray(disease?.treatment?.immediateActions);
+  const prevention = normalizeArray(disease?.prevention);
+  const weatherRisk = buildWeatherRisk(weather);
+
+  if (confidence < 0.5 || diagnosis?.provider === 'local') {
+    return `The live AI diagnosis service is limited right now, so treat this as a cautious field guide. For ${cropName}, focus on the visibly damaged area, remove badly affected tissue, keep leaves dry, improve airflow, and retake one close-up photo of only the infected spot. ${weatherRisk.message}`;
+  }
+
+  const practicalTip =
+    immediateActions[0] ||
+    prevention[0] ||
+    'Scout nearby plants and act early before the problem spreads.';
+
+  return `For ${cropName}, the current diagnosis points most strongly to ${diseaseName}. Based on your question, start with this: ${practicalTip} If symptoms spread fast, re-scan with a tighter close-up and confirm with a local agronomist before spraying.`;
+}
+
+async function requestDiagnosisFollowUpOpenAI(payload) {
+  if (!process.env.OPENAI_API_KEY) return null;
+  const model = sanitizeModelName(OPENAI_MODEL, 'gpt-4o-mini');
+
+  const response = await axios.post(
+    'https://api.openai.com/v1/chat/completions',
+    {
+      model,
+      temperature: 0.35,
+      messages: [
+        { role: 'system', content: FOLLOW_UP_SYSTEM_PROMPT },
+        {
+          role: 'user',
+          content:
+            `Diagnosis context:\n${JSON.stringify(payload.diagnosis)}\n\n` +
+            `Weather context:\n${JSON.stringify(payload.weather || null)}\n\n` +
+            `Conversation history:\n${JSON.stringify(payload.history || [])}\n\n` +
+            `User question:\n${payload.question}`,
+        },
+      ],
+      max_tokens: 260,
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      timeout: REQUEST_TIMEOUT_MS,
+    },
+  );
+
+  return response.data?.choices?.[0]?.message?.content?.trim() || null;
+}
+
+async function requestDiagnosisFollowUpOpenRouter(payload) {
+  if (!process.env.OPENROUTER_API_KEY) return null;
+  const model = sanitizeModelName(OPENROUTER_MODEL, 'openai/gpt-4o-mini');
+
+  const response = await axios.post(
+    'https://openrouter.ai/api/v1/chat/completions',
+    {
+      model,
+      temperature: 0.35,
+      messages: [
+        { role: 'system', content: FOLLOW_UP_SYSTEM_PROMPT },
+        {
+          role: 'user',
+          content:
+            `Diagnosis context:\n${JSON.stringify(payload.diagnosis)}\n\n` +
+            `Weather context:\n${JSON.stringify(payload.weather || null)}\n\n` +
+            `Conversation history:\n${JSON.stringify(payload.history || [])}\n\n` +
+            `User question:\n${payload.question}`,
+        },
+      ],
+      max_tokens: 260,
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      timeout: REQUEST_TIMEOUT_MS,
+    },
+  );
+
+  return response.data?.choices?.[0]?.message?.content?.trim() || null;
+}
+
 router.post(
   '/detect-plant-disease',
   diseaseUpload,
@@ -784,5 +878,62 @@ router.post(
     }
   },
 );
+
+router.post('/detect-plant-disease/chat', async (req, res) => {
+  try {
+    const question = req.body.question?.toString().trim() || '';
+    const diagnosis = req.body.diagnosis;
+    const history = Array.isArray(req.body.history) ? req.body.history : [];
+    const weather = req.body.weather && typeof req.body.weather === 'object'
+      ? req.body.weather
+      : null;
+
+    if (!question) {
+      return res.status(400).json({ message: 'Question is required.' });
+    }
+
+    const payload = { question, diagnosis, history, weather };
+    let reply = null;
+    let provider = 'local';
+
+    try {
+      reply = await requestDiagnosisFollowUpOpenAI(payload);
+      if (reply) provider = 'openai';
+    } catch (error) {
+      console.error(
+        '[PLANT AI CHAT] OpenAI follow-up failed:',
+        error.response?.data || error.message,
+      );
+    }
+
+    if (!reply) {
+      try {
+        reply = await requestDiagnosisFollowUpOpenRouter(payload);
+        if (reply) provider = 'openrouter';
+      } catch (error) {
+        console.error(
+          '[PLANT AI CHAT] OpenRouter follow-up failed:',
+          error.response?.data || error.message,
+        );
+      }
+    }
+
+    if (!reply) {
+      reply = buildDiagnosisChatFallback({ diagnosis, question, weather });
+    }
+
+    return res.json({ reply, provider });
+  } catch (error) {
+    console.error('[PLANT AI CHAT] Unexpected error:', error.message);
+    return res.json({
+      reply: buildDiagnosisChatFallback({
+        diagnosis: req.body.diagnosis,
+        question: req.body.question?.toString() || '',
+        weather: req.body.weather,
+      }),
+      provider: 'local',
+    });
+  }
+});
 
 module.exports = router;
