@@ -7,6 +7,10 @@ const { ensureUploadDir } = require('../config/uploadPaths');
 
 const router = express.Router();
 const upload = multer({ dest: ensureUploadDir('disease') });
+const diseaseUpload = upload.fields([
+  { name: 'image', maxCount: 1 },
+  { name: 'full_image', maxCount: 1 },
+]);
 
 const OPENAI_MODEL = process.env.OPENAI_PLANT_MODEL || 'gpt-4o-mini';
 const OPENROUTER_MODEL =
@@ -523,6 +527,32 @@ async function sendToOpenAI(imageDataUrl, contextPayload) {
   if (!process.env.OPENAI_API_KEY) return null;
   const model = sanitizeModelName(OPENAI_MODEL, 'gpt-4o-mini');
   const cropGuidance = buildCropGuidance(contextPayload.cropType);
+  const content = [
+    {
+      type: 'text',
+      text:
+        `Return JSON with keys: isHealthy, cropName, analysisQuality, summary, mostProbableDisease, diseases, suggestions, environment, disclaimer.\n` +
+        `For mostProbableDisease include: name, probability, severity, status, summary, plainLanguage, treatment, prevention, spreadRisk, focusRegions.\n` +
+        `Treatment must include arrays immediateActions, longTermCare, chemical, biological.\n` +
+        `Be strict about uncertainty and avoid over-diagnosing from weak visual evidence.\n` +
+        `If the image does not clearly isolate the damaged tissue, return focusRegions as an empty array.\n` +
+        `Crop-specific guidance: ${cropGuidance}\n` +
+        `SpreadRisk must include level, score, reason.\n` +
+        `If manualFocus is true, the first image is a close-up of the suspected lesion and any second image is the full plant context.\n` +
+        `Context:\n${JSON.stringify(contextPayload)}`,
+    },
+    {
+      type: 'image_url',
+      image_url: { url: imageDataUrl },
+    },
+  ];
+
+  if (contextPayload.fullImageDataUrl) {
+    content.push({
+      type: 'image_url',
+      image_url: { url: contextPayload.fullImageDataUrl },
+    });
+  }
 
   const response = await axios.post(
     'https://api.openai.com/v1/chat/completions',
@@ -534,24 +564,7 @@ async function sendToOpenAI(imageDataUrl, contextPayload) {
         { role: 'system', content: SYSTEM_PROMPT },
         {
           role: 'user',
-          content: [
-            {
-              type: 'text',
-              text:
-                `Return JSON with keys: isHealthy, cropName, analysisQuality, summary, mostProbableDisease, diseases, suggestions, environment, disclaimer.\n` +
-                `For mostProbableDisease include: name, probability, severity, status, summary, plainLanguage, treatment, prevention, spreadRisk, focusRegions.\n` +
-                `Treatment must include arrays immediateActions, longTermCare, chemical, biological.\n` +
-                `Be strict about uncertainty and avoid over-diagnosing from weak visual evidence.\n` +
-                `If the image does not clearly isolate the damaged tissue, return focusRegions as an empty array.\n` +
-                `Crop-specific guidance: ${cropGuidance}\n` +
-                `SpreadRisk must include level, score, reason.\n` +
-                `Context:\n${JSON.stringify(contextPayload)}`,
-            },
-            {
-              type: 'image_url',
-              image_url: { url: imageDataUrl },
-            },
-          ],
+          content,
         },
       ],
       max_tokens: 900,
@@ -565,8 +578,8 @@ async function sendToOpenAI(imageDataUrl, contextPayload) {
     },
   );
 
-  const content = response.data?.choices?.[0]?.message?.content?.trim();
-  return parseAiJson(content);
+  const responseContent = response.data?.choices?.[0]?.message?.content?.trim();
+  return parseAiJson(responseContent);
 }
 
 async function sendToOpenRouter(imageDataUrl, contextPayload) {
@@ -576,6 +589,32 @@ async function sendToOpenRouter(imageDataUrl, contextPayload) {
     'openai/gpt-4o-mini',
   );
   const cropGuidance = buildCropGuidance(contextPayload.cropType);
+  const content = [
+    {
+      type: 'text',
+      text:
+        `Return JSON with keys: isHealthy, cropName, analysisQuality, summary, mostProbableDisease, diseases, suggestions, environment, disclaimer.\n` +
+        `For mostProbableDisease include: name, probability, severity, status, summary, plainLanguage, treatment, prevention, spreadRisk, focusRegions.\n` +
+        `Treatment must include arrays immediateActions, longTermCare, chemical, biological.\n` +
+        `Be strict about uncertainty and avoid over-diagnosing from weak visual evidence.\n` +
+        `If the image does not clearly isolate the damaged tissue, return focusRegions as an empty array.\n` +
+        `Crop-specific guidance: ${cropGuidance}\n` +
+        `SpreadRisk must include level, score, reason.\n` +
+        `If manualFocus is true, the first image is a close-up of the suspected lesion and any second image is the full plant context.\n` +
+        `Context:\n${JSON.stringify(contextPayload)}`,
+    },
+    {
+      type: 'image_url',
+      image_url: { url: imageDataUrl },
+    },
+  ];
+
+  if (contextPayload.fullImageDataUrl) {
+    content.push({
+      type: 'image_url',
+      image_url: { url: contextPayload.fullImageDataUrl },
+    });
+  }
 
   const response = await axios.post(
     'https://openrouter.ai/api/v1/chat/completions',
@@ -587,24 +626,7 @@ async function sendToOpenRouter(imageDataUrl, contextPayload) {
         { role: 'system', content: SYSTEM_PROMPT },
         {
           role: 'user',
-          content: [
-            {
-              type: 'text',
-              text:
-                `Return JSON with keys: isHealthy, cropName, analysisQuality, summary, mostProbableDisease, diseases, suggestions, environment, disclaimer.\n` +
-                `For mostProbableDisease include: name, probability, severity, status, summary, plainLanguage, treatment, prevention, spreadRisk, focusRegions.\n` +
-                `Treatment must include arrays immediateActions, longTermCare, chemical, biological.\n` +
-                `Be strict about uncertainty and avoid over-diagnosing from weak visual evidence.\n` +
-                `If the image does not clearly isolate the damaged tissue, return focusRegions as an empty array.\n` +
-                `Crop-specific guidance: ${cropGuidance}\n` +
-                `SpreadRisk must include level, score, reason.\n` +
-                `Context:\n${JSON.stringify(contextPayload)}`,
-            },
-            {
-              type: 'image_url',
-              image_url: { url: imageDataUrl },
-            },
-          ],
+          content,
         },
       ],
       max_tokens: 900,
@@ -618,16 +640,19 @@ async function sendToOpenRouter(imageDataUrl, contextPayload) {
     },
   );
 
-  const content = response.data?.choices?.[0]?.message?.content?.trim();
-  return parseAiJson(content);
+  const responseContent = response.data?.choices?.[0]?.message?.content?.trim();
+  return parseAiJson(responseContent);
 }
 
 router.post(
   '/detect-plant-disease',
-  upload.single('image'),
+  diseaseUpload,
   async (req, res) => {
     try {
-      if (!req.file) {
+      const imageFile = req.files?.image?.[0];
+      const fullImageFile = req.files?.full_image?.[0];
+
+      if (!imageFile) {
         return res
           .status(400)
           .json({ message: 'Image file is required under field "image".' });
@@ -644,8 +669,8 @@ router.post(
         }
       }
 
-      const imageBuffer = fs.readFileSync(req.file.path);
-      const ext = path.extname(req.file.originalname || '').toLowerCase();
+      const imageBuffer = fs.readFileSync(imageFile.path);
+      const ext = path.extname(imageFile.originalname || '').toLowerCase();
       const mimeType =
         ext === '.png'
           ? 'image/png'
@@ -653,11 +678,26 @@ router.post(
           ? 'image/webp'
           : 'image/jpeg';
       const imageDataUrl = `data:${mimeType};base64,${imageBuffer.toString('base64')}`;
+      let fullImageDataUrl = null;
+
+      if (fullImageFile) {
+        const fullBuffer = fs.readFileSync(fullImageFile.path);
+        const fullExt = path.extname(fullImageFile.originalname || '').toLowerCase();
+        const fullMimeType =
+          fullExt === '.png'
+            ? 'image/png'
+            : fullExt === '.webp'
+            ? 'image/webp'
+            : 'image/jpeg';
+        fullImageDataUrl = `data:${fullMimeType};base64,${fullBuffer.toString('base64')}`;
+      }
 
       const contextPayload = {
         cropType: cropType || 'unknown',
         location: req.body.locationLabel?.toString().trim() || null,
         weather,
+        manualFocus: req.body.manualFocus === 'true',
+        fullImageDataUrl,
       };
 
       let diagnosis = null;
@@ -737,8 +777,9 @@ router.post(
       console.error('Disease detection error:', err);
       return res.status(500).json({ message: 'Failed to process image' });
     } finally {
-      if (req.file) {
-        fs.unlink(req.file.path, () => {});
+      const uploadedFiles = Object.values(req.files || {}).flat();
+      for (const file of uploadedFiles) {
+        fs.unlink(file.path, () => {});
       }
     }
   },
