@@ -1,91 +1,218 @@
-// controllers/marketController.js
 const { OrderItem, Product, Order, User } = require('../models');
 const { Sequelize } = require('sequelize');
+const { buildPublicMediaUrl } = require('../utils/publicMediaUrl');
 
-const BASE_URL = 'http://10.0.2.2:3000'; // Emulator-safe base URL for Flutter dev
+function getHost(req) {
+    return `${req.protocol}://${req.get('host')}`;
+}
+
+function normalizeImages(images, host) {
+    if (Array.isArray(images)) {
+        return images
+            .map((item) => buildPublicMediaUrl(item, host))
+            .filter(Boolean);
+    }
+
+    if (typeof images === 'string' && images.trim()) {
+        try {
+            const parsed = JSON.parse(images);
+            if (Array.isArray(parsed)) {
+                return parsed
+                    .map((item) => buildPublicMediaUrl(item, host))
+                    .filter(Boolean);
+            }
+        } catch (_) {
+            const single = buildPublicMediaUrl(images, host);
+            return single ? [single] : [];
+        }
+    }
+
+    return [];
+}
 
 module.exports = {
     async topProducts(req, res) {
-        console.log('\n📦 [TOP PRODUCTS] Request received at /market/top-products');
-
         try {
-            console.log('🔍 Fetching top products based on total quantity ordered...');
-
+            const host = getHost(req);
             const results = await OrderItem.findAll({
                 attributes: [
                     'ProductId',
-                    [Sequelize.fn('SUM', Sequelize.col('quantity')), 'totalOrders']
+                    [Sequelize.fn('SUM', Sequelize.col('quantity')), 'totalOrders'],
                 ],
                 include: [
                     {
                         model: Product,
-                        attributes: ['name', 'price', 'images', 'market_region']
-                    }
+                        attributes: [
+                            'id',
+                            'name',
+                            'price',
+                            'images',
+                            'market_region',
+                            'origin_region',
+                            'origin_town',
+                            'seller_id',
+                        ],
+                        include: [
+                            {
+                                model: User,
+                                as: 'seller',
+                                attributes: ['id', 'full_name', 'address', 'profile_image'],
+                                required: false,
+                            },
+                        ],
+                    },
                 ],
-                group: ['ProductId', 'Product.id'],
+                group: ['ProductId', 'Product.id', 'Product->seller.id'],
                 order: [[Sequelize.literal('totalOrders'), 'DESC']],
-                limit: 10
+                limit: 10,
             });
 
-            // Attach base URL to images
-            const formattedResults = results.map((item, index) => {
-                const product = item.Product;
+            const formattedResults = results
+                .map((item) => {
+                    const raw = item.toJSON();
+                    const product = raw.Product;
+                    if (!product) return null;
 
-                if (product && Array.isArray(product.images)) {
-                    product.images = product.images.map(img =>
-                        img.startsWith('http') ? img : `${BASE_URL}/${img}`
-                    );
-                }
+                    const seller = product.seller || null;
+                    const images = normalizeImages(product.images, host);
 
-                console.log(`  #${index + 1}: ${product.name} (${item.dataValues.totalOrders} orders)`);
-                return item;
-            });
+                    return {
+                        ...raw,
+                        Product: {
+                            ...product,
+                            images,
+                            image: images[0] || null,
+                            region:
+                                product.market_region ||
+                                product.origin_region ||
+                                seller?.address ||
+                                null,
+                            location:
+                                product.origin_town ||
+                                product.market_region ||
+                                product.origin_region ||
+                                seller?.address ||
+                                null,
+                            seller: seller
+                                ? {
+                                    ...seller,
+                                    profile_image: buildPublicMediaUrl(
+                                        seller.profile_image,
+                                        host,
+                                    ),
+                                }
+                                : null,
+                        },
+                    };
+                })
+                .filter(Boolean);
 
-            console.log(`✅ Top ${formattedResults.length} products fetched successfully.`);
-            res.json(formattedResults);
+            return res.json(formattedResults);
         } catch (error) {
-            console.error('❌ Error fetching top products:', error.message);
-            res.status(500).json({ error: error.message });
+            console.error('Error fetching top products:', error.message);
+            return res.status(500).json({ error: error.message });
         }
     },
 
     async topSellers(req, res) {
-        console.log('\n👤 [TOP SELLERS] Request received at /market/top-sellers');
-
         try {
-            console.log('🔍 Fetching top sellers based on number of delivered orders...');
-
-            const results = await Order.findAll({
-                attributes: [
-                    'UserId',
-                    [Sequelize.fn('COUNT', Sequelize.col('Order.id')), 'totalOrders']
+            const host = getHost(req);
+            const deliveredItems = await OrderItem.findAll({
+                include: [
+                    {
+                        model: Order,
+                        attributes: ['id', 'status'],
+                        where: { status: 'delivered' },
+                        required: true,
+                    },
+                    {
+                        model: Product,
+                        attributes: [
+                            'id',
+                            'seller_id',
+                            'market_region',
+                            'origin_region',
+                            'origin_town',
+                        ],
+                        required: true,
+                    },
                 ],
-                where: { status: 'delivered' },
-                include: [{
-                    model: User,
-                    attributes: ['full_name', 'email', 'profile_image']
-                }],
-                group: ['UserId', 'User.id'],
-                order: [[Sequelize.literal('totalOrders'), 'DESC']],
-                limit: 5
+                order: [['createdAt', 'DESC']],
             });
 
-            const formattedResults = results.map((item, index) => {
-                const user = item.User;
+            const sellerStats = new Map();
 
-                if (user?.profile_image && !user.profile_image.startsWith('http')) {
-                    user.profile_image = `${BASE_URL}/${user.profile_image}`;
-                }
+            for (const item of deliveredItems) {
+                const raw = item.toJSON();
+                const product = raw.Product;
+                const sellerId = Number(product?.seller_id);
+                if (!sellerId) continue;
 
-                console.log(`  #${index + 1}: ${user.full_name} - ${item.dataValues.totalOrders} orders`);
-                return item;
+                const current = sellerStats.get(sellerId) || {
+                    sellerId,
+                    totalOrders: 0,
+                    totalUnits: 0,
+                    regions: new Set(),
+                    towns: new Set(),
+                };
+
+                current.totalOrders += 1;
+                current.totalUnits += Number(raw.quantity || 0);
+                if (product.market_region) current.regions.add(product.market_region);
+                if (product.origin_region) current.regions.add(product.origin_region);
+                if (product.origin_town) current.towns.add(product.origin_town);
+                sellerStats.set(sellerId, current);
+            }
+
+            const rankedSellerIds = [...sellerStats.values()]
+                .sort((a, b) => {
+                    if (b.totalOrders !== a.totalOrders) {
+                        return b.totalOrders - a.totalOrders;
+                    }
+                    return b.totalUnits - a.totalUnits;
+                })
+                .slice(0, 5)
+                .map((item) => item.sellerId);
+
+            if (!rankedSellerIds.length) {
+                return res.json([]);
+            }
+
+            const sellers = await User.findAll({
+                where: { id: rankedSellerIds },
+                attributes: ['id', 'full_name', 'email', 'address', 'profile_image'],
             });
 
-            console.log(`✅ Top ${formattedResults.length} sellers fetched successfully.`);
-            res.json(formattedResults);
+            const sellersById = new Map(
+                sellers.map((seller) => [Number(seller.id), seller.toJSON()]),
+            );
+
+            const response = rankedSellerIds
+                .map((sellerId) => {
+                    const stats = sellerStats.get(sellerId);
+                    const user = sellersById.get(sellerId);
+                    if (!stats || !user) return null;
+
+                    const regions = [...stats.regions].filter(Boolean);
+                    const towns = [...stats.towns].filter(Boolean);
+                    return {
+                        seller_id: sellerId,
+                        totalOrders: stats.totalOrders,
+                        totalUnits: stats.totalUnits,
+                        region: regions[0] || user.address || null,
+                        location: towns[0] || regions[0] || user.address || null,
+                        User: {
+                            ...user,
+                            profile_image: buildPublicMediaUrl(user.profile_image, host),
+                        },
+                    };
+                })
+                .filter(Boolean);
+
+            return res.json(response);
         } catch (error) {
-            console.error('❌ Error fetching top sellers:', error.message);
-            res.status(500).json({ error: error.message });
+            console.error('Error fetching top sellers:', error.message);
+            return res.status(500).json({ error: error.message });
         }
-    }
+    },
 };

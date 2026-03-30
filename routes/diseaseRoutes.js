@@ -555,32 +555,58 @@ async function sendToOpenAI(imageDataUrl, contextPayload) {
     });
   }
 
-  const response = await axios.post(
-    'https://api.openai.com/v1/chat/completions',
-    {
-      model,
-      temperature: 0.2,
-      response_format: { type: 'json_object' },
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        {
-          role: 'user',
-          content,
-        },
-      ],
-      max_tokens: 900,
-    },
-    {
-      headers: {
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
+  const payload = {
+    model,
+    temperature: 0.2,
+    response_format: { type: 'json_object' },
+    messages: [
+      { role: 'system', content: SYSTEM_PROMPT },
+      {
+        role: 'user',
+        content,
       },
-      timeout: REQUEST_TIMEOUT_MS,
-    },
-  );
+    ],
+    max_tokens: 900,
+  };
 
-  const responseContent = response.data?.choices?.[0]?.message?.content?.trim();
-  return parseAiJson(responseContent);
+  try {
+    const response = await axios.post(
+      'https://api.openai.com/v1/chat/completions',
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        timeout: REQUEST_TIMEOUT_MS,
+      },
+    );
+
+    const responseContent = response.data?.choices?.[0]?.message?.content?.trim();
+    return parseAiJson(responseContent);
+  } catch (error) {
+    const status = error.response?.status;
+    if (status !== 400 && status !== 422) throw error;
+
+    const fallbackResponse = await axios.post(
+      'https://api.openai.com/v1/chat/completions',
+      {
+        ...payload,
+        response_format: undefined,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        timeout: REQUEST_TIMEOUT_MS,
+      },
+    );
+
+    const responseContent =
+      fallbackResponse.data?.choices?.[0]?.message?.content?.trim();
+    return parseAiJson(responseContent);
+  }
 }
 
 async function sendToOpenRouter(imageDataUrl, contextPayload) {
@@ -617,32 +643,58 @@ async function sendToOpenRouter(imageDataUrl, contextPayload) {
     });
   }
 
-  const response = await axios.post(
-    'https://openrouter.ai/api/v1/chat/completions',
-    {
-      model,
-      temperature: 0.2,
-      response_format: { type: 'json_object' },
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        {
-          role: 'user',
-          content,
-        },
-      ],
-      max_tokens: 900,
-    },
-    {
-      headers: {
-        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-        'Content-Type': 'application/json',
+  const payload = {
+    model,
+    temperature: 0.2,
+    response_format: { type: 'json_object' },
+    messages: [
+      { role: 'system', content: SYSTEM_PROMPT },
+      {
+        role: 'user',
+        content,
       },
-      timeout: REQUEST_TIMEOUT_MS,
-    },
-  );
+    ],
+    max_tokens: 900,
+  };
 
-  const responseContent = response.data?.choices?.[0]?.message?.content?.trim();
-  return parseAiJson(responseContent);
+  try {
+    const response = await axios.post(
+      'https://openrouter.ai/api/v1/chat/completions',
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        timeout: REQUEST_TIMEOUT_MS,
+      },
+    );
+
+    const responseContent = response.data?.choices?.[0]?.message?.content?.trim();
+    return parseAiJson(responseContent);
+  } catch (error) {
+    const status = error.response?.status;
+    if (status !== 400 && status !== 422) throw error;
+
+    const fallbackResponse = await axios.post(
+      'https://openrouter.ai/api/v1/chat/completions',
+      {
+        ...payload,
+        response_format: undefined,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        timeout: REQUEST_TIMEOUT_MS,
+      },
+    );
+
+    const responseContent =
+      fallbackResponse.data?.choices?.[0]?.message?.content?.trim();
+    return parseAiJson(responseContent);
+  }
 }
 
 function buildDiagnosisChatFallback({

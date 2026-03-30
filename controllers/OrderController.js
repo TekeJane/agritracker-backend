@@ -136,8 +136,23 @@ const OrderController = {
             return res.status(200).json(
                 ebookOrders.map((order) => {
                     const item = order.toJSON();
+                    const metadata = item.metadata && typeof item.metadata === 'object'
+                        ? item.metadata
+                        : {};
                     return {
                         ...item,
+                        order_number: item.order_id || `EBOOK-${item.id}`,
+                        status: item.payment_status || 'paid',
+                        createdAt: item.createdAt || item.purchased_at || item.paid_at,
+                        total_amount: item.total_amount || item.price_paid || 0,
+                        shipping_address:
+                            item.customer_address ||
+                            metadata.shipping_address ||
+                            null,
+                        shipping_method:
+                            item.delivery_method ||
+                            metadata.shipping_method ||
+                            'digital_delivery',
                         notes: item.note ?? item.notes ?? null,
                         Ebook: item.Ebook
                             ? {
