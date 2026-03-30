@@ -362,6 +362,163 @@ function sanitizeDiagnosis(raw, { cropType, weather }) {
   };
 }
 
+function shouldRefineFocusRegions(diagnosis) {
+  if (!diagnosis || typeof diagnosis !== 'object') return false;
+  const disease = diagnosis.mostProbableDisease || {};
+  const probability = Number(disease.probability ?? 0);
+  return (
+    diagnosis.provider !== 'local' &&
+    !diagnosis.isHealthy &&
+    Number.isFinite(probability) &&
+    probability >= 0.68
+  );
+}
+
+function sanitizeFocusRegionResult(raw) {
+  const regions = Array.isArray(raw?.focusRegions)
+    ? raw.focusRegions
+        .map((item) => ({
+          x: clampNumber(item?.x, 0, 1, 0.18),
+          y: clampNumber(item?.y, 0, 1, 0.2),
+          width: clampNumber(item?.width, 0.05, 1, 0.4),
+          height: clampNumber(item?.height, 0.05, 1, 0.3),
+          label: item?.label?.toString().trim() || 'Area of concern',
+        }))
+        .slice(0, 3)
+    : [];
+
+  return {
+    analysisQuality:
+      raw?.analysisQuality?.toString().trim() || 'focus_unverified',
+    focusRegions: regions,
+    needsRetake: Boolean(raw?.needsRetake),
+    retakeReason: raw?.retakeReason?.toString().trim() || '',
+  };
+}
+
+async function refineFocusRegionsWithOpenAI(
+  imageDataUrl,
+  contextPayload,
+  safeDiagnosis,
+) {
+  if (!process.env.OPENAI_API_KEY) return null;
+  const model = sanitizeModelName(OPENAI_MODEL, 'gpt-4o-mini');
+
+  const response = await axios.post(
+    'https://api.openai.com/v1/chat/completions',
+    {
+      model,
+      temperature: 0.1,
+      response_format: { type: 'json_object' },
+      messages: [
+        {
+          role: 'system',
+          content:
+            'You verify whether the diseased area is visually clear enough to box. Return only JSON.',
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text:
+                `Return JSON with keys: analysisQuality, focusRegions, needsRetake, retakeReason.\n` +
+                `Only return focusRegions if the visibly affected tissue is obvious and bounded.\n` +
+                `If the lesion area is ambiguous, small, blurred, hidden, or mixed with healthy tissue, return an empty focusRegions array and set needsRetake true.\n` +
+                `Use the first-pass diagnosis only as context, not as proof.\n` +
+                `First-pass context:\n${JSON.stringify({
+                  cropName: safeDiagnosis.cropName,
+                  summary: safeDiagnosis.summary,
+                  mostProbableDisease: safeDiagnosis.mostProbableDisease,
+                  weather: contextPayload.weather,
+                })}`,
+            },
+            {
+              type: 'image_url',
+              image_url: { url: imageDataUrl },
+            },
+          ],
+        },
+      ],
+      max_tokens: 280,
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      timeout: REQUEST_TIMEOUT_MS,
+    },
+  );
+
+  return sanitizeFocusRegionResult(
+    parseAiJson(response.data?.choices?.[0]?.message?.content?.trim()),
+  );
+}
+
+async function refineFocusRegionsWithOpenRouter(
+  imageDataUrl,
+  contextPayload,
+  safeDiagnosis,
+) {
+  if (!process.env.OPENROUTER_API_KEY) return null;
+  const model = sanitizeModelName(
+    OPENROUTER_MODEL,
+    'openai/gpt-4o-mini',
+  );
+
+  const response = await axios.post(
+    'https://openrouter.ai/api/v1/chat/completions',
+    {
+      model,
+      temperature: 0.1,
+      response_format: { type: 'json_object' },
+      messages: [
+        {
+          role: 'system',
+          content:
+            'You verify whether the diseased area is visually clear enough to box. Return only JSON.',
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text:
+                `Return JSON with keys: analysisQuality, focusRegions, needsRetake, retakeReason.\n` +
+                `Only return focusRegions if the visibly affected tissue is obvious and bounded.\n` +
+                `If the lesion area is ambiguous, small, blurred, hidden, or mixed with healthy tissue, return an empty focusRegions array and set needsRetake true.\n` +
+                `Use the first-pass diagnosis only as context, not as proof.\n` +
+                `First-pass context:\n${JSON.stringify({
+                  cropName: safeDiagnosis.cropName,
+                  summary: safeDiagnosis.summary,
+                  mostProbableDisease: safeDiagnosis.mostProbableDisease,
+                  weather: contextPayload.weather,
+                })}`,
+            },
+            {
+              type: 'image_url',
+              image_url: { url: imageDataUrl },
+            },
+          ],
+        },
+      ],
+      max_tokens: 280,
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      timeout: REQUEST_TIMEOUT_MS,
+    },
+  );
+
+  return sanitizeFocusRegionResult(
+    parseAiJson(response.data?.choices?.[0]?.message?.content?.trim()),
+  );
+}
+
 async function sendToOpenAI(imageDataUrl, contextPayload) {
   if (!process.env.OPENAI_API_KEY) return null;
   const model = sanitizeModelName(OPENAI_MODEL, 'gpt-4o-mini');
@@ -528,9 +685,52 @@ router.post(
         }
       }
 
-      const safeDiagnosis = diagnosis
+      let safeDiagnosis = diagnosis
         ? sanitizeDiagnosis({ ...diagnosis, provider }, { cropType, weather })
         : buildLocalFallback({ cropType, weather });
+
+      if (shouldRefineFocusRegions(safeDiagnosis)) {
+        try {
+          const refinement =
+            provider === 'openai'
+              ? await refineFocusRegionsWithOpenAI(
+                  imageDataUrl,
+                  contextPayload,
+                  safeDiagnosis,
+                )
+              : provider === 'openrouter'
+              ? await refineFocusRegionsWithOpenRouter(
+                  imageDataUrl,
+                  contextPayload,
+                  safeDiagnosis,
+                )
+              : null;
+
+          if (refinement) {
+            safeDiagnosis = {
+              ...safeDiagnosis,
+              analysisQuality:
+                refinement.analysisQuality || safeDiagnosis.analysisQuality,
+              suggestions:
+                refinement.needsRetake && refinement.retakeReason
+                  ? [
+                      refinement.retakeReason,
+                      ...safeDiagnosis.suggestions,
+                    ].slice(0, 4)
+                  : safeDiagnosis.suggestions,
+              mostProbableDisease: {
+                ...safeDiagnosis.mostProbableDisease,
+                focusRegions: refinement.focusRegions,
+              },
+            };
+          }
+        } catch (error) {
+          console.error(
+            '[PLANT AI] Focus region refinement failed:',
+            error.response?.data || error.message,
+          );
+        }
+      }
 
       return res.json(safeDiagnosis);
     } catch (err) {
