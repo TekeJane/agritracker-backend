@@ -17,7 +17,7 @@ const SYSTEM_PROMPT = `You are Plant AI Doctor, a careful agronomist and plant-v
 Analyze one crop image and return only valid JSON.
 Be cautious: do not invent certainty. If the image is unclear, say so.
 When possible, identify the most likely crop, the most likely disease or issue, severity, confidence, why you think so, immediate actions, long-term care, prevention, and spread risk.
-If you can estimate affected areas, provide up to 3 normalized focus regions using x, y, width, height values between 0 and 1.
+Only provide focusRegions when visible lesions or damaged tissue are clearly identifiable. If the affected area is not visually clear, return an empty array.
 If the plant appears healthy, set isHealthy to true and explain why.
 Include a short disclaimer that this is AI guidance and severe cases should be reviewed by a local agronomist.
 Prioritize crop-specific reasoning when the crop is known, but stay fully usable for any crop, including crops outside the examples provided.`;
@@ -208,9 +208,7 @@ function buildLocalFallback({ cropType, weather }) {
         score: weatherRisk.riskLevel === 'high' ? 72 : 48,
         reason: weatherRisk.message,
       },
-      focusRegions: [
-        { x: 0.18, y: 0.2, width: 0.56, height: 0.48, label: 'Area to inspect' },
-      ],
+      focusRegions: [],
     },
     diseases: [
       {
@@ -269,7 +267,13 @@ function sanitizeDiagnosis(raw, { cropType, weather }) {
           label: item?.label?.toString().trim() || 'Area of concern',
         }))
         .slice(0, 3)
-    : fallback.mostProbableDisease.focusRegions;
+    : [];
+
+  const allowFocusRegions =
+    !raw.isHealthy &&
+    probability >= 0.55 &&
+    raw.analysisQuality?.toString().trim() !== 'fallback' &&
+    focusRegions.length > 0;
 
   const weatherRisk = buildWeatherRisk(weather);
 
@@ -320,7 +324,7 @@ function sanitizeDiagnosis(raw, { cropType, weather }) {
           disease.spreadRisk?.reason?.toString().trim() ||
           weatherRisk.message,
       },
-      focusRegions,
+      focusRegions: allowFocusRegions ? focusRegions : [],
     },
     diseases: Array.isArray(raw.diseases) && raw.diseases.length
       ? raw.diseases.map((item) => ({
@@ -381,6 +385,7 @@ async function sendToOpenAI(imageDataUrl, contextPayload) {
                 `For mostProbableDisease include: name, probability, severity, status, summary, plainLanguage, treatment, prevention, spreadRisk, focusRegions.\n` +
                 `Treatment must include arrays immediateActions, longTermCare, chemical, biological.\n` +
                 `Be strict about uncertainty and avoid over-diagnosing from weak visual evidence.\n` +
+                `If the image does not clearly isolate the damaged tissue, return focusRegions as an empty array.\n` +
                 `Crop-specific guidance: ${cropGuidance}\n` +
                 `SpreadRisk must include level, score, reason.\n` +
                 `Context:\n${JSON.stringify(contextPayload)}`,
@@ -433,6 +438,7 @@ async function sendToOpenRouter(imageDataUrl, contextPayload) {
                 `For mostProbableDisease include: name, probability, severity, status, summary, plainLanguage, treatment, prevention, spreadRisk, focusRegions.\n` +
                 `Treatment must include arrays immediateActions, longTermCare, chemical, biological.\n` +
                 `Be strict about uncertainty and avoid over-diagnosing from weak visual evidence.\n` +
+                `If the image does not clearly isolate the damaged tissue, return focusRegions as an empty array.\n` +
                 `Crop-specific guidance: ${cropGuidance}\n` +
                 `SpreadRisk must include level, score, reason.\n` +
                 `Context:\n${JSON.stringify(contextPayload)}`,

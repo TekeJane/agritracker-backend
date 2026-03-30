@@ -863,6 +863,7 @@ const EbookController = {
                 shipping_cost,
                 digital_delivery,
                 digital_delivery_method,
+                mobile_money_payment,
             } = req.body;
 
             if (!ebook_id || !payment_method || !customer_email || !customer_phone) {
@@ -878,6 +879,22 @@ const EbookController = {
             const orderQuantity = Math.max(parseInt(quantity, 10) || 1, 1);
             const shippingAmount = Math.max(parseNumber(shipping_cost, 0), 0);
             const totalPrice = (pricing.totalPrice * orderQuantity) + shippingAmount;
+            const isMobileMoneyPayment = ['mtn_mobile_money', 'orange_money'].includes(payment_method);
+
+            if (isMobileMoneyPayment) {
+                const hasRequiredMobileFields = [
+                    mobile_money_payment?.provider,
+                    mobile_money_payment?.payer_phone_number,
+                    mobile_money_payment?.transaction_id,
+                ].every((value) => value && value.toString().trim().length > 0);
+
+                if (!hasRequiredMobileFields) {
+                    return res.status(400).json({
+                        error: 'Mobile money payment details are required before order confirmation',
+                    });
+                }
+            }
+
             const order = await EbookOrder.create({
                 order_id: `EBOOK-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
                 user_id: req.user.id,
@@ -891,10 +908,11 @@ const EbookController = {
                 delivery_method:
                     delivery_method ||
                     (pricing.chosenVariant.key === 'ebook' ? 'digital_download' : 'shipping'),
-                payment_status: 'completed',
-                paid_at: new Date(),
+                payment_status: isMobileMoneyPayment ? 'pending' : 'completed',
+                paid_at: isMobileMoneyPayment ? null : new Date(),
                 purchased_at: new Date(),
-                transaction_id: `TXN-${Date.now()}`,
+                transaction_id:
+                    mobile_money_payment?.transaction_id || `TXN-${Date.now()}`,
                 metadata: {
                     checkout_source: 'mobile_app',
                     selected_format: pricing.chosenVariant.key,
@@ -906,11 +924,33 @@ const EbookController = {
                     digital_delivery:
                         digital_delivery_method || digital_delivery || null,
                     royalty_percentage: pricing.chosenVariant.variant.royalty_percentage || 0,
+                    payment_provider:
+                        mobile_money_payment?.provider || payment_method || null,
+                    mobile_money_payment: isMobileMoneyPayment
+                        ? {
+                            provider: mobile_money_payment.provider,
+                            payer_phone_number: mobile_money_payment.payer_phone_number,
+                            transaction_id: mobile_money_payment.transaction_id,
+                            recipient_number:
+                                mobile_money_payment.recipient_number || '+237 6 54 89 70 41',
+                            recipient_name:
+                                mobile_money_payment.recipient_name || 'Official Agritracker',
+                            company_name:
+                                mobile_money_payment.company_name || 'Agri_Tracker',
+                            verification_status:
+                                mobile_money_payment.verification_status || 'submitted',
+                            submitted_at:
+                                mobile_money_payment.submitted_at || new Date().toISOString(),
+                        }
+                        : null,
                 },
             });
 
             return res.status(201).json({
-                message: 'Ebook order created successfully',
+                message: isMobileMoneyPayment
+                    ? 'Ebook mobile money payment submitted for review'
+                    : 'Ebook order created successfully',
+                payment_status: order.payment_status,
                 order,
             });
         } catch (err) {
