@@ -17,6 +17,7 @@ const upload = multer({ storage });
 
 // Post routes
 router.get('/Posts', PostController.getPosts);
+router.get('/Posts/share/:id', PostController.getPostSharePage);
 router.post('/Posts', upload.single('image'), PostController.createPost);
 router.put('/Posts/:PostId', upload.single('image'), PostController.updatePost);
 router.delete('/Posts/:PostId', PostController.deletePost);
@@ -32,6 +33,7 @@ router.post('/comments', PostController.createComment);
 
 // Lowercase aliases to match frontend calls (/api/posts...)
 router.get('/posts', PostController.getPosts);
+router.get('/posts/share/:id', PostController.getPostSharePage);
 router.post('/posts', upload.single('image'), PostController.createPost);
 router.put('/posts/:PostId', upload.single('image'), PostController.updatePost);
 router.delete('/posts/:PostId', PostController.deletePost);

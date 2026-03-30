@@ -40,6 +40,67 @@ function buildUploadUrl(req, value) {
   return `${host}/uploads/${path.basename(raw)}`;
 }
 
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function buildPostShareUrl(req, postId) {
+  return `${getHost(req)}/api/posts/share/${postId}`;
+}
+
+function getPostReactionType(reactionRecord) {
+  const marker = Number.parseInt(reactionRecord?.comment_id, 10);
+  return marker === 0 ? 'dislike' : 'like';
+}
+
+async function getPostReactionSummary(postIds) {
+  const summary = new Map();
+
+  if (postIds.length === 0) {
+    return summary;
+  }
+
+  const reactions = await Like.findAll({
+    where: {
+      Post_id: { [Op.in]: postIds },
+    },
+    attributes: ['Post_id', 'comment_id'],
+  });
+
+  for (const reaction of reactions) {
+    const postId = reaction.Post_id;
+    const current = summary.get(postId) || { likes: 0, dislikes: 0 };
+
+    if (getPostReactionType(reaction) === 'dislike') {
+      current.dislikes += 1;
+    } else {
+      current.likes += 1;
+    }
+
+    summary.set(postId, current);
+  }
+
+  return summary;
+}
+
+async function getSinglePostReactionSummary(postId) {
+  const summary = await getPostReactionSummary([postId]);
+  return summary.get(postId) || { likes: 0, dislikes: 0 };
+}
+
+function sortCommentsNewestFirst(comments) {
+  return [...comments].sort((left, right) => {
+    const leftTime = new Date(left.createdAt || 0).getTime();
+    const rightTime = new Date(right.createdAt || 0).getTime();
+    return rightTime - leftTime;
+  });
+}
+
 function serializeComment(req, commentRecord) {
   const comment = commentRecord.toJSON ? commentRecord.toJSON() : commentRecord;
 
@@ -50,7 +111,12 @@ function serializeComment(req, commentRecord) {
   return comment;
 }
 
-function serializePost(req, postRecord, reactionByPostId = new Map()) {
+function serializePost(
+  req,
+  postRecord,
+  reactionByPostId = new Map(),
+  reactionSummaryByPostId = new Map(),
+) {
   const post = postRecord.toJSON ? postRecord.toJSON() : postRecord;
 
   if (post.User?.profile_image) {
@@ -62,9 +128,18 @@ function serializePost(req, postRecord, reactionByPostId = new Map()) {
   }
 
   if (Array.isArray(post.Comments)) {
-    post.Comments = post.Comments.map((comment) => serializeComment(req, comment));
+    post.Comments = sortCommentsNewestFirst(
+      post.Comments.map((comment) => serializeComment(req, comment)),
+    );
   }
 
+  const reactionSummary = reactionSummaryByPostId.get(post.id);
+  if (reactionSummary) {
+    post.likes_count = reactionSummary.likes;
+    post.dislikes_count = reactionSummary.dislikes;
+  }
+
+  post.share_url = buildPostShareUrl(req, post.id);
   post.user_reaction = reactionByPostId.get(post.id) || null;
   return post;
 }
@@ -84,7 +159,7 @@ async function getReactionMapForPosts(userId, postIds) {
   });
 
   for (const reaction of reactions) {
-    map.set(reaction.Post_id, reaction.comment_id === 0 ? 'dislike' : 'like');
+    map.set(reaction.Post_id, getPostReactionType(reaction));
   }
 
   return map;
@@ -134,10 +209,15 @@ exports.getPosts = async (req, res) => {
       userId,
       postRecords.map((post) => post.id),
     );
+    const reactionSummaryByPostId = await getPostReactionSummary(
+      postRecords.map((post) => post.id),
+    );
 
     return res.json({
       success: true,
-      data: postRecords.map((post) => serializePost(req, post, reactionByPostId)),
+      data: postRecords.map((post) =>
+        serializePost(req, post, reactionByPostId, reactionSummaryByPostId),
+      ),
     });
   } catch (error) {
     console.error('[Post] Error in getPosts:', error);
@@ -191,6 +271,14 @@ exports.createComment = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'post_id, user_id and text are required',
+      });
+    }
+
+    const postRecord = await Post.findByPk(resolvedPostId);
+    if (!postRecord) {
+      return res.status(404).json({
+        success: false,
+        message: 'Post not found',
       });
     }
 
@@ -248,7 +336,10 @@ exports.likePost = async (req, res) => {
     if (existingReaction) {
       return res.status(409).json({
         success: false,
-        message: 'You already reacted to this post',
+        message:
+          getPostReactionType(existingReaction) === 'like'
+            ? 'You already liked this post'
+            : 'You already disliked this post',
       });
     }
 
@@ -258,13 +349,16 @@ exports.likePost = async (req, res) => {
       comment_id: null,
     });
 
-    postRecord.likes_count = (postRecord.likes_count || 0) + 1;
+    const reactionSummary = await getSinglePostReactionSummary(postId);
+    postRecord.likes_count = reactionSummary.likes;
+    postRecord.dislikes_count = reactionSummary.dislikes;
     await postRecord.save();
 
     return res.json({
       success: true,
       message: 'Post liked',
-      likes: postRecord.likes_count,
+      likes: reactionSummary.likes,
+      dislikes: reactionSummary.dislikes,
       reaction: 'like',
     });
   } catch (error) {
@@ -361,7 +455,10 @@ exports.dislikePost = async (req, res) => {
     if (existingReaction) {
       return res.status(409).json({
         success: false,
-        message: 'You already reacted to this post',
+        message:
+          getPostReactionType(existingReaction) === 'dislike'
+            ? 'You already disliked this post'
+            : 'You already liked this post',
       });
     }
 
@@ -371,13 +468,16 @@ exports.dislikePost = async (req, res) => {
       comment_id: 0,
     });
 
-    postRecord.dislikes_count = (postRecord.dislikes_count || 0) + 1;
+    const reactionSummary = await getSinglePostReactionSummary(postId);
+    postRecord.likes_count = reactionSummary.likes;
+    postRecord.dislikes_count = reactionSummary.dislikes;
     await postRecord.save();
 
     return res.json({
       success: true,
       message: 'Post disliked',
-      dislikes: postRecord.dislikes_count,
+      likes: reactionSummary.likes,
+      dislikes: reactionSummary.dislikes,
       reaction: 'dislike',
     });
   } catch (error) {
@@ -409,6 +509,8 @@ exports.sharePost = async (req, res) => {
       success: true,
       message: 'Post shared',
       shares: postRecord.shares_count,
+      share_url: buildPostShareUrl(req, postRecord.id),
+      preview_image_url: buildUploadUrl(req, postRecord.image_url),
     });
   } catch (error) {
     console.error('[Post] Error in sharePost:', error);
@@ -417,6 +519,97 @@ exports.sharePost = async (req, res) => {
       message: 'Failed to share post',
       error: error.message,
     });
+  }
+};
+
+exports.getPostSharePage = async (req, res) => {
+  try {
+    const postId = parseUserId(req.params.PostId || req.params.id);
+    const postRecord = await Post.findByPk(postId, {
+      include: [
+        {
+          model: User,
+          attributes: ['id', 'full_name', 'profile_image', 'account_type'],
+        },
+        {
+          model: Comment,
+          include: {
+            model: User,
+            attributes: ['id', 'full_name', 'profile_image', 'account_type'],
+          },
+        },
+      ],
+    });
+
+    if (!postRecord) {
+      return res.status(404).send('<h1>Post not found</h1>');
+    }
+
+    const reactionByPostId = await getReactionMapForPosts(0, []);
+    const reactionSummaryByPostId = await getPostReactionSummary([postId]);
+    const post = serializePost(
+      req,
+      postRecord,
+      reactionByPostId,
+      reactionSummaryByPostId,
+    );
+    const authorName = escapeHtml(post.User?.full_name || 'AgriTracker member');
+    const category = escapeHtml(post.category || 'community');
+    const description = escapeHtml(
+      post.text || post.title || 'Community update from AgriTracker.',
+    );
+    const pageTitle = escapeHtml(
+      post.title || `${authorName}'s AgriTracker community post`,
+    );
+    const previewImage = post.image_url || '';
+    const shareUrl = buildPostShareUrl(req, post.id);
+    const commentCount = Array.isArray(post.Comments) ? post.Comments.length : 0;
+    const imageMarkup = previewImage
+      ? `<img src="${escapeHtml(previewImage)}" alt="${pageTitle}" style="width:100%;max-width:560px;height:320px;object-fit:cover;border-radius:24px;box-shadow:0 18px 40px rgba(15,23,42,0.16);" />`
+      : '<div style="width:100%;max-width:560px;height:320px;border-radius:24px;background:linear-gradient(135deg,#dcfce7,#ecfccb);display:flex;align-items:center;justify-content:center;color:#166534;font-size:22px;font-weight:700;">AgriTracker Community</div>';
+
+    return res.status(200).send(`<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>${pageTitle}</title>
+    <meta name="description" content="${description}" />
+    <meta property="og:type" content="article" />
+    <meta property="og:site_name" content="AgriTracker" />
+    <meta property="og:title" content="${pageTitle}" />
+    <meta property="og:description" content="${description}" />
+    <meta property="og:url" content="${escapeHtml(shareUrl)}" />
+    ${previewImage ? `<meta property="og:image" content="${escapeHtml(previewImage)}" />` : ''}
+    <meta name="twitter:card" content="${previewImage ? 'summary_large_image' : 'summary'}" />
+    <meta name="twitter:title" content="${pageTitle}" />
+    <meta name="twitter:description" content="${description}" />
+    ${previewImage ? `<meta name="twitter:image" content="${escapeHtml(previewImage)}" />` : ''}
+  </head>
+  <body style="margin:0;font-family:Arial,sans-serif;background:linear-gradient(180deg,#f7fee7 0%,#ffffff 55%);color:#0f172a;">
+    <main style="max-width:820px;margin:0 auto;padding:40px 20px 56px;">
+      <div style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;background:#dcfce7;color:#166534;font-weight:700;font-size:13px;">AgriTracker Community Post</div>
+      <h1 style="margin:18px 0 10px;font-size:38px;line-height:1.1;color:#14532d;">${pageTitle}</h1>
+      <p style="margin:0 0 24px;font-size:17px;line-height:1.7;color:#475569;">${description}</p>
+      ${imageMarkup}
+      <section style="margin-top:28px;padding:24px;border-radius:24px;background:#ffffff;box-shadow:0 16px 40px rgba(15,23,42,0.08);">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:18px;">
+          <div><div style="font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;">Author</div><div style="margin-top:6px;font-size:18px;font-weight:700;">${authorName}</div></div>
+          <div><div style="font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;">Category</div><div style="margin-top:6px;font-size:18px;font-weight:700;">${category}</div></div>
+          <div><div style="font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;">Likes</div><div style="margin-top:6px;font-size:18px;font-weight:700;">${post.likes_count || 0}</div></div>
+          <div><div style="font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;">Comments</div><div style="margin-top:6px;font-size:18px;font-weight:700;">${commentCount}</div></div>
+        </div>
+      </section>
+      <section style="margin-top:20px;padding:24px;border-radius:24px;background:#14532d;color:#f0fdf4;">
+        <div style="font-size:18px;font-weight:700;">Open AgriTracker</div>
+        <p style="margin:10px 0 0;font-size:15px;line-height:1.6;color:#dcfce7;">Use the AgriTracker mobile app to react, comment, and join the conversation around this post.</p>
+      </section>
+    </main>
+  </body>
+</html>`);
+  } catch (error) {
+    console.error('[Post] Error in getPostSharePage:', error);
+    return res.status(500).send('<h1>Unable to load post</h1>');
   }
 };
 
