@@ -9,6 +9,7 @@ const {
     WebinarQuestion,
     User,
 } = require('../models');
+const { buildPublicMediaUrl } = require('../utils/publicMediaUrl');
 
 // ✅ 1. User requests a webinar
 exports.requestWebinar = async (req, res) => {
@@ -44,7 +45,7 @@ exports.requestWebinar = async (req, res) => {
 exports.getPendingRequests = async (req, res) => {
     console.log('📥 [REQUEST] Fetching pending webinar requests');
     try {
-        const baseUrl = `${req.protocol}://${req.get('host')}/uploads/`;
+        const host = `${req.protocol}://${req.get('host')}`;
 
         const requests = await WebinarRequest.findAll({
             where: { status: 'pending' },
@@ -61,7 +62,7 @@ exports.getPendingRequests = async (req, res) => {
         // Add full image URLs
         const requestsWithImageUrl = requests.map(req => {
             const requestJson = req.toJSON();
-            requestJson.image_url = req.image ? baseUrl + req.image : null;
+            requestJson.image_url = buildPublicMediaUrl(req.image, host);
             return requestJson;
         });
 
@@ -120,11 +121,11 @@ exports.getUpcomingWebinars = async (req, res) => {
             order: [['scheduled_date', 'ASC']],
         });
 
-        const baseUrl = `${req.protocol}://${req.get('host')}/uploads/`;
+        const host = `${req.protocol}://${req.get('host')}`;
 
         const formatted = webinars.map(w => {
             const json = w.toJSON();
-            json.image_url = w.image ? baseUrl + w.image : null;
+            json.image_url = buildPublicMediaUrl(w.image, host);
             return json;
         });
 
@@ -284,11 +285,11 @@ exports.getRandomWebinars = async (req, res) => {
             order: [['scheduled_date', 'ASC']],
         });
 
-        const baseUrl = `${req.protocol}://${req.get('host')}/uploads/`;
+        const host = `${req.protocol}://${req.get('host')}`;
 
         const formatted = webinars.map(w => {
             const json = w.toJSON();
-            json.image_url = w.image ? baseUrl + w.image : null;
+            json.image_url = buildPublicMediaUrl(w.image, host);
             return json;
         });
 
