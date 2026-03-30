@@ -4,7 +4,7 @@ const includeUser = [
     {
         model: User,
         as: 'user',
-        attributes: ['id', 'full_name', 'profile_image'],
+        attributes: ['id', 'full_name', 'profile_image', 'account_type', 'role'],
     },
 ];
 
