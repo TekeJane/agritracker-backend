@@ -188,6 +188,9 @@ const ProductController = {
             const productName = escapeHtml(formattedProduct.name);
             const productDescription = escapeHtml(formattedProduct.description || 'No description available.');
             const productPrice = Number(formattedProduct.price || 0).toFixed(0);
+            const sellerStoreUrl = formattedProduct.sellerId
+                ? `${hostUrl}/api/myprofile/${formattedProduct.sellerId}`
+                : '';
             const imageMarkup = productImage
                 ? `<img src="${escapeHtml(productImage)}" alt="${productName}" style="width:100%;max-width:520px;height:280px;object-fit:cover;border-radius:24px;box-shadow:0 18px 40px rgba(15,23,42,0.16);" />`
                 : '<div style="width:100%;max-width:520px;height:280px;border-radius:24px;background:#d9f99d;display:flex;align-items:center;justify-content:center;color:#166534;font-size:20px;font-weight:700;">AgriTracker Product</div>';
@@ -211,6 +214,14 @@ const ProductController = {
           <div><div style="font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;">Price</div><div style="margin-top:6px;font-size:28px;font-weight:800;color:#166534;">XAF ${escapeHtml(productPrice)}</div></div>
           <div><div style="font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;">Seller</div><div style="margin-top:6px;font-size:18px;font-weight:700;">${escapeHtml(sellerName)}</div></div>
           <div><div style="font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;">Company</div><div style="margin-top:6px;font-size:18px;font-weight:700;">AgriTracker</div></div>
+        </div>
+      </section>
+      <section style="margin-top:20px;padding:24px;border-radius:24px;background:#14532d;color:#f0fdf4;">
+        <div style="font-size:18px;font-weight:700;">Open This Product In AgriTracker</div>
+        <p style="margin:10px 0 18px;font-size:15px;line-height:1.6;color:#dcfce7;">Use this HTTP share page to preview the exact product that was shared. Open the seller page to explore more listings from the same store.</p>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+          <a href="${escapeHtml(`${hostUrl}/api/products/share/${formattedProduct.id}`)}" style="display:inline-flex;align-items:center;justify-content:center;padding:12px 18px;border-radius:14px;background:#f0fdf4;color:#14532d;text-decoration:none;font-weight:700;">Open Shared Product</a>
+          ${sellerStoreUrl ? `<a href="${escapeHtml(sellerStoreUrl)}" style="display:inline-flex;align-items:center;justify-content:center;padding:12px 18px;border-radius:14px;border:1px solid rgba(240,253,244,0.45);color:#f0fdf4;text-decoration:none;font-weight:700;">Visit Seller Store</a>` : ''}
         </div>
       </section>
     </main>

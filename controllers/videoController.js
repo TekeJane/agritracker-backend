@@ -655,6 +655,9 @@ const videoController = {
                 .replace(/>/g, '&gt;');
             const shareUrl = buildVideoShareUrl(host, video.id);
             const videoUrl = payload.video_url || shareUrl;
+            const creatorProfileUrl = payload.creator_id
+                ? `${host}/api/myprofile/${payload.creator_id}`
+                : '';
             const thumbUrl = payload.thumbnail_url || '';
 
             return res.send(`<!DOCTYPE html>
@@ -668,7 +671,6 @@ const videoController = {
   <meta property="og:type" content="video.other" />
   <meta property="og:url" content="${shareUrl}" />
   ${thumbUrl ? `<meta property="og:image" content="${thumbUrl}" />` : ''}
-  <meta http-equiv="refresh" content="3;url=${videoUrl}" />
   <style>
     body { margin: 0; font-family: Arial, sans-serif; background: linear-gradient(180deg, #f5fbf4, #edf7f0); color: #102417; }
     .shell { max-width: 720px; margin: 0 auto; padding: 40px 20px; }
@@ -691,8 +693,12 @@ const videoController = {
         <div>Likes: <strong>${payload.likes_count || 0}</strong></div>
         <div>Shares: <strong>${payload.shares_count || 0}</strong></div>
       </div>
-      <a class="btn" href="${videoUrl}">View Video</a>
-      <p>You will be redirected to the video automatically in a moment.</p>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;">
+        <a class="btn" href="${videoUrl}">Watch Video</a>
+        <a class="btn" href="${shareUrl}" style="background:#14532d;">Open Shared Video</a>
+        ${creatorProfileUrl ? `<a class="btn" href="${creatorProfileUrl}" style="background:#4b5c4d;">Visit Creator Store</a>` : ''}
+      </div>
+      <p>This shared page keeps the original Agritracker video context so viewers can open the exact shared content.</p>
     </div>
   </div>
 </body>

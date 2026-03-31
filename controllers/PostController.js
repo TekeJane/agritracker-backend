@@ -601,8 +601,12 @@ exports.getPostSharePage = async (req, res) => {
         </div>
       </section>
       <section style="margin-top:20px;padding:24px;border-radius:24px;background:#14532d;color:#f0fdf4;">
-        <div style="font-size:18px;font-weight:700;">Open AgriTracker</div>
-        <p style="margin:10px 0 0;font-size:15px;line-height:1.6;color:#dcfce7;">Use the AgriTracker mobile app to react, comment, and join the conversation around this post.</p>
+        <div style="font-size:18px;font-weight:700;">Open This Shared Post</div>
+        <p style="margin:10px 0 18px;font-size:15px;line-height:1.6;color:#dcfce7;">This shared link points to the exact AgriTracker community post. Open the app to react, comment, and continue the conversation from the original post page.</p>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+          <a href="${escapeHtml(shareUrl)}" style="display:inline-flex;align-items:center;justify-content:center;padding:12px 18px;border-radius:14px;background:#f0fdf4;color:#14532d;text-decoration:none;font-weight:700;">Open Shared Post</a>
+          ${post.User?.id ? `<a href="${escapeHtml(`${getHost(req)}/api/myprofile/${post.User.id}`)}" style="display:inline-flex;align-items:center;justify-content:center;padding:12px 18px;border-radius:14px;border:1px solid rgba(240,253,244,0.45);color:#f0fdf4;text-decoration:none;font-weight:700;">Visit Creator Page</a>` : ''}
+        </div>
       </section>
     </main>
   </body>
