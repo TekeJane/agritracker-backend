@@ -42,6 +42,12 @@ function buildVideoShareUrl(host, videoId) {
     return `${host}/api/videos/share/${videoId}`;
 }
 
+function normalizeCategoryName(value) {
+    return String(value || '')
+        .trim()
+        .replace(/\s+/g, ' ');
+}
+
 async function resolveAuthenticatedUser(req) {
     if (req.user?.id) {
         return req.user;
@@ -158,6 +164,19 @@ const videoController = {
 
             if (!title || !category_id) {
                 return res.status(400).json({ error: 'Title and category are required' });
+            }
+
+            const selectedCategory = await VideoCategory.findOne({
+                where: {
+                    id: category_id,
+                    is_active: true,
+                },
+            });
+
+            if (!selectedCategory) {
+                return res.status(400).json({
+                    error: 'Selected video category was not found. Refresh categories and try again.',
+                });
             }
 
             let thumbnailPath = req.files?.thumbnail_image?.[0]?.path || null;
@@ -318,11 +337,38 @@ const videoController = {
     async createCategory(req, res) {
         try {
             console.log("Creating category with data:", req.body);
-            const { name, description } = req.body;
-            const category = await VideoCategory.create({ name, description });
+            const name = normalizeCategoryName(req.body.name);
+            const description = req.body.description?.toString().trim() || null;
+
+            if (!name) {
+                return res.status(400).json({ error: 'Category name is required' });
+            }
+
+            const categories = await VideoCategory.findAll();
+            const existingCategory = categories.find(
+                (category) => normalizeCategoryName(category.name).toLowerCase() === name.toLowerCase(),
+            );
+
+            if (existingCategory) {
+                if (!existingCategory.is_active) {
+                    existingCategory.is_active = true;
+                }
+                existingCategory.name = name;
+                existingCategory.description = description || existingCategory.description;
+                await existingCategory.save();
+                return res.status(200).json({
+                    message: 'Video category already existed and is now available',
+                    category: existingCategory,
+                });
+            }
+
+            const category = await VideoCategory.create({ name, description, is_active: true });
 
             console.log("Category created:", category.toJSON());
-            res.status(201).json(category);
+            res.status(201).json({
+                message: 'Video category created successfully',
+                category,
+            });
         } catch (err) {
             console.error("Create category error:", err);
             res.status(500).json({ error: err.message });
@@ -368,10 +414,17 @@ const videoController = {
     async getCategories(req, res) {
         try {
             console.log("Fetching all active categories...");
-            const categories = await VideoCategory.findAll({ where: { is_active: true } });
+            const categories = await VideoCategory.findAll({
+                where: { is_active: true },
+                order: [['name', 'ASC']],
+            });
 
             console.log(`Fetched ${categories.length} categories`);
-            res.json(categories);
+            res.set('Cache-Control', 'no-store');
+            res.json({
+                categories,
+                count: categories.length,
+            });
         } catch (err) {
             console.error("Get categories error:", err);
             res.status(500).json({ error: err.message });
