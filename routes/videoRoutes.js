@@ -18,24 +18,39 @@ router.post(
   videoController.uploadVideo,
 );
 
-router.get('/', videoController.getApprovedVideos);
+router.get('/categories', videoController.getCategories);
+router.get('/admin/review', authenticate, authorizeAdmin, videoController.getVideosForAdminReview);
 router.get('/random', videoController.getRandomApprovedVideo);
 router.get('/random-multiple', videoController.getRandomVideos);
 router.get('/share/:id', videoController.getVideoSharePage);
+router.post(
+  '/categories',
+  authenticate,
+  authorizeAdmin,
+  videoController.createCategory,
+);
+router.put(
+  '/categories/:id',
+  authenticate,
+  authorizeAdmin,
+  videoController.updateCategory,
+);
+router.delete(
+  '/categories/:id',
+  authenticate,
+  authorizeAdmin,
+  videoController.deleteCategory,
+);
+
+router.get('/', videoController.getApprovedVideos);
+router.get('/:id/download-file', videoController.serveVideoDownload);
 router.get('/:id', videoController.getVideoById);
 router.post('/:id/like', authenticate, videoController.likeVideo);
 router.post('/:id/dislike', authenticate, videoController.dislikeVideo);
 router.post('/:id/share', videoController.shareVideo);
 router.post('/:id/download', videoController.registerDownload);
-router.get(
-  '/admin/review',
-  authenticate,
-  authorizeAdmin,
-  videoController.getVideosForAdminReview,
-);
 
 router.delete('/:id', authenticate, videoController.deleteVideo);
-router.delete('/videos/:id', authenticate, videoController.deleteVideo);
 router.put(
   '/:id/approve',
   authenticate,
@@ -59,45 +74,6 @@ router.delete(
   authenticate,
   authorizeAdmin,
   videoController.rejectVideo,
-);
-
-router.post(
-  '/categories',
-  authenticate,
-  authorizeAdmin,
-  videoController.createCategory,
-);
-router.post(
-  '/videos/categories',
-  authenticate,
-  authorizeAdmin,
-  videoController.createCategory,
-);
-router.get('/categories', videoController.getCategories);
-router.get('/videos/categories', videoController.getCategories);
-router.put(
-  '/categories/:id',
-  authenticate,
-  authorizeAdmin,
-  videoController.updateCategory,
-);
-router.put(
-  '/videos/categories/:id',
-  authenticate,
-  authorizeAdmin,
-  videoController.updateCategory,
-);
-router.delete(
-  '/categories/:id',
-  authenticate,
-  authorizeAdmin,
-  videoController.deleteCategory,
-);
-router.delete(
-  '/videos/categories/:id',
-  authenticate,
-  authorizeAdmin,
-  videoController.deleteCategory,
 );
 
 module.exports = router;

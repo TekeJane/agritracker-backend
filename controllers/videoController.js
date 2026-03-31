@@ -3,8 +3,13 @@ const jwt = require('jsonwebtoken');
 const { VideoTip, VideoCategory, User, VideoReaction } = require('../models');
 const ffmpeg = require('fluent-ffmpeg');
 const path = require('path');
+const fs = require('fs');
 const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
-const { ensureUploadDir, toUploadDbPath } = require('../config/uploadPaths');
+const {
+    ensureUploadDir,
+    resolveUploadFilePath,
+    toUploadDbPath,
+} = require('../config/uploadPaths');
 ffmpeg.setFfmpegPath(ffmpegPath);
 
 function buildPublicUrl(value, host) {
@@ -40,6 +45,10 @@ function buildCreatorLink(user) {
 
 function buildVideoShareUrl(host, videoId) {
     return `${host}/api/videos/share/${videoId}`;
+}
+
+function buildVideoDownloadUrl(host, videoId) {
+    return `${host}/api/videos/${videoId}/download-file`;
 }
 
 function normalizeCategoryName(value) {
@@ -116,6 +125,7 @@ function formatVideo(video, host) {
         shares_count: item.shares_count || 0,
         downloads_count: item.downloads_count || 0,
         share_url: buildVideoShareUrl(host, item.id),
+        download_url: buildVideoDownloadUrl(host, item.id),
     };
 }
 
@@ -669,11 +679,39 @@ const videoController = {
             return res.json({
                 message: 'Video download registered',
                 downloads_count: video.downloads_count,
-                download_url: buildPublicUrl(video.video_url, host),
+                download_url: buildVideoDownloadUrl(host, video.id),
                 video: formatVideo(video, host),
             });
         } catch (err) {
             console.error('Register video download error:', err);
+            return res.status(500).json({ error: err.message });
+        }
+    },
+
+    async serveVideoDownload(req, res) {
+        try {
+            const video = await VideoTip.findByPk(req.params.id);
+            if (!video || !video.is_approved) {
+                return res.status(404).json({ error: 'Video not found' });
+            }
+
+            const filePath = resolveUploadFilePath(video.video_url);
+            if (!filePath || !fs.existsSync(filePath)) {
+                return res.status(404).json({ error: 'Video file not found' });
+            }
+
+            const extension = path.extname(filePath) || '.mp4';
+            const safeTitle = String(video.title || 'agritracker-video')
+                .trim()
+                .replace(/[<>:"/\\|?*\x00-\x1F]+/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim()
+                .replace(/ /g, '_');
+            const filename = `${safeTitle || 'agritracker-video'}${extension}`;
+
+            return res.download(filePath, filename);
+        } catch (err) {
+            console.error('Serve video download error:', err);
             return res.status(500).json({ error: err.message });
         }
     },
@@ -707,11 +745,9 @@ const videoController = {
                 .replace(/</g, '&lt;')
                 .replace(/>/g, '&gt;');
             const shareUrl = buildVideoShareUrl(host, video.id);
-            const videoUrl = payload.video_url || shareUrl;
-            const creatorProfileUrl = payload.creator_id
-                ? `${host}/api/myprofile/${payload.creator_id}`
-                : '';
             const thumbUrl = payload.thumbnail_url || '';
+            const appUrl = payload.video_url || shareUrl;
+            const briefText = `Check out this video about ${title} on Agri_Tracker. It might be of help in your agricultural journey.`;
 
             return res.send(`<!DOCTYPE html>
 <html lang="en">
@@ -731,8 +767,11 @@ const videoController = {
     .pill { display: inline-block; padding: 8px 12px; border-radius: 999px; background: #e8f5e8; color: #2e7d32; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
     h1 { font-size: 28px; line-height: 1.2; margin: 16px 0 10px; }
     p { font-size: 15px; line-height: 1.7; color: #4b5c4d; }
-    .meta { display: flex; gap: 18px; flex-wrap: wrap; margin: 18px 0 26px; color: #466048; font-size: 14px; }
-    .btn { display: inline-block; background: #2e7d32; color: #fff; text-decoration: none; padding: 14px 20px; border-radius: 16px; font-weight: 700; }
+    .thumb { display: block; width: 100%; border-radius: 20px; overflow: hidden; margin: 18px 0 22px; background: #edf7f0; text-decoration: none; }
+    .thumb img { width: 100%; display: block; object-fit: cover; max-height: 360px; }
+    .brief { margin: 18px 0 10px; }
+    .link-card { display: block; margin-top: 10px; padding: 16px 18px; border-radius: 18px; background: #f5fbf4; color: #14532d; text-decoration: none; font-weight: 700; word-break: break-word; }
+    .meta { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 18px; color: #466048; font-size: 14px; }
   </style>
 </head>
 <body>
@@ -741,17 +780,15 @@ const videoController = {
       <div class="pill">${category}</div>
       <h1>${title}</h1>
       <p>${description}</p>
+      ${thumbUrl ? `
+      <a class="thumb" href="${appUrl}">
+        <img src="${thumbUrl}" alt="${title}" />
+      </a>` : ''}
+      <p class="brief">${briefText}</p>
+      <a class="link-card" href="${appUrl}">${appUrl}</a>
       <div class="meta">
         <div>Creator: <strong>${creator}</strong></div>
-        <div>Likes: <strong>${payload.likes_count || 0}</strong></div>
-        <div>Shares: <strong>${payload.shares_count || 0}</strong></div>
       </div>
-      <div style="display:flex;gap:12px;flex-wrap:wrap;">
-        <a class="btn" href="${videoUrl}">Watch Video</a>
-        <a class="btn" href="${shareUrl}" style="background:#14532d;">Open Shared Video</a>
-        ${creatorProfileUrl ? `<a class="btn" href="${creatorProfileUrl}" style="background:#4b5c4d;">Visit Creator Store</a>` : ''}
-      </div>
-      <p>This shared page keeps the original Agritracker video context so viewers can open the exact shared content.</p>
     </div>
   </div>
 </body>

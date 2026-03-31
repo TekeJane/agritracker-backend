@@ -137,6 +137,27 @@ function summarizeProviderError(error) {
   return status ? `${status}: ${remoteMessage}` : `${remoteMessage}`;
 }
 
+function detectProviderFailureType(failureReason) {
+  const text = String(failureReason || '').toLowerCase();
+  if (!text) return 'unknown';
+  if (
+    text.includes('insufficient_quota') ||
+    text.includes('exceeded your current quota') ||
+    text.includes('insufficient credits') ||
+    text.includes('never purchased credits') ||
+    text.includes('402:')
+  ) {
+    return 'billing';
+  }
+  if (text.includes('timeout')) {
+    return 'timeout';
+  }
+  if (text.includes('401') || text.includes('invalid api key')) {
+    return 'auth';
+  }
+  return 'unavailable';
+}
+
 function buildWeatherRisk(weather) {
   if (!weather || typeof weather !== 'object') {
     return {
@@ -186,12 +207,17 @@ function buildLocalFallback({ cropType, weather, failureReason }) {
   const weatherRisk = buildWeatherRisk(weather);
   const cropName = cropType || 'Plant sample';
   const isNetworkIssue = failureReason?.toLowerCase().includes('timeout');
+  const failureType = detectProviderFailureType(failureReason);
   const analysisQuality = failureReason ? 'provider_unreachable' : 'fallback';
   const summary = failureReason
-    ? `Plant AI Doctor could not reach the live diagnosis provider for ${cropName}, so this result is cautious offline guidance only.`
+    ? failureType === 'billing'
+      ? `The live plant diagnosis provider is configured but currently has no usable quota or credits for ${cropName}, so this result is cautious fallback guidance only.`
+      : `Plant AI Doctor could not reach the live diagnosis provider for ${cropName}, so this result is cautious offline guidance only.`
     : `The image could not be confidently matched to a known disease model, so Plant AI Doctor is returning cautious guidance for ${cropName}.`;
   const plainLanguage = failureReason
-    ? 'The live AI diagnosis request did not complete, so this screen is showing safe fallback guidance instead of a verified crop-specific diagnosis.'
+    ? failureType === 'billing'
+      ? 'The backend provider is out of quota or credits right now, so this screen is showing safe fallback guidance instead of a verified crop-specific diagnosis.'
+      : 'The live AI diagnosis request did not complete, so this screen is showing safe fallback guidance instead of a verified crop-specific diagnosis.'
     : 'The crop may be under disease or stress pressure, but the photo is not clear enough for a precise match.';
 
   return {
@@ -249,7 +275,7 @@ function buildLocalFallback({ cropType, weather, failureReason }) {
     ],
     suggestions: [
       'Retake the photo in natural light with one leaf or one affected area filling most of the frame.',
-      'Send the crop type before analysis for better context-specific treatment advice.',
+      'Capture a tighter close-up of the damaged area so the next scan has stronger evidence.',
       'Compare the next scan after removing affected tissue to monitor spread.',
     ],
     environment: weather
@@ -266,6 +292,7 @@ function buildLocalFallback({ cropType, weather, failureReason }) {
       liveDiagnosisAvailable: false,
       failureReason: failureReason || null,
       isNetworkIssue,
+      failureType,
     },
     disclaimer:
       'AI guidance only. For severe wilting, stem cankers, or rapid field spread, confirm with a local agronomist before treatment.',
@@ -280,10 +307,10 @@ function sanitizeDiagnosis(raw, { cropType, weather }) {
 
   const disease = raw.mostProbableDisease || {};
   const probability = clampNumber(
-    disease.probability ?? raw.confidence ?? 0.35,
+    disease.probability ?? raw.confidence ?? 0,
     0,
     1,
-    0.35,
+    0,
   );
   const spreadScore = clampNumber(
     disease.spreadRisk?.score ?? raw.spreadRisk?.score ?? 45,
@@ -353,7 +380,7 @@ function sanitizeDiagnosis(raw, { cropType, weather }) {
           disease.spreadRisk?.reason?.toString().trim() ||
           weatherRisk.message,
       },
-      focusRegions: [],
+      focusRegions,
     },
     diseases: Array.isArray(raw.diseases) && raw.diseases.length
       ? raw.diseases.map((item) => ({

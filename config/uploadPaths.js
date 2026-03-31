@@ -39,6 +39,24 @@ function toUploadDbPath(filePath) {
   return `/uploads/${path.basename(normalized)}`;
 }
 
+function resolveUploadFilePath(dbPath) {
+  if (!dbPath) return null;
+
+  const normalized = String(dbPath).replace(/\\/g, '/').trim();
+  if (!normalized) return null;
+
+  const relativePath = normalized
+    .replace(/^https?:\/\/[^/]+/i, '')
+    .replace(/^\/+/, '');
+
+  if (!relativePath.toLowerCase().startsWith('uploads/')) {
+    return null;
+  }
+
+  const relativeWithoutRoot = relativePath.substring('uploads/'.length);
+  return path.join(primaryUploadDir, relativeWithoutRoot);
+}
+
 ensureDir(primaryUploadDir);
 
 module.exports = {
@@ -46,5 +64,6 @@ module.exports = {
   primaryUploadDir,
   legacyUploadDir,
   ensureUploadDir,
+  resolveUploadFilePath,
   toUploadDbPath,
 };
