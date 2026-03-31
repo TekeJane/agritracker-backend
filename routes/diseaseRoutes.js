@@ -97,23 +97,23 @@ function buildCropGuidance(cropType) {
     return `${general} No crop was supplied, so first infer the crop family only if the image supports it.`;
   }
 
-  if (normalized.contains('tomato')) {
+  if (normalized.includes('tomato')) {
     return `${general} For tomato, carefully differentiate early blight, late blight, septoria leaf spot, bacterial spot, leaf mold, mosaic virus, spider mite stippling, sunscald, and calcium-related blossom-end rot or nutrient stress. Pay attention to concentric lesions, water-soaked tissue, yellow halos, fruit lesions, and lower-leaf progression.`;
   }
 
-  if (normalized.contains('maize') || normalized.contains('corn')) {
+  if (normalized.includes('maize') || normalized.includes('corn')) {
     return `${general} For maize, check for northern corn leaf blight, gray leaf spot, rust, maize streak virus, fall armyworm feeding, nutrient striping, drought curling, and stalk stress. Pay attention to elongated cigar lesions, rectangular gray lesions, rust pustules, whorl feeding, and striped chlorosis.`;
   }
 
-  if (normalized.contains('pepper') || normalized.contains('chili')) {
+  if (normalized.includes('pepper') || normalized.includes('chili')) {
     return `${general} For pepper, differentiate bacterial leaf spot, anthracnose, cercospora leaf spot, mosaic virus, mite damage, edema, blossom-end rot, and sunscald. Pay attention to greasy lesions, fruit sunken spots, puckering, leaf curling, and fruit-end collapse.`;
   }
 
-  if (normalized.contains('cassava')) {
+  if (normalized.includes('cassava')) {
     return `${general} For cassava, consider cassava mosaic disease, cassava brown streak disease, bacterial blight, red mite damage, anthracnose, nutrient deficiency, and drought stress. Watch for mosaic mottling, leaf distortion, stem lesions, dieback, and root-quality implications if visible.`;
   }
 
-  if (normalized.contains('plantain') || normalized.contains('banana')) {
+  if (normalized.includes('plantain') || normalized.includes('banana')) {
     return `${general} For plantain or banana, differentiate black sigatoka, yellow sigatoka, bunchy top, bacterial wilt, cigar-end rot, weevil stress, and wind tearing. Focus on elongated streaks, necrotic margins, cigar-shaped fruit-end decay, wilt pattern, and pseudostem or leaf-emergence abnormalities.`;
   }
 
@@ -124,6 +124,17 @@ function clampNumber(value, min, max, fallback) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return fallback;
   return Math.min(max, Math.max(min, parsed));
+}
+
+function summarizeProviderError(error) {
+  if (!error) return 'Unknown provider error';
+  const status = error.response?.status;
+  const remoteMessage =
+    error.response?.data?.error?.message ||
+    error.response?.data?.message ||
+    error.response?.data?.error ||
+    error.message;
+  return status ? `${status}: ${remoteMessage}` : `${remoteMessage}`;
 }
 
 function buildWeatherRisk(weather) {
@@ -171,27 +182,35 @@ function buildWeatherRisk(weather) {
   };
 }
 
-function buildLocalFallback({ cropType, weather }) {
+function buildLocalFallback({ cropType, weather, failureReason }) {
   const weatherRisk = buildWeatherRisk(weather);
   const cropName = cropType || 'Plant sample';
+  const isNetworkIssue = failureReason?.toLowerCase().includes('timeout');
+  const analysisQuality = failureReason ? 'provider_unreachable' : 'fallback';
+  const summary = failureReason
+    ? `Plant AI Doctor could not reach the live diagnosis provider for ${cropName}, so this result is cautious offline guidance only.`
+    : `The image could not be confidently matched to a known disease model, so Plant AI Doctor is returning cautious guidance for ${cropName}.`;
+  const plainLanguage = failureReason
+    ? 'The live AI diagnosis request did not complete, so this screen is showing safe fallback guidance instead of a verified crop-specific diagnosis.'
+    : 'The crop may be under disease or stress pressure, but the photo is not clear enough for a precise match.';
 
   return {
     isHealthy: false,
     cropName,
-    analysisQuality: 'fallback',
+    analysisQuality,
     provider: 'local',
     generatedAt: new Date().toISOString(),
-    summary:
-      `The image could not be confidently matched to a known disease model, so Plant AI Doctor is returning cautious guidance for ${cropName}.`,
+    summary,
     mostProbableDisease: {
       name: 'Uncertain diagnosis',
-      probability: 0.38,
+      probability: 0,
       severity: 'Moderate',
       status: 'Needs review',
       summary:
-        'Visible stress is present, but the image alone is not enough for a reliable disease name.',
-      plainLanguage:
-        'The crop may be under disease or stress pressure, but the photo is not clear enough for a precise match.',
+        failureReason
+          ? 'Visible stress may be present, but the live diagnosis provider was unavailable before the scan could be verified.'
+          : 'Visible stress is present, but the image alone is not enough for a reliable disease name.',
+      plainLanguage,
       treatment: {
         immediateActions: [
           'Isolate the affected plant from healthy plants if possible.',
@@ -224,7 +243,7 @@ function buildLocalFallback({ cropType, weather }) {
     diseases: [
       {
         name: 'Uncertain diagnosis',
-        probability: 0.38,
+        probability: 0,
         severity: 'Moderate',
       },
     ],
@@ -243,6 +262,11 @@ function buildLocalFallback({ cropType, weather }) {
           riskNote: weatherRisk.message,
         }
       : null,
+    diagnosisMeta: {
+      liveDiagnosisAvailable: false,
+      failureReason: failureReason || null,
+      isNetworkIssue,
+    },
     disclaimer:
       'AI guidance only. For severe wilting, stem cankers, or rapid field spread, confirm with a local agronomist before treatment.',
   };
@@ -848,11 +872,13 @@ router.post(
 
       let diagnosis = null;
       let provider = 'local';
+      const providerErrors = [];
 
       try {
         diagnosis = await sendToOpenAI(imageDataUrl, contextPayload);
         if (diagnosis) provider = 'openai';
       } catch (error) {
+        providerErrors.push(`OpenAI: ${summarizeProviderError(error)}`);
         console.error(
           '[PLANT AI] OpenAI diagnosis failed:',
           error.response?.data || error.message,
@@ -864,6 +890,7 @@ router.post(
           diagnosis = await sendToOpenRouter(imageDataUrl, contextPayload);
           if (diagnosis) provider = 'openrouter';
         } catch (error) {
+          providerErrors.push(`OpenRouter: ${summarizeProviderError(error)}`);
           console.error(
             '[PLANT AI] OpenRouter diagnosis failed:',
             error.response?.data || error.message,
@@ -873,7 +900,18 @@ router.post(
 
       let safeDiagnosis = diagnosis
         ? sanitizeDiagnosis({ ...diagnosis, provider }, { cropType, weather })
-        : buildLocalFallback({ cropType, weather });
+        : buildLocalFallback({
+            cropType,
+            weather,
+            failureReason: providerErrors.join(' | '),
+          });
+
+      safeDiagnosis.diagnosisMeta = {
+        ...(safeDiagnosis.diagnosisMeta || {}),
+        liveDiagnosisAvailable: provider !== 'local',
+        provider,
+        providerErrors,
+      };
 
       if (shouldRefineFocusRegions(safeDiagnosis)) {
         try {
