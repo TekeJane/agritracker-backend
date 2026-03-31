@@ -1,4 +1,5 @@
-const { User, Product, Review, Ebook, EbookCategory, EbookSubCategory, EbookOrder } = require('../models');
+const { User, Product, Review, Ebook, EbookCategory, EbookSubCategory, EbookOrder, OrderItem, Order, sequelize } = require('../models');
+const { Op } = require('sequelize');
 const { toUploadDbPath } = require('../config/uploadPaths');
 
 const getBaseUrl = (req) => {
@@ -29,7 +30,8 @@ const buildUserResponse = (
     sellerReviewCount = null,
     authorAverageRating = null,
     authorReviewCount = null,
-    authorOrderCount = 0
+    authorOrderCount = 0,
+    sellerOrderCount = 0
 ) => {
     const combinedReviewCount = (sellerReviewCount ?? user.reviews?.length ?? 0) + (authorReviewCount ?? 0);
     const weightedRatingTotal =
@@ -65,9 +67,24 @@ const buildUserResponse = (
         average_rating: parseFloat(averageRating.toFixed(1)),
         seller_review_count: combinedReviewCount,
         author_order_count: authorOrderCount,
-        products: user.products ?? [],
+        seller_order_count: sellerOrderCount,
+        products: (user.products ?? []).map((product) => {
+            const item = product.toJSON ? product.toJSON() : product;
+            const orderCount = Number(item.order_count || 0);
+            return {
+                ...item,
+                order_count: orderCount,
+                orderCount,
+                is_top_seller_item: orderCount >= 20,
+                isTopSellerItem: orderCount >= 20,
+            };
+        }),
         ebooks: (user.Ebooks ?? []).map((ebook) => ({
             ...ebook.toJSON(),
+            order_count: Number(ebook.order_count || 0),
+            orderCount: Number(ebook.order_count || 0),
+            is_top_author_item: Number(ebook.order_count || 0) >= 20,
+            isTopAuthorItem: Number(ebook.order_count || 0) >= 20,
             ratings_count: ebook.Reviews?.length ?? 0,
             ratings_average:
                 ebook.Reviews?.isNotEmpty == true
@@ -89,6 +106,92 @@ const buildUserResponse = (
         })),
     };
 };
+
+async function attachProductOrderCounts(products) {
+    if (!Array.isArray(products) || products.length === 0) return products;
+
+    const productIds = products.map((product) => Number(product.id)).filter(Boolean);
+    if (productIds.length === 0) return products;
+
+    const orderCounts = await OrderItem.findAll({
+        attributes: [
+            'ProductId',
+            [sequelize.fn('COUNT', sequelize.fn('DISTINCT', sequelize.col('OrderItem.OrderId'))), 'order_count'],
+        ],
+        where: { ProductId: productIds },
+        include: [
+            {
+                model: Order,
+                attributes: [],
+                required: true,
+                where: { status: { [Op.ne]: 'cancelled' } },
+            },
+        ],
+        group: ['ProductId'],
+        raw: true,
+    });
+
+    const countsByProductId = new Map(
+        orderCounts.map((row) => [Number(row.ProductId), Number(row.order_count || 0)]),
+    );
+
+    for (const product of products) {
+        product.setDataValue('order_count', countsByProductId.get(Number(product.id)) || 0);
+    }
+
+    products.sort((a, b) => {
+        const aCount = Number(a.get?.('order_count') ?? a.order_count ?? 0);
+        const bCount = Number(b.get?.('order_count') ?? b.order_count ?? 0);
+        const aTop = aCount >= 20 ? 1 : 0;
+        const bTop = bCount >= 20 ? 1 : 0;
+        if (aTop !== bTop) return bTop - aTop;
+        if (aCount !== bCount) return bCount - aCount;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+
+    return products;
+}
+
+async function attachEbookOrderCounts(ebooks) {
+    if (!Array.isArray(ebooks) || ebooks.length === 0) return ebooks;
+
+    const ebookIds = ebooks.map((ebook) => Number(ebook.id)).filter(Boolean);
+    if (ebookIds.length === 0) return ebooks;
+
+    const orderCounts = await EbookOrder.findAll({
+        attributes: [
+            'Ebook_id',
+            [sequelize.fn('COUNT', sequelize.col('id')), 'order_count'],
+        ],
+        where: {
+            Ebook_id: ebookIds,
+            payment_status: { [Op.in]: ['paid', 'completed'] },
+        },
+        group: ['Ebook_id'],
+        raw: true,
+    });
+
+    const countsByEbookId = new Map(
+        orderCounts.map((row) => [Number(row.Ebook_id), Number(row.order_count || 0)]),
+    );
+
+    for (const ebook of ebooks) {
+        ebook.setDataValue('order_count', countsByEbookId.get(Number(ebook.id)) || 0);
+    }
+
+    ebooks.sort((a, b) => {
+        const aCount = Number(a.get?.('order_count') ?? a.order_count ?? 0);
+        const bCount = Number(b.get?.('order_count') ?? b.order_count ?? 0);
+        const aTop = aCount >= 20 ? 1 : 0;
+        const bTop = bCount >= 20 ? 1 : 0;
+        if (aTop !== bTop) return bTop - aTop;
+        if (aCount !== bCount) return bCount - aCount;
+        return new Date(b.updatedAt || b.createdAt).getTime() -
+            new Date(a.updatedAt || a.createdAt).getTime();
+    });
+
+    return ebooks;
+}
 
 // ✅ Get profile of the logged-in user
 const getMyProfile = async (req, res) => {
@@ -140,6 +243,16 @@ const getMyProfile = async (req, res) => {
         const authorOrdersCount = await EbookOrder.count({
             include: [{ model: Ebook, where: { author_id: user.id }, attributes: [] }],
         });
+        const sellerOrdersCount = await OrderItem.count({
+            distinct: true,
+            col: 'OrderId',
+            include: [
+                { model: Product, where: { seller_id: user.id }, attributes: [], required: true },
+                { model: Order, where: { status: { [Op.ne]: 'cancelled' } }, attributes: [], required: true },
+            ],
+        });
+        await attachProductOrderCounts(user.products ?? []);
+        await attachEbookOrderCounts(user.Ebooks ?? []);
         const sellerAverageRating = sellerReviews.length > 0
             ? sellerReviews.reduce((acc, r) => acc + r.rating, 0) / sellerReviews.length
             : 0;
@@ -154,7 +267,8 @@ const getMyProfile = async (req, res) => {
             sellerReviews.length,
             authorAverageRating,
             authorReviews.length,
-            authorOrdersCount
+            authorOrdersCount,
+            sellerOrdersCount
         );
         console.log("📦 Response payload being sent:", responsePayload);
 
@@ -199,6 +313,16 @@ const getUserProfile = async (req, res) => {
         const authorOrdersCount = await EbookOrder.count({
             include: [{ model: Ebook, where: { author_id: user.id }, attributes: [] }],
         });
+        const sellerOrdersCount = await OrderItem.count({
+            distinct: true,
+            col: 'OrderId',
+            include: [
+                { model: Product, where: { seller_id: user.id }, attributes: [], required: true },
+                { model: Order, where: { status: { [Op.ne]: 'cancelled' } }, attributes: [], required: true },
+            ],
+        });
+        await attachProductOrderCounts(user.products ?? []);
+        await attachEbookOrderCounts(user.Ebooks ?? []);
         const sellerAverageRating = sellerReviews.length > 0
             ? sellerReviews.reduce((acc, r) => acc + r.rating, 0) / sellerReviews.length
             : 0;
@@ -214,7 +338,8 @@ const getUserProfile = async (req, res) => {
                 sellerReviews.length,
                 authorAverageRating,
                 authorReviews.length,
-                authorOrdersCount
+                authorOrdersCount,
+                sellerOrdersCount
             )
         );
 
@@ -282,6 +407,16 @@ const updateMyProfile = async (req, res) => {
         const authorOrdersCount = await EbookOrder.count({
             include: [{ model: Ebook, where: { author_id: updatedUser.id }, attributes: [] }],
         });
+        const sellerOrdersCount = await OrderItem.count({
+            distinct: true,
+            col: 'OrderId',
+            include: [
+                { model: Product, where: { seller_id: updatedUser.id }, attributes: [], required: true },
+                { model: Order, where: { status: { [Op.ne]: 'cancelled' } }, attributes: [], required: true },
+            ],
+        });
+        await attachProductOrderCounts(updatedUser.products ?? []);
+        await attachEbookOrderCounts(updatedUser.Ebooks ?? []);
         const sellerAverageRating = sellerReviews.length > 0
             ? sellerReviews.reduce((acc, r) => acc + r.rating, 0) / sellerReviews.length
             : 0;
@@ -298,7 +433,8 @@ const updateMyProfile = async (req, res) => {
                 sellerReviews.length,
                 authorAverageRating,
                 authorReviews.length,
-                authorOrdersCount
+                authorOrdersCount,
+                sellerOrdersCount
             )
         });
 

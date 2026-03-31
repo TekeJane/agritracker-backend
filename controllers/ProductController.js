@@ -1,4 +1,5 @@
-const { Product, Category, SubCategory, User } = require('../models');
+const { Product, Category, SubCategory, User, OrderItem, Order, sequelize } = require('../models');
+const { Op } = require('sequelize');
 
 function formatMediaUrls(mediaList, hostUrl) {
     if (!mediaList) {
@@ -115,7 +116,67 @@ function formatProduct(product, hostUrl) {
         preorderDays: product.preorder_days || null,
         preorder_available_date: product.preorder_available_date || null,
         preorderAvailableDate: product.preorder_available_date || null,
+        order_count: Number(product.get?.('order_count') ?? product.order_count ?? 0),
+        orderCount: Number(product.get?.('order_count') ?? product.order_count ?? 0),
+        is_top_seller_item: Number(product.get?.('order_count') ?? product.order_count ?? 0) >= 20,
+        isTopSellerItem: Number(product.get?.('order_count') ?? product.order_count ?? 0) >= 20,
     };
+}
+
+async function attachProductOrderCounts(products) {
+    if (!Array.isArray(products) || products.length === 0) {
+        return products;
+    }
+
+    const productIds = products.map((product) => Number(product.id)).filter(Boolean);
+    if (productIds.length === 0) {
+        return products;
+    }
+
+    const orderCounts = await OrderItem.findAll({
+        attributes: [
+            'ProductId',
+            [sequelize.fn('COUNT', sequelize.fn('DISTINCT', sequelize.col('OrderItem.OrderId'))), 'order_count'],
+        ],
+        where: {
+            ProductId: productIds,
+        },
+        include: [
+            {
+                model: Order,
+                attributes: [],
+                where: {
+                    status: { [Op.ne]: 'cancelled' },
+                },
+                required: true,
+            },
+        ],
+        group: ['ProductId'],
+        raw: true,
+    });
+
+    const countsByProductId = new Map(
+        orderCounts.map((row) => [Number(row.ProductId), Number(row.order_count || 0)]),
+    );
+
+    for (const product of products) {
+        product.setDataValue('order_count', countsByProductId.get(Number(product.id)) || 0);
+    }
+
+    return products;
+}
+
+function sortProductsByMarketplacePriority(products) {
+    return [...products].sort((a, b) => {
+        const aCount = Number(a.get?.('order_count') ?? a.order_count ?? 0);
+        const bCount = Number(b.get?.('order_count') ?? b.order_count ?? 0);
+        const aTop = aCount >= 20 ? 1 : 0;
+        const bTop = bCount >= 20 ? 1 : 0;
+
+        if (aTop != bTop) return bTop - aTop;
+        if (aCount != bCount) return bCount - aCount;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
 }
 
 async function fetchProductWithRelations(productId) {
@@ -132,9 +193,11 @@ const ProductController = {
                 include: [Category, SubCategory, { model: User, as: 'seller' }],
                 order: [['createdAt', 'DESC']],
             });
+            await attachProductOrderCounts(products);
+            const rankedProducts = sortProductsByMarketplacePriority(products);
 
             const hostUrl = `${req.protocol}://${req.get('host')}`;
-            return res.status(200).json(products.map((product) => formatProduct(product, hostUrl)));
+            return res.status(200).json(rankedProducts.map((product) => formatProduct(product, hostUrl)));
         } catch (error) {
             console.error('Error in getAllProducts:', error);
             return res.status(500).json({ error: error.message });
@@ -148,9 +211,11 @@ const ProductController = {
                 include: [Category, SubCategory, { model: User, as: 'seller' }],
                 order: [['createdAt', 'DESC']],
             });
+            await attachProductOrderCounts(products);
+            const rankedProducts = sortProductsByMarketplacePriority(products);
 
             const hostUrl = `${req.protocol}://${req.get('host')}`;
-            return res.status(200).json(products.map((product) => formatProduct(product, hostUrl)));
+            return res.status(200).json(rankedProducts.map((product) => formatProduct(product, hostUrl)));
         } catch (error) {
             console.error('Error in getFeaturedProducts:', error);
             return res.status(500).json({ error: error.message });
@@ -165,6 +230,7 @@ const ProductController = {
                 return res.status(404).json({ message: 'Product not found' });
             }
 
+            await attachProductOrderCounts([product]);
             const hostUrl = `${req.protocol}://${req.get('host')}`;
             return res.status(200).json(formatProduct(product, hostUrl));
         } catch (error) {
@@ -240,9 +306,11 @@ const ProductController = {
                 include: [Category, SubCategory, { model: User, as: 'seller' }],
                 order: [['createdAt', 'DESC']],
             });
+            await attachProductOrderCounts(products);
+            const rankedProducts = sortProductsByMarketplacePriority(products);
 
             const hostUrl = `${req.protocol}://${req.get('host')}`;
-            return res.status(200).json(products.map((product) => formatProduct(product, hostUrl)));
+            return res.status(200).json(rankedProducts.map((product) => formatProduct(product, hostUrl)));
         } catch (error) {
             console.error('Error in getProductsByCategory:', error);
             return res.status(500).json({ error: error.message });
@@ -256,9 +324,11 @@ const ProductController = {
                 include: [Category, SubCategory, { model: User, as: 'seller' }],
                 order: [['createdAt', 'DESC']],
             });
+            await attachProductOrderCounts(products);
+            const rankedProducts = sortProductsByMarketplacePriority(products);
 
             const hostUrl = `${req.protocol}://${req.get('host')}`;
-            return res.status(200).json(products.map((product) => formatProduct(product, hostUrl)));
+            return res.status(200).json(rankedProducts.map((product) => formatProduct(product, hostUrl)));
         } catch (error) {
             console.error('Error in getProductsBySubCategory:', error);
             return res.status(500).json({ error: error.message });
