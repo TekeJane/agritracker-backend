@@ -1,4 +1,5 @@
-const { Ebook, EbookCategory, EbookSubCategory, EbookOrder, User, Review } = require('../models');
+const { Ebook, EbookCategory, EbookSubCategory, EbookOrder, User, Review, sequelize } = require('../models');
+const { Op } = require('sequelize');
 const { toUploadDbPath } = require('../config/uploadPaths');
 
 const EDITION_KEYS = ['ebook', 'paperback', 'hardcover'];
@@ -311,7 +312,61 @@ function formatEbook(ebook, host) {
         validation_report: item.validation_report || null,
         publication_status: item.publication_status || 'published',
         last_draft_saved_at: item.last_draft_saved_at || null,
+        order_count: Number(item.order_count || 0),
+        orderCount: Number(item.order_count || 0),
+        is_top_author_item: Number(item.order_count || 0) >= 20,
+        isTopAuthorItem: Number(item.order_count || 0) >= 20,
     };
+}
+
+async function attachEbookOrderCounts(ebooks) {
+    if (!Array.isArray(ebooks) || ebooks.length === 0) {
+        return ebooks;
+    }
+
+    const ebookIds = ebooks.map((ebook) => Number(ebook.id)).filter(Boolean);
+    if (ebookIds.length === 0) {
+        return ebooks;
+    }
+
+    const orderCounts = await EbookOrder.findAll({
+        attributes: [
+            'Ebook_id',
+            [sequelize.fn('COUNT', sequelize.col('id')), 'order_count'],
+        ],
+        where: {
+            Ebook_id: ebookIds,
+            payment_status: {
+                [Op.in]: ['paid', 'completed'],
+            },
+        },
+        group: ['Ebook_id'],
+        raw: true,
+    });
+
+    const countsByEbookId = new Map(
+        orderCounts.map((row) => [Number(row.Ebook_id), Number(row.order_count || 0)]),
+    );
+
+    for (const ebook of ebooks) {
+        ebook.setDataValue('order_count', countsByEbookId.get(Number(ebook.id)) || 0);
+    }
+
+    return ebooks;
+}
+
+function sortEbooksByMarketplacePriority(ebooks) {
+    return [...ebooks].sort((a, b) => {
+        const aCount = Number(a.get?.('order_count') ?? a.order_count ?? 0);
+        const bCount = Number(b.get?.('order_count') ?? b.order_count ?? 0);
+        const aTop = aCount >= 20 ? 1 : 0;
+        const bTop = bCount >= 20 ? 1 : 0;
+
+        if (aTop != bTop) return bTop - aTop;
+        if (aCount != bCount) return bCount - aCount;
+        return new Date(b.updatedAt || b.createdAt).getTime() -
+            new Date(a.updatedAt || a.createdAt).getTime();
+    });
 }
 
 async function enrichEbookMetrics(ebookOrEbooks, userId = null) {
@@ -595,8 +650,10 @@ const EbookController = {
             });
 
             await enrichEbookMetrics(ebooks, req.user?.id);
+            await attachEbookOrderCounts(ebooks);
+            const rankedEbooks = sortEbooksByMarketplacePriority(ebooks);
             const host = `${req.protocol}://${req.get('host')}`;
-            return res.json(ebooks.map((ebook) => formatEbook(ebook, host)));
+            return res.json(rankedEbooks.map((ebook) => formatEbook(ebook, host)));
         } catch (err) {
             console.error('Error listing Ebooks:', err);
             return res.status(500).json({ error: err.message });
@@ -641,6 +698,7 @@ const EbookController = {
             }
 
             await enrichEbookMetrics(ebook, req.user?.id);
+            await attachEbookOrderCounts([ebook]);
             const host = `${req.protocol}://${req.get('host')}`;
             return res.json(formatEbook(ebook, host));
         } catch (err) {
@@ -1032,6 +1090,7 @@ const EbookController = {
                 limit,
             });
 
+            await attachEbookOrderCounts(ebooks);
             const host = `${req.protocol}://${req.get('host')}`;
             return res.json(ebooks.map((ebook) => formatEbook(ebook, host)));
         } catch (err) {
