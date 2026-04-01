@@ -81,6 +81,7 @@ router.get('/Ebooks/categories', EbookController.getEbookCategories);
 router.get('/subcategories', EbookController.getEbookSubCategories);
 router.get('/subcategories/category/:categoryId', EbookController.getEbookSubCategories);
 router.get('/share/:id', EbookController.getEbookSharePage);
+router.get('/orders/:orderId/download', EbookController.downloadPurchasedEbook);
 router.get('/details/:id', EbookController.getEbookById);
 router.get('/:id/purchase-status', authenticate, EbookController.getPurchaseStatus);
 router.post('/checkout', authenticate, EbookController.createCheckoutOrder);

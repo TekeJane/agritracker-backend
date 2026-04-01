@@ -1,6 +1,9 @@
+const crypto = require('crypto');
 const { Ebook, EbookCategory, EbookSubCategory, EbookOrder, User, Review, sequelize } = require('../models');
 const { Op } = require('sequelize');
 const { toUploadDbPath } = require('../config/uploadPaths');
+const notifyUser = require('../services/notifyUser');
+const emailService = require('../services/emailServices');
 const TOP_MARKETPLACE_THRESHOLD = 50;
 
 const EDITION_KEYS = ['ebook', 'paperback', 'hardcover'];
@@ -62,6 +65,148 @@ function buildEbookShareUrl(host, ebookId) {
 
 function buildAppDeepLinkUrl(type, id) {
     return `agritracker://${type}/${id}`;
+}
+
+function generateDownloadToken() {
+    return crypto.randomBytes(24).toString('hex');
+}
+
+function buildEbookDownloadUrl(order) {
+    const token = order?.metadata?.download_token;
+    if (!order?.order_id || !token) {
+        return '';
+    }
+
+    const host = (
+        process.env.BACKEND_PUBLIC_URL ||
+        process.env.APP_BASE_URL ||
+        'https://agritracker-backend-production.up.railway.app'
+    ).replace(/\/+$/, '');
+
+    return `${host}/api/Ebooks/orders/${encodeURIComponent(order.order_id)}/download?token=${encodeURIComponent(token)}`;
+}
+
+function mapEbookOrderStatus(paymentStatus) {
+    switch (String(paymentStatus || '').trim().toLowerCase()) {
+        case 'completed':
+            return 'delivered';
+        case 'failed':
+            return 'cancelled';
+        case 'refunded':
+            return 'cancelled';
+        default:
+            return 'pending';
+    }
+}
+
+function mapEbookPaymentStatus(paymentStatus) {
+    switch (String(paymentStatus || '').trim().toLowerCase()) {
+        case 'completed':
+            return 'paid';
+        case 'failed':
+            return 'failed';
+        case 'refunded':
+            return 'refunded';
+        default:
+            return 'pending';
+    }
+}
+
+function normalizeEbookOrder(orderRecord) {
+    const item = orderRecord.toJSON ? orderRecord.toJSON() : orderRecord;
+    const metadata = item.metadata && typeof item.metadata === 'object'
+        ? item.metadata
+        : {};
+
+    return {
+        ...item,
+        order_type: 'ebook',
+        order_number: item.order_id || `EBOOK-${item.id}`,
+        status: mapEbookOrderStatus(item.payment_status),
+        payment_status: mapEbookPaymentStatus(item.payment_status),
+        total_amount: item.total_amount || item.price_paid || 0,
+        shipping_address: item.customer_address || null,
+        shipping_method:
+            item.delivery_method ||
+            metadata.shipping_method ||
+            metadata.digital_delivery ||
+            'digital_download',
+        notes: item.note ?? item.notes ?? null,
+        createdAt: item.createdAt || item.purchased_at || item.paid_at,
+        payment_method: item.payment_method || 'N/A',
+        download_url: buildEbookDownloadUrl(item),
+        download_ready: String(item.payment_status || '').toLowerCase() === 'completed',
+        User: item.User || null,
+        Ebook: item.Ebook
+            ? {
+                ...item.Ebook,
+                category_name:
+                    item.Ebook.category_name ||
+                    item.Ebook.EbookCategory?.name ||
+                    null,
+            }
+            : item.Ebook,
+    };
+}
+
+async function notifyAdminsOfEbookOrder(order) {
+    const admins = await User.findAll({
+        where: { role: 'admin' },
+        attributes: ['id'],
+    });
+
+    await Promise.all(
+        admins.map((admin) =>
+            notifyUser(
+                admin.id,
+                'New Ebook Order',
+                `Order ${order.order_id} for an ebook needs admin attention.`,
+                'order'
+            )
+        )
+    );
+}
+
+async function sendEbookOrderNotifications(orderRecord, ebookRecord, buyerRecord, eventLabel = 'confirmed') {
+    const order = orderRecord.toJSON ? orderRecord.toJSON() : orderRecord;
+    const ebook = ebookRecord?.toJSON ? ebookRecord.toJSON() : ebookRecord;
+    const buyer = buyerRecord?.toJSON ? buyerRecord.toJSON() : buyerRecord;
+
+    const orderForEmail = {
+        ...order,
+        Ebook: ebook,
+        User: buyer,
+        _downloadUrl: buildEbookDownloadUrl(order),
+    };
+
+    if (buyer?.id) {
+        await notifyUser(
+            buyer.id,
+            eventLabel === 'confirmed' ? 'Ebook Order Confirmed' : 'Ebook Order Received',
+            eventLabel === 'confirmed'
+                ? `Your ebook order ${order.order_id} has been confirmed. Your download is now ready.`
+                : `Your ebook order ${order.order_id} has been received.`,
+            'order'
+        );
+    }
+
+    if (ebook?.author_id) {
+        await notifyUser(
+            ebook.author_id,
+            eventLabel === 'confirmed' ? 'Ebook Purchase Confirmed' : 'New Ebook Purchase',
+            `Order ${order.order_id} for "${ebook.title || 'your ebook'}" ${eventLabel === 'confirmed' ? 'has been confirmed' : 'was created'}.`,
+            'sale'
+        );
+    }
+
+    if (buyer?.email && emailService.isConfigured()) {
+        try {
+            await emailService.sendOrderConfirmation(orderForEmail);
+            await emailService.sendDownloadLink(orderForEmail);
+        } catch (error) {
+            console.error('Failed to send ebook confirmation email:', error.message);
+        }
+    }
 }
 
 function getFirstFile(req, fieldName) {
@@ -1067,6 +1212,7 @@ const EbookController = {
                 transaction_id:
                     mobile_money_payment?.transaction_id || `TXN-${Date.now()}`,
                 metadata: {
+                    download_token: generateDownloadToken(),
                     checkout_source: 'mobile_app',
                     selected_format: pricing.chosenVariant.key,
                     quantity: orderQuantity,
@@ -1099,12 +1245,35 @@ const EbookController = {
                 },
             });
 
+            const buyer = await User.findByPk(req.user.id, {
+                attributes: ['id', 'full_name', 'email', 'phone'],
+            });
+
+            const fullOrder = await EbookOrder.findByPk(order.id, {
+                include: [
+                    {
+                        model: Ebook,
+                        include: [EbookCategory, EbookSubCategory, User],
+                    },
+                    {
+                        model: User,
+                        attributes: ['id', 'full_name', 'email', 'phone'],
+                    },
+                ],
+            });
+
+            if (isMobileMoneyPayment) {
+                await notifyAdminsOfEbookOrder(fullOrder);
+            } else if (fullOrder) {
+                await sendEbookOrderNotifications(fullOrder, fullOrder.Ebook, buyer, 'confirmed');
+            }
+
             return res.status(201).json({
                 message: isMobileMoneyPayment
                     ? 'Ebook mobile money payment submitted for review'
                     : 'Ebook order created successfully',
                 payment_status: order.payment_status,
-                order,
+                order: fullOrder || order,
             });
         } catch (err) {
             console.error('Error creating ebook checkout order:', err);
@@ -1125,6 +1294,50 @@ const EbookController = {
             return res.json({ isPurchased: !!order, order: order || null });
         } catch (err) {
             console.error('Error checking ebook purchase status:', err);
+            return res.status(500).json({ error: err.message });
+        }
+    },
+
+    async downloadPurchasedEbook(req, res) {
+        try {
+            const order = await EbookOrder.findOne({
+                where: { order_id: req.params.orderId },
+                include: [Ebook, User],
+            });
+
+            if (!order) {
+                return res.status(404).json({ error: 'Order not found' });
+            }
+
+            if (String(order.payment_status || '').toLowerCase() !== 'completed') {
+                return res.status(403).json({ error: 'Ebook is not ready for download yet' });
+            }
+
+            const token = req.query.token?.toString().trim();
+            const storedToken = order.metadata?.download_token?.toString().trim();
+            const isAuthorizedUser = !!req.user?.id && Number(req.user.id) === Number(order.user_id);
+
+            if (!isAuthorizedUser && (!token || !storedToken || token !== storedToken)) {
+                return res.status(403).json({ error: 'Invalid download access' });
+            }
+
+            const ebook = order.Ebook;
+            const downloadUrl = buildPublicUrl(ebook?.file_url, `${req.protocol}://${req.get('host')}`);
+            if (!downloadUrl) {
+                return res.status(404).json({ error: 'Ebook file not available' });
+            }
+
+            const metadata = order.metadata && typeof order.metadata === 'object'
+                ? { ...order.metadata }
+                : {};
+            metadata.download_count = Number(metadata.download_count || 0) + 1;
+            metadata.last_download_at = new Date().toISOString();
+            order.metadata = metadata;
+            await order.save();
+
+            return res.redirect(downloadUrl);
+        } catch (err) {
+            console.error('Error downloading purchased ebook:', err);
             return res.status(500).json({ error: err.message });
         }
     },

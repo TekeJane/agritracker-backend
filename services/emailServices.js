@@ -2,22 +2,51 @@ const nodemailer = require('nodemailer');
 
 class EmailService {
     constructor() {
-        this.transporter = nodemailer.createTransporter({
-            host: process.env.EMAIL_HOST,
-            port: process.env.EMAIL_PORT,
-            secure: false, // true for 465, false for other ports
+        this.transporter = nodemailer.createTransport({
+            host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+            port: Number(process.env.EMAIL_PORT || 587),
+            secure: Number(process.env.EMAIL_PORT || 587) === 465,
             auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASSWORD
-            }
+                user: process.env.EMAIL_USER || process.env.SMTP_USER,
+                pass: process.env.EMAIL_PASSWORD || process.env.SMTP_PASS
+            },
         });
+    }
+
+    isConfigured() {
+        return Boolean(process.env.EMAIL_USER || process.env.SMTP_USER);
+    }
+
+    getSenderAddress() {
+        return process.env.EMAIL_USER || process.env.SMTP_USER || 'no-reply@agritracker.app';
+    }
+
+    getBackendBaseUrl() {
+        return (
+            process.env.BACKEND_PUBLIC_URL ||
+            process.env.APP_BASE_URL ||
+            'https://agritracker-backend-production.up.railway.app'
+        ).replace(/\/+$/, '');
+    }
+
+    getDownloadUrl(order) {
+        if (order?._downloadUrl) {
+            return order._downloadUrl;
+        }
+
+        const token = order?.metadata?.download_token;
+        if (!order?.order_id || !token) {
+            return '';
+        }
+
+        return `${this.getBackendBaseUrl()}/api/Ebooks/orders/${encodeURIComponent(order.order_id)}/download?token=${encodeURIComponent(token)}`;
     }
 
     // Send order confirmation email
     async sendOrderConfirmation(order) {
         try {
             const mailOptions = {
-                from: process.env.EMAIL_USER,
+                from: this.getSenderAddress(),
                 to: order.customer_email,
                 subject: `Order Confirmation - ${order.order_id}`,
                 html: this.getOrderConfirmationTemplate(order)
@@ -73,7 +102,7 @@ class EmailService {
                     <p>Your Ebook is now available for download. Click the button below to access your purchase:</p>
                     
                     ${order.Ebook?.file_url ? `
-                        <a href="${process.env.FRONTEND_URL}/download/${order.order_id}" class="download-button">
+                        <a href="${this.getDownloadUrl(order)}" class="download-button">
                             📱 Download Ebook
                         </a>
                     ` : '<p>Download link will be available shortly.</p>'}
@@ -110,7 +139,7 @@ class EmailService {
     async sendDownloadLink(order) {
         try {
             const mailOptions = {
-                from: process.env.EMAIL_USER,
+                from: this.getSenderAddress(),
                 to: order.customer_email,
                 subject: `Download Link - ${order.Ebook?.title}`,
                 html: this.getDownloadLinkTemplate(order)
@@ -155,7 +184,7 @@ class EmailService {
                     <p>Your Ebook download is now available. Click the button below to download:</p>
                     
                     <div style="text-align: center;">
-                        <a href="${process.env.FRONTEND_URL}/download/${order.order_id}" class="download-button">
+                        <a href="${this.getDownloadUrl(order)}" class="download-button">
                             📱 Download Now
                         </a>
                     </div>
@@ -195,7 +224,7 @@ class EmailService {
     async sendPaymentFailureNotification(order) {
         try {
             const mailOptions = {
-                from: process.env.EMAIL_USER,
+                from: this.getSenderAddress(),
                 to: order.customer_email,
                 subject: `Payment Failed - Order ${order.order_id}`,
                 html: `

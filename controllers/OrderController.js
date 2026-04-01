@@ -14,6 +14,7 @@ const {
 const { v4: uuidv4 } = require('uuid');
 const { Op } = require('sequelize');
 const notifyUser = require('../services/notifyUser');
+const emailService = require('../services/emailServices');
 
 
 const VALID_STATUSES = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
@@ -81,6 +82,122 @@ async function notifyAdminsOfMobileMoneySubmission(order, buyerId) {
     );
 }
 
+function mapEbookOrderStatus(paymentStatus) {
+    switch (String(paymentStatus || '').trim().toLowerCase()) {
+        case 'completed':
+            return 'delivered';
+        case 'failed':
+        case 'refunded':
+            return 'cancelled';
+        default:
+            return 'pending';
+    }
+}
+
+function mapEbookPaymentStatus(paymentStatus) {
+    switch (String(paymentStatus || '').trim().toLowerCase()) {
+        case 'completed':
+            return 'paid';
+        case 'failed':
+            return 'failed';
+        case 'refunded':
+            return 'refunded';
+        default:
+            return 'pending';
+    }
+}
+
+function buildEbookDownloadUrl(order) {
+    const token = order?.metadata?.download_token;
+    if (!order?.order_id || !token) {
+        return '';
+    }
+
+    const host = (
+        process.env.BACKEND_PUBLIC_URL ||
+        process.env.APP_BASE_URL ||
+        'https://agritracker-backend-production.up.railway.app'
+    ).replace(/\/+$/, '');
+
+    return `${host}/api/Ebooks/orders/${encodeURIComponent(order.order_id)}/download?token=${encodeURIComponent(token)}`;
+}
+
+function normalizeEbookOrder(orderRecord) {
+    const item = orderRecord.toJSON ? orderRecord.toJSON() : orderRecord;
+    const metadata = item.metadata && typeof item.metadata === 'object'
+        ? item.metadata
+        : {};
+
+    return {
+        ...item,
+        order_type: 'ebook',
+        order_number: item.order_id || `EBOOK-${item.id}`,
+        status: mapEbookOrderStatus(item.payment_status),
+        payment_status: mapEbookPaymentStatus(item.payment_status),
+        total_amount: item.total_amount || item.price_paid || 0,
+        shipping_address: item.customer_address || null,
+        shipping_method:
+            item.delivery_method ||
+            metadata.shipping_method ||
+            metadata.digital_delivery ||
+            'digital_download',
+        notes: item.note ?? item.notes ?? null,
+        createdAt: item.createdAt || item.purchased_at || item.paid_at,
+        payment_method: item.payment_method || 'N/A',
+        download_url: buildEbookDownloadUrl(item),
+        download_ready: String(item.payment_status || '').toLowerCase() === 'completed',
+        User: item.User || null,
+        Ebook: item.Ebook
+            ? {
+                ...item.Ebook,
+                category_name:
+                    item.Ebook.category_name ||
+                    item.Ebook.EbookCategory?.name ||
+                    null,
+            }
+            : item.Ebook,
+    };
+}
+
+async function sendEbookApprovalNotifications(orderRecord) {
+    const order = orderRecord.toJSON ? orderRecord.toJSON() : orderRecord;
+    const ebook = order.Ebook || {};
+    const buyer = order.User || {};
+
+    if (buyer.id) {
+        await notifyUser(
+            buyer.id,
+            'Ebook Order Confirmed',
+            `Your ebook order ${order.order_id} has been confirmed. Your download is now ready.`,
+            'order'
+        );
+    }
+
+    if (ebook.author_id) {
+        await notifyUser(
+            ebook.author_id,
+            'Ebook Purchase Confirmed',
+            `Order ${order.order_id} for "${ebook.title || 'your ebook'}" has been confirmed.`,
+            'sale'
+        );
+    }
+
+    if (buyer.email && emailService.isConfigured()) {
+        try {
+            await emailService.sendOrderConfirmation({
+                ...order,
+                _downloadUrl: buildEbookDownloadUrl(order),
+            });
+            await emailService.sendDownloadLink({
+                ...order,
+                _downloadUrl: buildEbookDownloadUrl(order),
+            });
+        } catch (error) {
+            console.error('Failed to send ebook approval email:', error.message);
+        }
+    }
+}
+
 const OrderController = {
 
     // controllers/OrderController.js
@@ -133,39 +250,7 @@ const OrderController = {
                 order: [['createdAt', 'DESC']],
             });
 
-            return res.status(200).json(
-                ebookOrders.map((order) => {
-                    const item = order.toJSON();
-                    const metadata = item.metadata && typeof item.metadata === 'object'
-                        ? item.metadata
-                        : {};
-                    return {
-                        ...item,
-                        order_number: item.order_id || `EBOOK-${item.id}`,
-                        status: item.payment_status || 'paid',
-                        createdAt: item.createdAt || item.purchased_at || item.paid_at,
-                        total_amount: item.total_amount || item.price_paid || 0,
-                        shipping_address:
-                            item.customer_address ||
-                            metadata.shipping_address ||
-                            null,
-                        shipping_method:
-                            item.delivery_method ||
-                            metadata.shipping_method ||
-                            'digital_delivery',
-                        notes: item.note ?? item.notes ?? null,
-                        Ebook: item.Ebook
-                            ? {
-                                ...item.Ebook,
-                                category_name:
-                                    item.Ebook.category_name ||
-                                    item.Ebook.EbookCategory?.name ||
-                                    null,
-                            }
-                            : item.Ebook,
-                    };
-                })
-            );
+            return res.status(200).json(ebookOrders.map((order) => normalizeEbookOrder(order)));
         } catch (error) {
             console.error('Error fetching author ebook orders:', error.message);
             return res.status(500).json({ error: error.message });
@@ -189,7 +274,33 @@ const OrderController = {
                 order: [['createdAt', 'DESC']],
             });
 
-            return res.status(200).json(orders);
+            const ebookOrders = await EbookOrder.findAll({
+                include: [
+                    {
+                        model: Ebook,
+                        include: [EbookCategory],
+                    },
+                    {
+                        model: User,
+                        attributes: ['id', 'full_name', 'phone', 'email'],
+                    },
+                ],
+                order: [['createdAt', 'DESC']],
+            });
+
+            const normalizedProductOrders = orders.map((order) => ({
+                ...(order.toJSON ? order.toJSON() : order),
+                order_type: 'product',
+            }));
+            const normalizedEbookOrders = ebookOrders.map((order) => normalizeEbookOrder(order));
+
+            const combinedOrders = [...normalizedProductOrders, ...normalizedEbookOrders].sort(
+                (left, right) =>
+                    new Date(right.createdAt || 0).getTime() -
+                    new Date(left.createdAt || 0).getTime(),
+            );
+
+            return res.status(200).json(combinedOrders);
         } catch (error) {
             return res.status(500).json({ error: error.message });
         }
@@ -213,7 +324,31 @@ const OrderController = {
                 ],
                 order: [['createdAt', 'DESC']],
             });
-            return res.status(200).json(orders);
+
+            const ebookOrders = await EbookOrder.findAll({
+                where: { user_id: req.user.id },
+                include: [
+                    {
+                        model: Ebook,
+                        include: [EbookCategory, EbookSubCategory],
+                    },
+                ],
+                order: [['createdAt', 'DESC']],
+            });
+
+            const normalizedProductOrders = orders.map((order) => ({
+                ...(order.toJSON ? order.toJSON() : order),
+                order_type: 'product',
+            }));
+            const normalizedEbookOrders = ebookOrders.map((order) => normalizeEbookOrder(order));
+
+            const combinedOrders = [...normalizedProductOrders, ...normalizedEbookOrders].sort(
+                (left, right) =>
+                    new Date(right.createdAt || 0).getTime() -
+                    new Date(left.createdAt || 0).getTime(),
+            );
+
+            return res.status(200).json(combinedOrders);
         } catch (error) {
             return res.status(500).json({ error: error.message });
         }
@@ -403,7 +538,63 @@ const OrderController = {
     // ADMIN: Update order status/payment status
     async updateOrderStatus(req, res) {
         try {
-            const { status, payment_status } = req.body;
+            const { status, payment_status, order_type } = req.body;
+
+            if (order_type === 'ebook') {
+                const ebookOrder = await EbookOrder.findByPk(req.params.id, {
+                    include: [
+                        {
+                            model: Ebook,
+                            include: [EbookCategory, EbookSubCategory],
+                        },
+                        {
+                            model: User,
+                            attributes: ['id', 'full_name', 'phone', 'email'],
+                        },
+                    ],
+                });
+
+                if (!ebookOrder) {
+                    return res.status(404).json({ message: 'Order not found' });
+                }
+
+                let normalizedPaymentStatus = String(payment_status || '').trim().toLowerCase();
+                if (normalizedPaymentStatus === 'paid') {
+                    normalizedPaymentStatus = 'completed';
+                }
+                if (payment_status && !['pending', 'completed', 'failed', 'refunded'].includes(normalizedPaymentStatus)) {
+                    return res.status(400).json({ message: 'Invalid payment status' });
+                }
+
+                if (payment_status) {
+                    ebookOrder.payment_status = normalizedPaymentStatus;
+                }
+
+                if (normalizedPaymentStatus === 'completed' && !ebookOrder.paid_at) {
+                    ebookOrder.paid_at = new Date();
+                }
+
+                await ebookOrder.save();
+
+                const updatedEbookOrder = await EbookOrder.findByPk(ebookOrder.id, {
+                    include: [
+                        {
+                            model: Ebook,
+                            include: [EbookCategory, EbookSubCategory],
+                        },
+                        {
+                            model: User,
+                            attributes: ['id', 'full_name', 'phone', 'email'],
+                        },
+                    ],
+                });
+
+                if (normalizedPaymentStatus === 'completed') {
+                    await sendEbookApprovalNotifications(updatedEbookOrder);
+                }
+
+                return res.status(200).json(normalizeEbookOrder(updatedEbookOrder));
+            }
 
             const order = await Order.findByPk(req.params.id);
             if (!order) {
@@ -436,6 +627,32 @@ const OrderController = {
                     User,
                 ],
             });
+
+            if (payment_status === 'paid' || status === 'delivered') {
+                if (updatedOrder?.UserId) {
+                    await notifyUser(
+                        updatedOrder.UserId,
+                        'Order Updated',
+                        `Your order ${updatedOrder.order_number} has been updated to ${status || updatedOrder.status}.`,
+                        'order'
+                    );
+                }
+                const sellerIds = new Set(
+                    (updatedOrder?.OrderItems || [])
+                        .map((item) => item?.Product?.seller_id)
+                        .filter(Boolean),
+                );
+                await Promise.all(
+                    [...sellerIds].map((sellerId) =>
+                        notifyUser(
+                            sellerId,
+                            'Order Updated',
+                            `Order ${updatedOrder.order_number} for your product has been updated.`,
+                            'sale'
+                        )
+                    )
+                );
+            }
 
             return res.status(200).json(updatedOrder);
         } catch (error) {
