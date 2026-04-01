@@ -394,6 +394,23 @@ const ensureEbookSubCategorySchema = async () => {
         console.log('users.last_push_platform column ensured');
     }
 
+    const productTable = await queryInterface.describeTable('Products');
+    if (!productTable.discount_price) {
+        await queryInterface.addColumn('Products', 'discount_price', {
+            type: Sequelize.DECIMAL(10, 2),
+            allowNull: true,
+        });
+        console.log('Products.discount_price column ensured');
+    }
+
+    if (!productTable.coupon_code) {
+        await queryInterface.addColumn('Products', 'coupon_code', {
+            type: Sequelize.STRING,
+            allowNull: true,
+        });
+        console.log('Products.coupon_code column ensured');
+    }
+
     const notificationTable = await queryInterface.describeTable('notifications');
     if (!notificationTable.metadata) {
         await queryInterface.addColumn('notifications', 'metadata', {

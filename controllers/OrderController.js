@@ -28,6 +28,29 @@ const SHIPPING_COSTS = {
     express: 2000,
 };
 
+function normalizeCouponCode(value) {
+    return String(value || '').trim().toUpperCase();
+}
+
+function getProductDiscountPricing(product, couponCode) {
+    const originalPrice = Number(product.price || 0);
+    const discountPrice = Number(product.discount_price || 0);
+    const normalizedCoupon = normalizeCouponCode(couponCode);
+    const productCoupon = normalizeCouponCode(product.coupon_code);
+    const isApplied =
+        normalizedCoupon.length > 0 &&
+        productCoupon.length > 0 &&
+        normalizedCoupon === productCoupon &&
+        discountPrice > 0 &&
+        discountPrice < originalPrice;
+
+    return {
+        unitPrice: isApplied ? discountPrice : originalPrice,
+        discountPerUnit: isApplied ? originalPrice - discountPrice : 0,
+        appliedCouponCode: isApplied ? productCoupon : null,
+    };
+}
+
 function buildOrderNotes(notes, mobileMoneyPayment) {
     const visibleNotes = typeof notes === 'string' ? notes.trim() : '';
     if (!mobileMoneyPayment) {
@@ -413,7 +436,8 @@ const OrderController = {
                 payment_method,
                 notes,
                 mobile_money_payment,
-            } = req.body;
+                coupon_code,
+              } = req.body;
 
             const isMobileMoneyPayment = ['mtn_mobile_money', 'orange_money'].includes(payment_method);
 
@@ -449,14 +473,18 @@ const OrderController = {
             }
 
             // Total calculation and stock check
-            let total_amount = 0;
-            for (const item of cartItems) {
-                if (item.Product.stock_quantity < item.quantity) {
-                    await t.rollback();
-                    return res.status(400).json({ message: `Insufficient stock for ${item.Product.name}` });
-                }
-                total_amount += item.Product.price * item.quantity;
-            }
+              let total_amount = 0;
+              let discount_amount = 0;
+              const normalizedCouponCode = normalizeCouponCode(coupon_code);
+              for (const item of cartItems) {
+                  if (item.Product.stock_quantity < item.quantity) {
+                      await t.rollback();
+                      return res.status(400).json({ message: `Insufficient stock for ${item.Product.name}` });
+                  }
+                  const pricing = getProductDiscountPricing(item.Product, normalizedCouponCode);
+                  total_amount += pricing.unitPrice * item.quantity;
+                  discount_amount += pricing.discountPerUnit * item.quantity;
+              }
 
             const shippingCost = SHIPPING_COSTS[shipping_method] ?? 0;
             total_amount += shippingCost;
@@ -468,28 +496,29 @@ const OrderController = {
                 total_amount,
                 shipping_address,
                 shipping_method,
-                payment_method,
-                notes: buildOrderNotes(notes, isMobileMoneyPayment ? {
-                    provider: mobile_money_payment.provider || getMobileMoneyProviderLabel(payment_method),
+                  payment_method,
+                  notes: buildOrderNotes(notes, isMobileMoneyPayment ? {
+                      provider: mobile_money_payment.provider || getMobileMoneyProviderLabel(payment_method),
                     payer_phone_number: mobile_money_payment.payer_phone_number,
                     transaction_id: mobile_money_payment.transaction_id,
                     recipient_number: mobile_money_payment.recipient_number || '+237 6 54 89 70 41',
                     recipient_name: mobile_money_payment.recipient_name || 'Official Agritracker',
-                    company_name: mobile_money_payment.company_name || 'Agri_Tracker',
-                    verification_status: mobile_money_payment.verification_status || 'submitted',
-                    submitted_at: mobile_money_payment.submitted_at,
-                } : null),
-            }, { transaction: t });
+                      company_name: mobile_money_payment.company_name || 'Agri_Tracker',
+                      verification_status: mobile_money_payment.verification_status || 'submitted',
+                      submitted_at: mobile_money_payment.submitted_at,
+                  } : null),
+              }, { transaction: t });
 
             // Create order items + update stock
-            for (const item of cartItems) {
-                await OrderItem.create({
-                    OrderId: order.id,
-                    ProductId: item.ProductId,
-                    quantity: item.quantity,
-                    price: item.Product.price,
-                    subtotal: item.Product.price * item.quantity,
-                }, { transaction: t });
+              for (const item of cartItems) {
+                  const pricing = getProductDiscountPricing(item.Product, normalizedCouponCode);
+                  await OrderItem.create({
+                      OrderId: order.id,
+                      ProductId: item.ProductId,
+                      quantity: item.quantity,
+                      price: pricing.unitPrice,
+                      subtotal: pricing.unitPrice * item.quantity,
+                  }, { transaction: t });
 
                 const product = await Product.findByPk(item.ProductId, { transaction: t });
                 product.stock_quantity -= item.quantity;
@@ -527,9 +556,11 @@ const OrderController = {
                         deep_link: `agritracker://orders/${completeOrder.id}`,
                         entity_type: 'order',
                         entity_id: String(completeOrder.id),
-                        order_type: 'product',
-                    }
-                );
+                          order_type: 'product',
+                          coupon_code: normalizedCouponCode,
+                          discount_amount: discount_amount.toFixed(2),
+                      }
+                  );
                 await notifyAdminsOfMobileMoneySubmission(completeOrder, req.user.id);
             } else {
                 await notifyUser(
@@ -542,6 +573,8 @@ const OrderController = {
                         entity_type: 'order',
                         entity_id: String(completeOrder.id),
                         order_type: 'product',
+                        coupon_code: normalizedCouponCode,
+                        discount_amount: discount_amount.toFixed(2),
                     }
                 );
             }
@@ -561,6 +594,7 @@ const OrderController = {
                             entity_type: 'order',
                             entity_id: String(completeOrder.id),
                             order_type: 'product',
+                            coupon_code: normalizedCouponCode,
                         }
                     );
                     notifiedSellers.add(product.seller_id);

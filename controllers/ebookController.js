@@ -50,6 +50,100 @@ function parseBoolean(value) {
     return ['true', '1', 'yes', 'on'].includes(String(value || '').trim().toLowerCase());
 }
 
+function normalizeCouponCode(value) {
+    return String(value || '').trim().toUpperCase();
+}
+
+function getEditionDefaults(key) {
+    switch (key) {
+        case 'paperback':
+            return { printingCost: 1000, royaltyPercentage: 20 };
+        case 'hardcover':
+            return { printingCost: 2000, royaltyPercentage: 30 };
+        case 'ebook':
+        default:
+            return { printingCost: 0, royaltyPercentage: 10 };
+    }
+}
+
+function getEnabledVariants(variants) {
+    return EDITION_KEYS
+        .map((key) => variants[key])
+        .filter((variant) => variant?.enabled);
+}
+
+function syncSharedVariantFields(variants) {
+    const enabledVariants = getEnabledVariants(variants);
+    const sharedPageCount = enabledVariants.find((variant) => Number(variant.page_count || 0) > 0)?.page_count || 0;
+    const sharedStock = enabledVariants.find((variant) => Number(variant.stock_quantity || 0) > 0)?.stock_quantity || 0;
+
+    for (const key of EDITION_KEYS) {
+        const variant = variants[key];
+        if (!variant || !variant.enabled) continue;
+        if (sharedPageCount > 0) {
+            variant.page_count = sharedPageCount;
+        }
+        if (sharedStock > 0) {
+            variant.stock_quantity = sharedStock;
+        }
+    }
+
+    return variants;
+}
+
+function applyEditionBusinessRules(key, variant) {
+    const defaults = getEditionDefaults(key);
+    const normalizedPrice = parseNumber(variant.price, 0);
+    const rawDiscountPrice = parseNumber(variant.discount_price, 0);
+    const normalizedCouponCode = normalizeCouponCode(variant.coupon_code);
+    const hasValidDiscount =
+        rawDiscountPrice > 0 &&
+        rawDiscountPrice < normalizedPrice &&
+        normalizedCouponCode.length >= 3;
+
+    return {
+        ...variant,
+        printing_cost: key === 'ebook' ? 0 : defaults.printingCost,
+        royalty_percentage: defaults.royaltyPercentage,
+        stock_quantity: Math.max(parseInt(variant.stock_quantity, 10) || 0, 0),
+        page_count: Math.max(parseInt(variant.page_count, 10) || 0, 0),
+        discount_price: hasValidDiscount ? rawDiscountPrice : null,
+        coupon_code: hasValidDiscount ? normalizedCouponCode : null,
+        discount_percentage:
+            hasValidDiscount && normalizedPrice > 0
+                ? Math.round(((normalizedPrice - rawDiscountPrice) / normalizedPrice) * 100)
+                : 0,
+    };
+}
+
+function getVariantDiscountDetails(variant, fallbackPrice = 0, couponCode = null) {
+    const basePrice = parseNumber(variant?.price, fallbackPrice);
+    const discountPrice = parseNumber(variant?.discount_price, 0);
+    const normalizedCouponCode = normalizeCouponCode(couponCode);
+    const variantCouponCode = normalizeCouponCode(variant?.coupon_code);
+    const isApplied =
+        normalizedCouponCode.length > 0 &&
+        variantCouponCode.length > 0 &&
+        normalizedCouponCode === variantCouponCode &&
+        discountPrice > 0 &&
+        discountPrice < basePrice;
+
+    const discountPercentage =
+        discountPrice > 0 && discountPrice < basePrice
+            ? Math.round(((basePrice - discountPrice) / basePrice) * 100)
+            : 0;
+
+    return {
+        basePrice,
+        discountPrice: discountPrice > 0 && discountPrice < basePrice ? discountPrice : null,
+        couponCode: variantCouponCode || null,
+        discountPercentage,
+        isApplied,
+        effectivePrice: isApplied ? discountPrice : basePrice,
+        discountAmount: isApplied ? basePrice - discountPrice : 0,
+    };
+}
+
 function escapeHtml(value) {
     return String(value ?? '')
         .replace(/&/g, '&amp;')
@@ -236,6 +330,7 @@ function getArrayFiles(req, fieldName) {
 }
 
 function defaultVariant(key) {
+    const defaults = getEditionDefaults(key);
     return {
         key,
         label: key[0].toUpperCase() + key.slice(1),
@@ -244,14 +339,18 @@ function defaultVariant(key) {
         cover_image: null,
         print_ready_cover_url: null,
         price: 0,
-        printing_cost: 0,
+        printing_cost: defaults.printingCost,
         stock_quantity: 0,
-        royalty_percentage: 0,
+        royalty_percentage: defaults.royaltyPercentage,
+        page_count: 0,
         isbn_mode: 'free',
         isbn_value: null,
         interior_type: null,
         trim_size: null,
         paper_type: null,
+        discount_price: null,
+        coupon_code: null,
+        discount_percentage: 0,
         currency: 'XAF',
         upload_status: 'pending',
     };
@@ -269,7 +368,7 @@ function normalizeEditionVariant(key, input, req) {
         !!cover ||
         !!printReadyCover;
 
-    return {
+    return applyEditionBusinessRules(key, {
         ...base,
         label: raw.label || base.label,
         enabled,
@@ -277,36 +376,38 @@ function normalizeEditionVariant(key, input, req) {
         cover_image: toUploadDbPath(cover?.path) || raw.cover_image || null,
         print_ready_cover_url: toUploadDbPath(printReadyCover?.path) || raw.print_ready_cover_url || null,
         price: parseNumber(raw.price, 0),
-        printing_cost: parseNumber(raw.printing_cost, 0),
         stock_quantity: Math.max(parseInt(raw.stock_quantity, 10) || 0, 0),
-        royalty_percentage: parseNumber(raw.royalty_percentage, 0),
+        page_count: Math.max(parseInt(raw.page_count, 10) || 0, 0),
         isbn_mode: raw.isbn_mode || 'free',
         isbn_value: raw.isbn_value || null,
         interior_type: raw.interior_type || null,
         trim_size: raw.trim_size || null,
         paper_type: raw.paper_type || null,
+        discount_price: raw.discount_price,
+        coupon_code: raw.coupon_code,
         currency: raw.currency || 'XAF',
         upload_status: enabled ? 'uploaded' : 'pending',
-    };
+    });
 }
 
 function normalizeDraftVariant(key, input) {
     const base = defaultVariant(key);
     const raw = input || {};
 
-    return {
+    return applyEditionBusinessRules(key, {
         ...base,
         ...raw,
         key,
         label: raw.label || base.label,
         enabled: parseBoolean(raw.enabled),
         price: parseNumber(raw.price, 0),
-        printing_cost: parseNumber(raw.printing_cost, 0),
         stock_quantity: Math.max(parseInt(raw.stock_quantity, 10) || 0, 0),
-        royalty_percentage: parseNumber(raw.royalty_percentage, 0),
+        page_count: Math.max(parseInt(raw.page_count, 10) || 0, 0),
         currency: raw.currency || 'XAF',
         upload_status: raw.upload_status || (parseBoolean(raw.enabled) ? 'draft' : 'pending'),
-    };
+        discount_price: raw.discount_price,
+        coupon_code: raw.coupon_code,
+    });
 }
 
 function buildFormatVariants(req) {
@@ -317,7 +418,7 @@ function buildFormatVariants(req) {
         variants[key] = normalizeEditionVariant(key, submitted[key], req);
     }
 
-    return variants;
+    return syncSharedVariantFields(variants);
 }
 
 function buildDraftFormatVariants(rawVariants) {
@@ -327,7 +428,7 @@ function buildDraftFormatVariants(rawVariants) {
         variants[key] = normalizeDraftVariant(key, rawVariants[key]);
     }
 
-    return variants;
+    return syncSharedVariantFields(variants);
 }
 
 function buildBookMetadata(req) {
@@ -355,6 +456,11 @@ function buildBookMetadata(req) {
         primary_marketplace: raw.primary_marketplace || req.body.primary_marketplace || 'XAF',
         buyer_format_selection: parseBoolean(raw.buyer_format_selection ?? req.body.buyer_format_selection ?? true),
         use_free_isbn: parseBoolean(raw.use_free_isbn ?? req.body.use_free_isbn ?? true),
+        page_count:
+            Math.max(
+                parseInt(raw.page_count ?? req.body.page_count, 10) || 0,
+                0
+            ) || null,
     };
 }
 
@@ -407,11 +513,20 @@ function runAutomatedChecks({ title, description, galleryImages, variants }) {
         if (variant.price <= 0) {
             errors.push(`${variant.label} price must be greater than zero.`);
         }
+        if ((variant.page_count || 0) <= 0) {
+            errors.push(`${variant.label} page count is required.`);
+        }
         if (key !== 'ebook' && !variant.trim_size) {
             warnings.push(`${variant.label} trim size has not been selected yet.`);
         }
         if (key !== 'ebook' && !variant.print_ready_cover_url) {
             warnings.push(`${variant.label} print-ready cover PDF is still missing.`);
+        }
+        if (
+            variant.discount_price &&
+            (!variant.coupon_code || variant.discount_percentage <= 0)
+        ) {
+            errors.push(`${variant.label} discount needs both a valid coupon code and a lower discount price.`);
         }
     }
 
@@ -439,9 +554,14 @@ function resolveVariantForOrder(ebook, selectedFormat) {
     return preferred;
 }
 
-function getOrderPricing(ebook, selectedFormat) {
+function getOrderPricing(ebook, selectedFormat, couponCode = null) {
     const chosenVariant = resolveVariantForOrder(ebook, selectedFormat);
-    const basePrice = parseNumber(chosenVariant.variant.price || ebook.price, 0);
+    const discountDetails = getVariantDiscountDetails(
+        chosenVariant.variant,
+        parseNumber(ebook.price, 0),
+        couponCode
+    );
+    const basePrice = discountDetails.effectivePrice;
     const printingCost = chosenVariant.key === 'ebook'
         ? 0
         : parseNumber(chosenVariant.variant.printing_cost, 0);
@@ -450,6 +570,9 @@ function getOrderPricing(ebook, selectedFormat) {
         chosenVariant,
         basePrice,
         printingCost,
+        discountAmount: discountDetails.discountAmount,
+        discountPercentage: discountDetails.discountPercentage,
+        appliedCouponCode: discountDetails.isApplied ? discountDetails.couponCode : null,
         totalPrice: basePrice + printingCost,
     };
 }
@@ -463,14 +586,27 @@ function formatEbook(ebook, host) {
 
     const formatVariants = Object.entries(rawVariants).reduce((acc, [key, value]) => {
         const variant = value || {};
+        const discountDetails = getVariantDiscountDetails(
+            variant,
+            parseNumber(variant.price || item.price, 0)
+        );
         acc[key] = {
             ...variant,
             manuscript_url: buildPublicUrl(variant.manuscript_url, host),
             cover_image: buildPublicUrl(variant.cover_image, host),
             print_ready_cover_url: buildPublicUrl(variant.print_ready_cover_url, host),
+            discount_price: discountDetails.discountPrice,
+            coupon_code: discountDetails.couponCode,
+            discount_percentage: discountDetails.discountPercentage,
         };
         return acc;
     }, {});
+
+    const enabledVariants = Object.values(formatVariants).filter((variant) => variant?.enabled);
+    const highestDiscount = enabledVariants.reduce((max, variant) => {
+        const percentage = Number(variant.discount_percentage || 0);
+        return percentage > max ? percentage : max;
+    }, 0);
 
     return {
         ...item,
@@ -497,6 +633,10 @@ function formatEbook(ebook, host) {
         orderCount: Number(item.order_count || 0),
         is_top_author_item: Number(item.order_count || 0) >= TOP_MARKETPLACE_THRESHOLD,
         isTopAuthorItem: Number(item.order_count || 0) >= TOP_MARKETPLACE_THRESHOLD,
+        discount_percentage: highestDiscount,
+        discountPercentage: highestDiscount,
+        has_discount: highestDiscount > 0,
+        hasDiscount: highestDiscount > 0,
         share_url: buildEbookShareUrl(host, item.id),
     };
 }
@@ -1153,6 +1293,7 @@ const EbookController = {
                     selected_format: pricing.chosenVariant.key,
                     base_price: pricing.basePrice,
                     printing_cost: pricing.printingCost,
+                    page_count: pricing.chosenVariant.variant.page_count || null,
                 },
             });
 
@@ -1180,6 +1321,7 @@ const EbookController = {
                 digital_delivery,
                 digital_delivery_method,
                 mobile_money_payment,
+                coupon_code,
             } = req.body;
 
             if (!ebook_id || !payment_method || !customer_email || !customer_phone) {
@@ -1191,7 +1333,7 @@ const EbookController = {
                 return res.status(404).json({ error: 'Ebook not found or not approved' });
             }
 
-            const pricing = getOrderPricing(ebook, selected_format);
+            const pricing = getOrderPricing(ebook, selected_format, coupon_code);
             const orderQuantity = Math.max(parseInt(quantity, 10) || 1, 1);
             const shippingAmount = Math.max(parseNumber(shipping_cost, 0), 0);
             const totalPrice = (pricing.totalPrice * orderQuantity) + shippingAmount;
@@ -1236,8 +1378,12 @@ const EbookController = {
                     quantity: orderQuantity,
                     base_price: pricing.basePrice,
                     printing_cost: pricing.printingCost,
+                    page_count: pricing.chosenVariant.variant.page_count || null,
                     shipping_method: shipping_method || null,
                     shipping_cost: shippingAmount,
+                    coupon_code: pricing.appliedCouponCode,
+                    discount_amount: pricing.discountAmount * orderQuantity,
+                    discount_percentage: pricing.discountPercentage,
                     digital_delivery:
                         digital_delivery_method || digital_delivery || null,
                     royalty_percentage: pricing.chosenVariant.variant.royalty_percentage || 0,

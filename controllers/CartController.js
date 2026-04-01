@@ -1,10 +1,30 @@
 const { Cart, Product, User, Category, SubCategory } = require('../models');
 
-// Simple in-memory coupons (could be table-backed later)
-const COUPONS = {
-    COUPON10: 0.10,
-    COUPON5: 0.05,
-};
+function normalizeCouponCode(value) {
+    return String(value || '').trim().toUpperCase();
+}
+
+function getProductDiscountDetails(product, couponCode) {
+    const originalPrice = parseFloat(product.price) || 0;
+    const discountPrice = parseFloat(product.discount_price) || 0;
+    const normalizedCoupon = normalizeCouponCode(couponCode);
+    const productCoupon = normalizeCouponCode(product.coupon_code);
+    const isCouponMatch =
+        normalizedCoupon.length > 0 &&
+        productCoupon.length > 0 &&
+        normalizedCoupon === productCoupon;
+    const isValidDiscount =
+        isCouponMatch &&
+        discountPrice > 0 &&
+        discountPrice < originalPrice;
+
+    return {
+        unitPrice: isValidDiscount ? discountPrice : originalPrice,
+        discountPerUnit: isValidDiscount ? originalPrice - discountPrice : 0,
+        isApplied: isValidDiscount,
+        couponCode: isValidDiscount ? productCoupon : null,
+    };
+}
 
 const CartController = {
     // Get user's cart
@@ -47,29 +67,40 @@ const CartController = {
             const { code } = req.body;
             if (!code) return res.status(400).json({ message: 'Coupon code required' });
 
-            const normalized = code.trim().toUpperCase();
-            const rate = COUPONS[normalized];
-            if (!rate) return res.status(404).json({ message: 'Invalid coupon code' });
+            const normalized = normalizeCouponCode(code);
 
             const cartItems = await Cart.findAll({
                 where: { UserId: req.user.id },
-                include: [{ model: Product, attributes: ['price'] }],
+                include: [{ model: Product, attributes: ['price', 'discount_price', 'coupon_code'] }],
             });
 
-            const subtotal = cartItems.reduce((sum, item) => {
-                const price = parseFloat(item.Product.price) || 0;
-                return sum + price * item.quantity;
-            }, 0);
+            let subtotal = 0;
+            let discount = 0;
+            let matchedItems = 0;
 
-            const discount = subtotal * rate;
+            for (const item of cartItems) {
+                const product = item.Product;
+                const originalPrice = parseFloat(product.price) || 0;
+                const discountDetails = getProductDiscountDetails(product, normalized);
+                subtotal += originalPrice * item.quantity;
+                discount += discountDetails.discountPerUnit * item.quantity;
+                if (discountDetails.isApplied) {
+                    matchedItems += 1;
+                }
+            }
+
+            if (matchedItems === 0 || discount <= 0) {
+                return res.status(404).json({ message: 'Invalid coupon code' });
+            }
+
             const total = subtotal - discount;
 
             return res.status(200).json({
                 code: normalized,
-                rate,
                 subtotal,
                 discount,
                 total,
+                matched_items: matchedItems,
             });
         } catch (error) {
             console.error('Error applying coupon:', error);

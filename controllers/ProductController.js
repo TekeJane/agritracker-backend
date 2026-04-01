@@ -59,6 +59,27 @@ function buildAppDeepLinkUrl(type, id) {
     return `agritracker://${type}/${id}`;
 }
 
+function normalizeCouponCode(value) {
+    return String(value || '').trim().toUpperCase();
+}
+
+function getProductDiscountDetails(product) {
+    const originalPrice = Number(product.price || 0);
+    const discountPrice = Number(product.discount_price || 0);
+    const hasDiscount = originalPrice > 0 && discountPrice > 0 && discountPrice < originalPrice;
+    const couponCode = normalizeCouponCode(product.coupon_code);
+    const discountPercentage = hasDiscount
+        ? Math.round(((originalPrice - discountPrice) / originalPrice) * 100)
+        : 0;
+
+    return {
+        discountPrice: hasDiscount ? discountPrice : null,
+        couponCode: hasDiscount && couponCode ? couponCode : null,
+        discountPercentage,
+        hasDiscount,
+    };
+}
+
 function formatProduct(product, hostUrl) {
     const now = new Date();
 
@@ -81,6 +102,7 @@ function formatProduct(product, hostUrl) {
     const seller = product.seller || {};
     const category = product.Category || {};
     const subCategory = product.SubCategory || {};
+    const discountDetails = getProductDiscountDetails(product);
 
     return {
         ...product.toJSON(),
@@ -125,6 +147,14 @@ function formatProduct(product, hostUrl) {
         orderCount: Number(product.get?.('order_count') ?? product.order_count ?? 0),
         is_top_seller_item: Number(product.get?.('order_count') ?? product.order_count ?? 0) >= TOP_MARKETPLACE_THRESHOLD,
         isTopSellerItem: Number(product.get?.('order_count') ?? product.order_count ?? 0) >= TOP_MARKETPLACE_THRESHOLD,
+        discount_price: discountDetails.discountPrice,
+        discountPrice: discountDetails.discountPrice,
+        coupon_code: discountDetails.couponCode,
+        couponCode: discountDetails.couponCode,
+        discount_percentage: discountDetails.discountPercentage,
+        discountPercentage: discountDetails.discountPercentage,
+        has_discount: discountDetails.hasDiscount,
+        hasDiscount: discountDetails.hasDiscount,
     };
 }
 
@@ -401,12 +431,14 @@ const ProductController = {
                 originRegion,
                 originTown,
                 categoryId,
-                subCategoryId,
-                isFeatured,
-                sellerId,
-                isPreorder,
-                preorderDays,
-            } = req.body;
+                  subCategoryId,
+                  isFeatured,
+                  sellerId,
+                  isPreorder,
+                  preorderDays,
+                  discountPrice,
+                  couponCode,
+              } = req.body;
 
             if (!name || !price || !stock || !unit || !categoryId || !subCategoryId || !sellerId) {
                 return res.status(400).json({ error: 'Missing required product fields' });
@@ -432,18 +464,43 @@ const ProductController = {
                     ? new Date(Date.now() + parsedPreorderDays * 24 * 60 * 60 * 1000)
                     : null;
 
-            const parsedMinimumOrderQuantity =
-                minimumOrderQuantity !== undefined &&
-                minimumOrderQuantity !== null &&
-                minimumOrderQuantity !== ''
-                    ? parseInt(minimumOrderQuantity, 10)
-                    : null;
+              const parsedMinimumOrderQuantity =
+                  minimumOrderQuantity !== undefined &&
+                  minimumOrderQuantity !== null &&
+                  minimumOrderQuantity !== ''
+                      ? parseInt(minimumOrderQuantity, 10)
+                      : null;
+              const parsedPrice = parseFloat(price);
+              const parsedDiscountPrice =
+                  discountPrice !== undefined && discountPrice !== null && discountPrice !== ''
+                      ? parseFloat(discountPrice)
+                      : null;
+              const normalizedCouponCode = normalizeCouponCode(couponCode);
 
-            const product = await Product.create({
-                name,
-                description,
-                price: parseFloat(price),
-                stock_quantity: parseInt(stock, 10),
+              if (
+                  parsedDiscountPrice !== null &&
+                  (!Number.isFinite(parsedDiscountPrice) ||
+                      parsedDiscountPrice <= 0 ||
+                      parsedDiscountPrice >= parsedPrice)
+              ) {
+                  return res.status(400).json({
+                      error: 'Discount price must be lower than the original product price.',
+                  });
+              }
+
+              if (parsedDiscountPrice !== null && normalizedCouponCode.length < 3) {
+                  return res.status(400).json({
+                      error: 'Add a coupon code when product discount price is provided.',
+                  });
+              }
+
+              const product = await Product.create({
+                  name,
+                  description,
+                  price: parsedPrice,
+                  discount_price: parsedDiscountPrice,
+                  coupon_code: parsedDiscountPrice !== null ? normalizedCouponCode : null,
+                  stock_quantity: parseInt(stock, 10),
                 unit,
                 minimum_order_quantity: parsedMinimumOrderQuantity,
                 variety: variety || null,
