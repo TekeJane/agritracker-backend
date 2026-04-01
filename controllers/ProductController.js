@@ -239,6 +239,37 @@ const ProductController = {
         }
     },
 
+    async getPurchaseStatus(req, res) {
+        try {
+            const orderItem = await OrderItem.findOne({
+                where: { ProductId: req.params.id },
+                include: [
+                    {
+                        model: Order,
+                        required: true,
+                        where: {
+                            UserId: req.user.id,
+                            payment_status: {
+                                [Op.in]: ['paid', 'completed'],
+                            },
+                            status: {
+                                [Op.ne]: 'cancelled',
+                            },
+                        },
+                    },
+                ],
+            });
+
+            return res.json({
+                isPurchased: !!orderItem,
+                order: orderItem?.Order || null,
+            });
+        } catch (error) {
+            console.error('Error checking product purchase status:', error);
+            return res.status(500).json({ error: error.message });
+        }
+    },
+
     async getProductSharePage(req, res) {
         try {
             const product = await fetchProductWithRelations(req.params.id);

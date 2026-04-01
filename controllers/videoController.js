@@ -746,7 +746,8 @@ const videoController = {
                 .replace(/>/g, '&gt;');
             const shareUrl = buildVideoShareUrl(host, video.id);
             const thumbUrl = payload.thumbnail_url || '';
-            const watchUrl = payload.video_url || shareUrl;
+            const watchUrl = shareUrl;
+            const downloadUrl = buildVideoDownloadUrl(host, video.id);
 
             return res.send(`<!DOCTYPE html>
 <html lang="en">
@@ -754,12 +755,13 @@ const videoController = {
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>${title}</title>
+  <meta name="description" content="${description}" />
+  <meta property="og:site_name" content="AgriTracker" />
   <meta property="og:title" content="${title}" />
   <meta property="og:description" content="${description}" />
   <meta property="og:type" content="video.other" />
   <meta property="og:url" content="${shareUrl}" />
   ${thumbUrl ? `<meta property="og:image" content="${thumbUrl}" />` : ''}
-  ${watchUrl ? `<meta property="og:video" content="${watchUrl}" />` : ''}
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="${title}" />
   <meta name="twitter:description" content="${description}" />
@@ -774,6 +776,10 @@ const videoController = {
     .thumb { display: block; width: 100%; border-radius: 20px; overflow: hidden; margin: 18px 0 22px; background: #edf7f0; text-decoration: none; }
     .thumb img { width: 100%; display: block; object-fit: cover; max-height: 360px; }
     .meta { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 18px; color: #466048; font-size: 14px; }
+    .actions { display:flex; gap:12px; flex-wrap:wrap; margin-top:22px; }
+    .button { display:inline-flex; align-items:center; justify-content:center; padding:12px 18px; border-radius:14px; text-decoration:none; font-weight:700; }
+    .button-primary { background:#2e7d32; color:#fff; }
+    .button-secondary { background:#edf7f0; color:#1d4d2b; }
   </style>
 </head>
 <body>
@@ -788,6 +794,10 @@ const videoController = {
       </a>` : ''}
       <div class="meta">
         <div>Creator: <strong>${creator}</strong></div>
+      </div>
+      <div class="actions">
+        <a class="button button-primary" href="${watchUrl}">Open Shared Video Page</a>
+        <a class="button button-secondary" href="${downloadUrl}">Download Video</a>
       </div>
     </div>
   </div>
