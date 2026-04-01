@@ -1,5 +1,6 @@
 const { Product, Category, SubCategory, User, OrderItem, Order, sequelize } = require('../models');
 const { Op } = require('sequelize');
+const TOP_MARKETPLACE_THRESHOLD = 50;
 
 function formatMediaUrls(mediaList, hostUrl) {
     if (!mediaList) {
@@ -118,8 +119,8 @@ function formatProduct(product, hostUrl) {
         preorderAvailableDate: product.preorder_available_date || null,
         order_count: Number(product.get?.('order_count') ?? product.order_count ?? 0),
         orderCount: Number(product.get?.('order_count') ?? product.order_count ?? 0),
-        is_top_seller_item: Number(product.get?.('order_count') ?? product.order_count ?? 0) >= 20,
-        isTopSellerItem: Number(product.get?.('order_count') ?? product.order_count ?? 0) >= 20,
+        is_top_seller_item: Number(product.get?.('order_count') ?? product.order_count ?? 0) >= TOP_MARKETPLACE_THRESHOLD,
+        isTopSellerItem: Number(product.get?.('order_count') ?? product.order_count ?? 0) >= TOP_MARKETPLACE_THRESHOLD,
     };
 }
 
@@ -170,8 +171,8 @@ function sortProductsByMarketplacePriority(products) {
     return [...products].sort((a, b) => {
         const aCount = Number(a.get?.('order_count') ?? a.order_count ?? 0);
         const bCount = Number(b.get?.('order_count') ?? b.order_count ?? 0);
-        const aTop = aCount >= 20 ? 1 : 0;
-        const bTop = bCount >= 20 ? 1 : 0;
+        const aTop = aCount >= TOP_MARKETPLACE_THRESHOLD ? 1 : 0;
+        const bTop = bCount >= TOP_MARKETPLACE_THRESHOLD ? 1 : 0;
 
         if (aTop != bTop) return bTop - aTop;
         if (aCount != bCount) return bCount - aCount;

@@ -1,6 +1,7 @@
 const { Ebook, EbookCategory, EbookSubCategory, EbookOrder, User, Review, sequelize } = require('../models');
 const { Op } = require('sequelize');
 const { toUploadDbPath } = require('../config/uploadPaths');
+const TOP_MARKETPLACE_THRESHOLD = 50;
 
 const EDITION_KEYS = ['ebook', 'paperback', 'hardcover'];
 
@@ -314,8 +315,8 @@ function formatEbook(ebook, host) {
         last_draft_saved_at: item.last_draft_saved_at || null,
         order_count: Number(item.order_count || 0),
         orderCount: Number(item.order_count || 0),
-        is_top_author_item: Number(item.order_count || 0) >= 20,
-        isTopAuthorItem: Number(item.order_count || 0) >= 20,
+        is_top_author_item: Number(item.order_count || 0) >= TOP_MARKETPLACE_THRESHOLD,
+        isTopAuthorItem: Number(item.order_count || 0) >= TOP_MARKETPLACE_THRESHOLD,
     };
 }
 
@@ -359,8 +360,8 @@ function sortEbooksByMarketplacePriority(ebooks) {
     return [...ebooks].sort((a, b) => {
         const aCount = Number(a.get?.('order_count') ?? a.order_count ?? 0);
         const bCount = Number(b.get?.('order_count') ?? b.order_count ?? 0);
-        const aTop = aCount >= 20 ? 1 : 0;
-        const bTop = bCount >= 20 ? 1 : 0;
+        const aTop = aCount >= TOP_MARKETPLACE_THRESHOLD ? 1 : 0;
+        const bTop = bCount >= TOP_MARKETPLACE_THRESHOLD ? 1 : 0;
 
         if (aTop != bTop) return bTop - aTop;
         if (aCount != bCount) return bCount - aCount;

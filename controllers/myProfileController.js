@@ -1,6 +1,7 @@
 const { User, Product, Review, Ebook, EbookCategory, EbookSubCategory, EbookOrder, OrderItem, Order, sequelize } = require('../models');
 const { Op } = require('sequelize');
 const { toUploadDbPath } = require('../config/uploadPaths');
+const TOP_MARKETPLACE_THRESHOLD = 50;
 
 const getBaseUrl = (req) => {
     const envBaseUrl = process.env.BASE_URL;
@@ -75,16 +76,16 @@ const buildUserResponse = (
                 ...item,
                 order_count: orderCount,
                 orderCount,
-                is_top_seller_item: orderCount >= 20,
-                isTopSellerItem: orderCount >= 20,
+                is_top_seller_item: orderCount >= TOP_MARKETPLACE_THRESHOLD,
+                isTopSellerItem: orderCount >= TOP_MARKETPLACE_THRESHOLD,
             };
         }),
         ebooks: (user.Ebooks ?? []).map((ebook) => ({
             ...ebook.toJSON(),
             order_count: Number(ebook.order_count || 0),
             orderCount: Number(ebook.order_count || 0),
-            is_top_author_item: Number(ebook.order_count || 0) >= 20,
-            isTopAuthorItem: Number(ebook.order_count || 0) >= 20,
+            is_top_author_item: Number(ebook.order_count || 0) >= TOP_MARKETPLACE_THRESHOLD,
+            isTopAuthorItem: Number(ebook.order_count || 0) >= TOP_MARKETPLACE_THRESHOLD,
             ratings_count: ebook.Reviews?.length ?? 0,
             ratings_average:
                 ebook.Reviews?.isNotEmpty == true
@@ -142,8 +143,8 @@ async function attachProductOrderCounts(products) {
     products.sort((a, b) => {
         const aCount = Number(a.get?.('order_count') ?? a.order_count ?? 0);
         const bCount = Number(b.get?.('order_count') ?? b.order_count ?? 0);
-        const aTop = aCount >= 20 ? 1 : 0;
-        const bTop = bCount >= 20 ? 1 : 0;
+        const aTop = aCount >= TOP_MARKETPLACE_THRESHOLD ? 1 : 0;
+        const bTop = bCount >= TOP_MARKETPLACE_THRESHOLD ? 1 : 0;
         if (aTop !== bTop) return bTop - aTop;
         if (aCount !== bCount) return bCount - aCount;
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
@@ -182,8 +183,8 @@ async function attachEbookOrderCounts(ebooks) {
     ebooks.sort((a, b) => {
         const aCount = Number(a.get?.('order_count') ?? a.order_count ?? 0);
         const bCount = Number(b.get?.('order_count') ?? b.order_count ?? 0);
-        const aTop = aCount >= 20 ? 1 : 0;
-        const bTop = bCount >= 20 ? 1 : 0;
+        const aTop = aCount >= TOP_MARKETPLACE_THRESHOLD ? 1 : 0;
+        const bTop = bCount >= TOP_MARKETPLACE_THRESHOLD ? 1 : 0;
         if (aTop !== bTop) return bTop - aTop;
         if (aCount !== bCount) return bCount - aCount;
         return new Date(b.updatedAt || b.createdAt).getTime() -
