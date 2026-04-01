@@ -746,8 +746,7 @@ const videoController = {
                 .replace(/>/g, '&gt;');
             const shareUrl = buildVideoShareUrl(host, video.id);
             const thumbUrl = payload.thumbnail_url || '';
-            const appUrl = payload.video_url || shareUrl;
-            const briefText = `Check out this video about ${title} on Agri_Tracker. It might be of help in your agricultural journey.`;
+            const watchUrl = payload.video_url || shareUrl;
 
             return res.send(`<!DOCTYPE html>
 <html lang="en">
@@ -760,6 +759,11 @@ const videoController = {
   <meta property="og:type" content="video.other" />
   <meta property="og:url" content="${shareUrl}" />
   ${thumbUrl ? `<meta property="og:image" content="${thumbUrl}" />` : ''}
+  ${watchUrl ? `<meta property="og:video" content="${watchUrl}" />` : ''}
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="${title}" />
+  <meta name="twitter:description" content="${description}" />
+  ${thumbUrl ? `<meta name="twitter:image" content="${thumbUrl}" />` : ''}
   <style>
     body { margin: 0; font-family: Arial, sans-serif; background: linear-gradient(180deg, #f5fbf4, #edf7f0); color: #102417; }
     .shell { max-width: 720px; margin: 0 auto; padding: 40px 20px; }
@@ -769,8 +773,6 @@ const videoController = {
     p { font-size: 15px; line-height: 1.7; color: #4b5c4d; }
     .thumb { display: block; width: 100%; border-radius: 20px; overflow: hidden; margin: 18px 0 22px; background: #edf7f0; text-decoration: none; }
     .thumb img { width: 100%; display: block; object-fit: cover; max-height: 360px; }
-    .brief { margin: 18px 0 10px; }
-    .link-card { display: block; margin-top: 10px; padding: 16px 18px; border-radius: 18px; background: #f5fbf4; color: #14532d; text-decoration: none; font-weight: 700; word-break: break-word; }
     .meta { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 18px; color: #466048; font-size: 14px; }
   </style>
 </head>
@@ -781,11 +783,9 @@ const videoController = {
       <h1>${title}</h1>
       <p>${description}</p>
       ${thumbUrl ? `
-      <a class="thumb" href="${appUrl}">
+      <a class="thumb" href="${watchUrl}">
         <img src="${thumbUrl}" alt="${title}" />
       </a>` : ''}
-      <p class="brief">${briefText}</p>
-      <a class="link-card" href="${appUrl}">${appUrl}</a>
       <div class="meta">
         <div>Creator: <strong>${creator}</strong></div>
       </div>
