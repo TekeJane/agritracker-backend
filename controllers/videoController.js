@@ -51,6 +51,19 @@ function buildVideoDownloadUrl(host, videoId) {
     return `${host}/api/videos/${videoId}/download-file`;
 }
 
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function buildAppDeepLinkUrl(type, id) {
+    return `agritracker://${type}/${id}`;
+}
+
 function normalizeCategoryName(value) {
     return String(value || '')
         .trim()
@@ -728,26 +741,13 @@ const videoController = {
 
             const host = `${req.protocol}://${req.get('host')}`;
             const payload = formatVideo(video, host);
-            const title = String(payload.title || 'Shared video')
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;');
-            const description = String(payload.description || 'Watch this video on Agritracker.')
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;');
-            const category = String(payload.category_name || 'Featured video')
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;');
-            const creator = String(payload.creator_name || 'Agritracker')
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;');
+            const title = escapeHtml(payload.title || 'Shared video');
+            const description = escapeHtml(payload.description || 'Watch this video on Agritracker.');
+            const category = escapeHtml(payload.category_name || 'Featured video');
+            const creator = escapeHtml(payload.creator_name || 'Agritracker');
             const shareUrl = buildVideoShareUrl(host, video.id);
+            const appUrl = buildAppDeepLinkUrl('video', video.id);
             const thumbUrl = payload.thumbnail_url || '';
-            const watchUrl = shareUrl;
-            const downloadUrl = buildVideoDownloadUrl(host, video.id);
 
             return res.send(`<!DOCTYPE html>
 <html lang="en">
@@ -761,11 +761,20 @@ const videoController = {
   <meta property="og:description" content="${description}" />
   <meta property="og:type" content="video.other" />
   <meta property="og:url" content="${shareUrl}" />
+  <meta property="al:android:url" content="${escapeHtml(appUrl)}" />
+  <meta property="al:ios:url" content="${escapeHtml(appUrl)}" />
   ${thumbUrl ? `<meta property="og:image" content="${thumbUrl}" />` : ''}
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="${title}" />
   <meta name="twitter:description" content="${description}" />
   ${thumbUrl ? `<meta name="twitter:image" content="${thumbUrl}" />` : ''}
+  <script>
+    window.addEventListener('load', function () {
+      setTimeout(function () {
+        window.location.href = ${JSON.stringify(appUrl)};
+      }, 180);
+    });
+  </script>
   <style>
     body { margin: 0; font-family: Arial, sans-serif; background: linear-gradient(180deg, #f5fbf4, #edf7f0); color: #102417; }
     .shell { max-width: 720px; margin: 0 auto; padding: 40px 20px; }
@@ -789,15 +798,15 @@ const videoController = {
       <h1>${title}</h1>
       <p>${description}</p>
       ${thumbUrl ? `
-      <a class="thumb" href="${watchUrl}">
+      <a class="thumb" href="${appUrl}">
         <img src="${thumbUrl}" alt="${title}" />
       </a>` : ''}
       <div class="meta">
         <div>Creator: <strong>${creator}</strong></div>
       </div>
       <div class="actions">
-        <a class="button button-primary" href="${watchUrl}">Open Shared Video Page</a>
-        <a class="button button-secondary" href="${downloadUrl}">Download Video</a>
+        <a class="button button-primary" href="${appUrl}">Open In App</a>
+        <a class="button button-secondary" href="${shareUrl}">Browser Preview</a>
       </div>
     </div>
   </div>

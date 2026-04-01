@@ -55,6 +55,10 @@ function escapeHtml(value) {
         .replace(/'/g, '&#39;');
 }
 
+function buildAppDeepLinkUrl(type, id) {
+    return `agritracker://${type}/${id}`;
+}
+
 function formatProduct(product, hostUrl) {
     const now = new Date();
 
@@ -286,11 +290,13 @@ const ProductController = {
             const productName = escapeHtml(formattedProduct.name);
             const productDescription = escapeHtml(formattedProduct.description || 'No description available.');
             const productPrice = Number(formattedProduct.price || 0).toFixed(0);
-            const sellerStoreUrl = formattedProduct.sellerId
-                ? `${hostUrl}/api/myprofile/${formattedProduct.sellerId}`
+            const sellerStoreUrl = formattedProduct.userId
+                ? `${hostUrl}/api/myprofile/${formattedProduct.userId}`
                 : '';
+            const shareUrl = `${hostUrl}/api/products/share/${formattedProduct.id}`;
+            const appUrl = buildAppDeepLinkUrl('product', formattedProduct.id);
             const imageMarkup = productImage
-                ? `<img src="${escapeHtml(productImage)}" alt="${productName}" style="width:100%;max-width:520px;height:280px;object-fit:cover;border-radius:24px;box-shadow:0 18px 40px rgba(15,23,42,0.16);" />`
+                ? `<a href="${escapeHtml(appUrl)}" style="display:block;text-decoration:none;"><img src="${escapeHtml(productImage)}" alt="${productName}" style="width:100%;max-width:520px;height:280px;object-fit:cover;border-radius:24px;box-shadow:0 18px 40px rgba(15,23,42,0.16);" /></a>`
                 : '<div style="width:100%;max-width:520px;height:280px;border-radius:24px;background:#d9f99d;display:flex;align-items:center;justify-content:center;color:#166534;font-size:20px;font-weight:700;">AgriTracker Product</div>';
 
             return res.status(200).send(`<!DOCTYPE html>
@@ -300,6 +306,19 @@ const ProductController = {
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>${productName} | AgriTracker</title>
     <meta name="description" content="${productDescription}" />
+    <meta property="og:title" content="${productName}" />
+    <meta property="og:description" content="${productDescription}" />
+    <meta property="og:url" content="${escapeHtml(shareUrl)}" />
+    <meta property="al:android:url" content="${escapeHtml(appUrl)}" />
+    <meta property="al:ios:url" content="${escapeHtml(appUrl)}" />
+    ${productImage ? `<meta property="og:image" content="${escapeHtml(productImage)}" />` : ''}
+    <script>
+      window.addEventListener('load', function () {
+        setTimeout(function () {
+          window.location.href = ${JSON.stringify(appUrl)};
+        }, 180);
+      });
+    </script>
   </head>
   <body style="margin:0;font-family:Arial,sans-serif;background:linear-gradient(180deg,#f7fee7 0%,#ffffff 55%);color:#0f172a;">
     <main style="max-width:760px;margin:0 auto;padding:40px 20px 56px;">
@@ -315,10 +334,10 @@ const ProductController = {
         </div>
       </section>
       <section style="margin-top:20px;padding:24px;border-radius:24px;background:#14532d;color:#f0fdf4;">
-        <div style="font-size:18px;font-weight:700;">Open This Product In AgriTracker</div>
-        <p style="margin:10px 0 18px;font-size:15px;line-height:1.6;color:#dcfce7;">Use this HTTP share page to preview the exact product that was shared. Open the seller page to explore more listings from the same store.</p>
+        <div style="font-size:18px;font-weight:700;">Open this product in AgriTracker</div>
+        <p style="margin:10px 0 18px;font-size:15px;line-height:1.6;color:#dcfce7;">This shared product now jumps straight into the marketplace app instead of showing a raw link page.</p>
         <div style="display:flex;gap:12px;flex-wrap:wrap;">
-          <a href="${escapeHtml(`${hostUrl}/api/products/share/${formattedProduct.id}`)}" style="display:inline-flex;align-items:center;justify-content:center;padding:12px 18px;border-radius:14px;background:#f0fdf4;color:#14532d;text-decoration:none;font-weight:700;">Open Shared Product</a>
+          <a href="${escapeHtml(appUrl)}" style="display:inline-flex;align-items:center;justify-content:center;padding:12px 18px;border-radius:14px;background:#f0fdf4;color:#14532d;text-decoration:none;font-weight:700;">Open In App</a>
           ${sellerStoreUrl ? `<a href="${escapeHtml(sellerStoreUrl)}" style="display:inline-flex;align-items:center;justify-content:center;padding:12px 18px;border-radius:14px;border:1px solid rgba(240,253,244,0.45);color:#f0fdf4;text-decoration:none;font-weight:700;">Visit Seller Store</a>` : ''}
         </div>
       </section>

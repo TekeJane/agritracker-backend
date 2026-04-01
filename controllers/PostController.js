@@ -53,6 +53,10 @@ function buildPostShareUrl(req, postId) {
   return `${getHost(req)}/api/posts/share/${postId}`;
 }
 
+function buildAppDeepLinkUrl(type, id) {
+  return `agritracker://${type}/${id}`;
+}
+
 function getPostReactionType(reactionRecord) {
   const marker = Number.parseInt(reactionRecord?.comment_id, 10);
   return marker === 0 ? 'dislike' : 'like';
@@ -563,8 +567,9 @@ exports.getPostSharePage = async (req, res) => {
     );
     const previewImage = post.image_url || '';
     const shareUrl = buildPostShareUrl(req, post.id);
+    const appUrl = buildAppDeepLinkUrl('post', post.id);
     const imageMarkup = previewImage
-      ? `<a href="${escapeHtml(shareUrl)}" style="display:block;text-decoration:none;">` +
+      ? `<a href="${escapeHtml(appUrl)}" style="display:block;text-decoration:none;">` +
         `<img src="${escapeHtml(previewImage)}" alt="${pageTitle}" style="width:100%;max-width:560px;height:320px;object-fit:cover;border-radius:24px;box-shadow:0 18px 40px rgba(15,23,42,0.16);" />` +
         `</a>`
       : '<div style="width:100%;max-width:560px;height:320px;border-radius:24px;background:linear-gradient(135deg,#dcfce7,#ecfccb);display:flex;align-items:center;justify-content:center;color:#166534;font-size:22px;font-weight:700;">AgriTracker Community</div>';
@@ -581,11 +586,20 @@ exports.getPostSharePage = async (req, res) => {
     <meta property="og:title" content="${pageTitle}" />
     <meta property="og:description" content="${description}" />
     <meta property="og:url" content="${escapeHtml(shareUrl)}" />
+    <meta property="al:android:url" content="${escapeHtml(appUrl)}" />
+    <meta property="al:ios:url" content="${escapeHtml(appUrl)}" />
     ${previewImage ? `<meta property="og:image" content="${escapeHtml(previewImage)}" />` : ''}
     <meta name="twitter:card" content="${previewImage ? 'summary_large_image' : 'summary'}" />
     <meta name="twitter:title" content="${pageTitle}" />
     <meta name="twitter:description" content="${description}" />
     ${previewImage ? `<meta name="twitter:image" content="${escapeHtml(previewImage)}" />` : ''}
+    <script>
+      window.addEventListener('load', function () {
+        setTimeout(function () {
+          window.location.href = ${JSON.stringify(appUrl)};
+        }, 180);
+      });
+    </script>
   </head>
   <body style="margin:0;font-family:Arial,sans-serif;background:linear-gradient(180deg,#f7fee7 0%,#ffffff 55%);color:#0f172a;">
     <main style="max-width:820px;margin:0 auto;padding:40px 20px 56px;">
@@ -596,13 +610,13 @@ exports.getPostSharePage = async (req, res) => {
       <section style="margin-top:28px;padding:24px;border-radius:24px;background:#ffffff;box-shadow:0 16px 40px rgba(15,23,42,0.08);">
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px;">
           <div><div style="font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;">Poster</div><div style="margin-top:6px;font-size:18px;font-weight:700;">${authorName}</div></div>
-          <div><div style="font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;">Type</div><div style="margin-top:6px;font-size:18px;font-weight:700;">AgriTracker community post</div></div>
+          <div><div style="font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;">Category</div><div style="margin-top:6px;font-size:18px;font-weight:700;">${category}</div></div>
         </div>
       </section>
       <section style="margin-top:20px;padding:24px;border-radius:24px;background:#14532d;color:#f0fdf4;">
-        <div style="font-size:17px;font-weight:700;">Open this community post on AgriTracker</div>
-        <p style="margin:10px 0 18px;font-size:15px;line-height:1.6;color:#dcfce7;">Tap the link below to view the original post and continue the conversation on the platform.</p>
-        <a href="${escapeHtml(shareUrl)}" style="display:block;padding:16px 18px;border-radius:16px;background:#f0fdf4;color:#14532d;text-decoration:none;font-weight:700;word-break:break-word;">${escapeHtml(shareUrl)}</a>
+        <div style="font-size:17px;font-weight:700;">Open this community post in AgriTracker</div>
+        <p style="margin:10px 0 18px;font-size:15px;line-height:1.6;color:#dcfce7;">This shared post now opens directly inside the community page in the mobile app.</p>
+        <a href="${escapeHtml(appUrl)}" style="display:inline-flex;padding:16px 18px;border-radius:16px;background:#f0fdf4;color:#14532d;text-decoration:none;font-weight:700;">Open In App</a>
       </section>
     </main>
   </body>

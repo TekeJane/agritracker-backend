@@ -47,6 +47,23 @@ function parseBoolean(value) {
     return ['true', '1', 'yes', 'on'].includes(String(value || '').trim().toLowerCase());
 }
 
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function buildEbookShareUrl(host, ebookId) {
+    return `${host}/api/ebooks/share/${ebookId}`;
+}
+
+function buildAppDeepLinkUrl(type, id) {
+    return `agritracker://${type}/${id}`;
+}
+
 function getFirstFile(req, fieldName) {
     return req.files?.[fieldName]?.[0] || null;
 }
@@ -317,6 +334,7 @@ function formatEbook(ebook, host) {
         orderCount: Number(item.order_count || 0),
         is_top_author_item: Number(item.order_count || 0) >= TOP_MARKETPLACE_THRESHOLD,
         isTopAuthorItem: Number(item.order_count || 0) >= TOP_MARKETPLACE_THRESHOLD,
+        share_url: buildEbookShareUrl(host, item.id),
     };
 }
 
@@ -705,6 +723,82 @@ const EbookController = {
         } catch (err) {
             console.error('Error fetching ebook by id:', err);
             return res.status(500).json({ error: err.message });
+        }
+    },
+
+    async getEbookSharePage(req, res) {
+        try {
+            const ebook = await Ebook.findByPk(req.params.id, {
+                include: [EbookCategory, EbookSubCategory, User],
+            });
+
+            if (!ebook) {
+                return res.status(404).send('<h1>Ebook not found</h1>');
+            }
+
+            await attachEbookOrderCounts([ebook]);
+            const host = `${req.protocol}://${req.get('host')}`;
+            const payload = formatEbook(ebook, host);
+            const title = escapeHtml(payload.title || 'Shared ebook');
+            const description = escapeHtml(
+                payload.description || 'Read this ebook on AgriTracker.',
+            );
+            const author = escapeHtml(payload.author_name || 'Author');
+            const category = escapeHtml(payload.category_name || 'eBook');
+            const coverImage = payload.cover_image || payload.gallery_images?.[0] || '';
+            const shareUrl = buildEbookShareUrl(host, payload.id);
+            const appUrl = buildAppDeepLinkUrl('ebook', payload.id);
+
+            return res.status(200).send(`<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>${title} | AgriTracker</title>
+    <meta name="description" content="${description}" />
+    <meta property="og:site_name" content="AgriTracker" />
+    <meta property="og:title" content="${title}" />
+    <meta property="og:description" content="${description}" />
+    <meta property="og:url" content="${escapeHtml(shareUrl)}" />
+    <meta property="al:android:url" content="${escapeHtml(appUrl)}" />
+    <meta property="al:ios:url" content="${escapeHtml(appUrl)}" />
+    ${coverImage ? `<meta property="og:image" content="${escapeHtml(coverImage)}" />` : ''}
+    <meta name="twitter:card" content="${coverImage ? 'summary_large_image' : 'summary'}" />
+    <meta name="twitter:title" content="${title}" />
+    <meta name="twitter:description" content="${description}" />
+    ${coverImage ? `<meta name="twitter:image" content="${escapeHtml(coverImage)}" />` : ''}
+    <script>
+      window.addEventListener('load', function () {
+        setTimeout(function () {
+          window.location.href = ${JSON.stringify(appUrl)};
+        }, 180);
+      });
+    </script>
+  </head>
+  <body style="margin:0;font-family:Arial,sans-serif;background:linear-gradient(180deg,#eff6ff 0%,#ffffff 58%);color:#102a43;">
+    <main style="max-width:760px;margin:0 auto;padding:40px 20px 56px;">
+      <div style="display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:999px;background:#dbeafe;color:#1d4ed8;font-weight:700;font-size:13px;">AgriTracker eBook</div>
+      <h1 style="margin:18px 0 12px;font-size:38px;line-height:1.1;color:#1e3a8a;">${title}</h1>
+      <p style="margin:0 0 24px;font-size:17px;line-height:1.7;color:#475569;">${description}</p>
+      ${coverImage ? `<a href="${escapeHtml(appUrl)}" style="display:block;text-decoration:none;"><img src="${escapeHtml(coverImage)}" alt="${title}" style="width:100%;max-width:520px;height:300px;object-fit:cover;border-radius:24px;box-shadow:0 18px 40px rgba(15,23,42,0.16);" /></a>` : '<div style="width:100%;max-width:520px;height:300px;border-radius:24px;background:#dbeafe;display:flex;align-items:center;justify-content:center;color:#1d4ed8;font-size:20px;font-weight:700;">AgriTracker eBook</div>'}
+      <section style="margin-top:28px;padding:24px;border-radius:24px;background:#ffffff;box-shadow:0 16px 40px rgba(15,23,42,0.08);">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:18px;">
+          <div><div style="font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;">Author</div><div style="margin-top:6px;font-size:18px;font-weight:700;">${author}</div></div>
+          <div><div style="font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;">Category</div><div style="margin-top:6px;font-size:18px;font-weight:700;">${category}</div></div>
+          <div><div style="font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:0.08em;">Company</div><div style="margin-top:6px;font-size:18px;font-weight:700;">AgriTracker</div></div>
+        </div>
+      </section>
+      <section style="margin-top:20px;padding:24px;border-radius:24px;background:#1e3a8a;color:#eff6ff;">
+        <div style="font-size:18px;font-weight:700;">Open this ebook in AgriTracker</div>
+        <p style="margin:10px 0 18px;font-size:15px;line-height:1.6;color:#dbeafe;">This shared ebook now opens directly inside the app instead of sharing the raw file link.</p>
+        <a href="${escapeHtml(appUrl)}" style="display:inline-flex;align-items:center;justify-content:center;padding:12px 18px;border-radius:14px;background:#eff6ff;color:#1e3a8a;text-decoration:none;font-weight:700;">Open In App</a>
+      </section>
+    </main>
+  </body>
+</html>`);
+        } catch (err) {
+            console.error('Error loading ebook share page:', err);
+            return res.status(500).send('<h1>Unable to load ebook</h1>');
         }
     },
 
