@@ -16,6 +16,10 @@ module.exports = (sequelize, DataTypes) => {
         message: {
             type: DataTypes.TEXT,
         },
+        metadata: {
+            type: DataTypes.TEXT,
+            allowNull: true,
+        },
         type: {
             type: DataTypes.ENUM('feature', 'order', 'sale'),
             defaultValue: 'order',

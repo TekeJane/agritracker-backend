@@ -161,7 +161,13 @@ async function notifyAdminsOfEbookOrder(order) {
                 admin.id,
                 'New Ebook Order',
                 `Order ${order.order_id} for an ebook needs admin attention.`,
-                'order'
+                'order',
+                {
+                    deep_link: 'agritracker://notifications',
+                    entity_type: 'ebook_order',
+                    entity_id: String(order.id || ''),
+                    order_type: 'ebook',
+                }
             )
         )
     );
@@ -186,7 +192,13 @@ async function sendEbookOrderNotifications(orderRecord, ebookRecord, buyerRecord
             eventLabel === 'confirmed'
                 ? `Your ebook order ${order.order_id} has been confirmed. Your download is now ready.`
                 : `Your ebook order ${order.order_id} has been received.`,
-            'order'
+            'order',
+            {
+                deep_link: `agritracker://orders/${order.id}`,
+                entity_type: 'ebook_order',
+                entity_id: String(order.id),
+                order_type: 'ebook',
+            }
         );
     }
 
@@ -195,7 +207,13 @@ async function sendEbookOrderNotifications(orderRecord, ebookRecord, buyerRecord
             ebook.author_id,
             eventLabel === 'confirmed' ? 'Ebook Purchase Confirmed' : 'New Ebook Purchase',
             `Order ${order.order_id} for "${ebook.title || 'your ebook'}" ${eventLabel === 'confirmed' ? 'has been confirmed' : 'was created'}.`,
-            'sale'
+            'sale',
+            {
+                deep_link: `agritracker://orders/${order.id}`,
+                entity_type: 'ebook_order',
+                entity_id: String(order.id),
+                order_type: 'ebook',
+            }
         );
     }
 

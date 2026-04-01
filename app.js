@@ -376,6 +376,32 @@ const ensureEbookSubCategorySchema = async () => {
         });
         console.log('Reviews.productId nullability updated');
     }
+
+    const userTable = await queryInterface.describeTable('users');
+    if (!userTable.push_tokens) {
+        await queryInterface.addColumn('users', 'push_tokens', {
+            type: Sequelize.TEXT,
+            allowNull: true,
+        });
+        console.log('users.push_tokens column ensured');
+    }
+
+    if (!userTable.last_push_platform) {
+        await queryInterface.addColumn('users', 'last_push_platform', {
+            type: Sequelize.STRING,
+            allowNull: true,
+        });
+        console.log('users.last_push_platform column ensured');
+    }
+
+    const notificationTable = await queryInterface.describeTable('notifications');
+    if (!notificationTable.metadata) {
+        await queryInterface.addColumn('notifications', 'metadata', {
+            type: Sequelize.TEXT,
+            allowNull: true,
+        });
+        console.log('notifications.metadata column ensured');
+    }
 };
 
 // Test database connection

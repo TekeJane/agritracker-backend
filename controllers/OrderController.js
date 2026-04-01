@@ -76,7 +76,12 @@ async function notifyAdminsOfMobileMoneySubmission(order, buyerId) {
                 admin.id,
                 'Payment Submitted',
                 `Order ${order.order_number} has a new mobile money payment confirmation from user ${buyerId}.`,
-                'order'
+                'order',
+                {
+                    deep_link: 'agritracker://notifications',
+                    entity_type: 'order',
+                    entity_id: String(order.id || ''),
+                }
             )
         )
     );
@@ -169,7 +174,13 @@ async function sendEbookApprovalNotifications(orderRecord) {
             buyer.id,
             'Ebook Order Confirmed',
             `Your ebook order ${order.order_id} has been confirmed. Your download is now ready.`,
-            'order'
+            'order',
+            {
+                deep_link: `agritracker://orders/${order.id}`,
+                entity_type: 'ebook_order',
+                entity_id: String(order.id),
+                order_type: 'ebook',
+            }
         );
     }
 
@@ -178,7 +189,13 @@ async function sendEbookApprovalNotifications(orderRecord) {
             ebook.author_id,
             'Ebook Purchase Confirmed',
             `Order ${order.order_id} for "${ebook.title || 'your ebook'}" has been confirmed.`,
-            'sale'
+            'sale',
+            {
+                deep_link: `agritracker://orders/${order.id}`,
+                entity_type: 'ebook_order',
+                entity_id: String(order.id),
+                order_type: 'ebook',
+            }
         );
     }
 
@@ -505,11 +522,28 @@ const OrderController = {
                     req.user.id,
                     'Payment Submitted',
                     `Your ${getMobileMoneyProviderLabel(payment_method)} payment for order ${completeOrder.order_number} has been submitted for review.`,
-                    'order'
+                    'order',
+                    {
+                        deep_link: `agritracker://orders/${completeOrder.id}`,
+                        entity_type: 'order',
+                        entity_id: String(completeOrder.id),
+                        order_type: 'product',
+                    }
                 );
                 await notifyAdminsOfMobileMoneySubmission(completeOrder, req.user.id);
             } else {
-                await notifyUser(req.user.id, "Order Placed", "Your order has been placed successfully!", "order");
+                await notifyUser(
+                    req.user.id,
+                    'Order Placed',
+                    'Your order has been placed successfully!',
+                    'order',
+                    {
+                        deep_link: `agritracker://orders/${completeOrder.id}`,
+                        entity_type: 'order',
+                        entity_id: String(completeOrder.id),
+                        order_type: 'product',
+                    }
+                );
             }
 
 // 🔔 Notify sellers (handle multiple vendors)
@@ -521,7 +555,13 @@ const OrderController = {
                         product.seller_id,
                         "New Sale",
                         `Your product "${product.name}" has been ordered.`,
-                        "sale"
+                        "sale",
+                        {
+                            deep_link: `agritracker://orders/${completeOrder.id}`,
+                            entity_type: 'order',
+                            entity_id: String(completeOrder.id),
+                            order_type: 'product',
+                        }
                     );
                     notifiedSellers.add(product.seller_id);
                 }
@@ -634,7 +674,13 @@ const OrderController = {
                         updatedOrder.UserId,
                         'Order Updated',
                         `Your order ${updatedOrder.order_number} has been updated to ${status || updatedOrder.status}.`,
-                        'order'
+                        'order',
+                        {
+                            deep_link: `agritracker://orders/${updatedOrder.id}`,
+                            entity_type: 'order',
+                            entity_id: String(updatedOrder.id),
+                            order_type: 'product',
+                        }
                     );
                 }
                 const sellerIds = new Set(
@@ -648,7 +694,13 @@ const OrderController = {
                             sellerId,
                             'Order Updated',
                             `Order ${updatedOrder.order_number} for your product has been updated.`,
-                            'sale'
+                            'sale',
+                            {
+                                deep_link: `agritracker://orders/${updatedOrder.id}`,
+                                entity_type: 'order',
+                                entity_id: String(updatedOrder.id),
+                                order_type: 'product',
+                            }
                         )
                     )
                 );

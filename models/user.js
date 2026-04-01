@@ -50,6 +50,14 @@ const User = sequelize.define('User', {
     tiktok: {
         type: DataTypes.STRING,
     },
+    push_tokens: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+    },
+    last_push_platform: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
     role: {
         type: DataTypes.ENUM('user', 'admin'),
         allowNull: false,
