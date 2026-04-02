@@ -271,6 +271,24 @@ async function sendEbookOrderNotifications(orderRecord, ebookRecord, buyerRecord
     const order = orderRecord.toJSON ? orderRecord.toJSON() : orderRecord;
     const ebook = ebookRecord?.toJSON ? ebookRecord.toJSON() : ebookRecord;
     const buyer = buyerRecord?.toJSON ? buyerRecord.toJSON() : buyerRecord;
+    const metadata =
+        order.metadata && typeof order.metadata === 'object'
+            ? order.metadata
+            : {};
+    const selectedFormat = String(
+        metadata.selected_format || ebook?.format || 'ebook'
+    ).trim().toLowerCase();
+    const digitalDelivery = String(
+        metadata.digital_delivery || order.delivery_method || 'download_online'
+    ).trim().toLowerCase();
+    const buyerMessage =
+        eventLabel === 'confirmed'
+            ? selectedFormat === 'ebook'
+                ? digitalDelivery === 'email_delivery'
+                    ? `Your ebook order ${order.order_id} has been confirmed. Your ebook will be sent to your email shortly.`
+                    : `Your ebook order ${order.order_id} has been confirmed. Your download is now ready.`
+                : `Your ${selectedFormat} order ${order.order_id} has been confirmed and is now being prepared for delivery.`
+            : `Your order ${order.order_id} has been received successfully and is awaiting admin confirmation.`;
 
     const orderForEmail = {
         ...order,
@@ -283,9 +301,7 @@ async function sendEbookOrderNotifications(orderRecord, ebookRecord, buyerRecord
         await notifyUser(
             buyer.id,
             eventLabel === 'confirmed' ? 'Ebook Order Confirmed' : 'Ebook Order Received',
-            eventLabel === 'confirmed'
-                ? `Your ebook order ${order.order_id} has been confirmed. Your download is now ready.`
-                : `Your ebook order ${order.order_id} has been received.`,
+            buyerMessage,
             'order',
             {
                 deep_link: `agritracker://orders/${order.id}`,
@@ -314,7 +330,9 @@ async function sendEbookOrderNotifications(orderRecord, ebookRecord, buyerRecord
     if (buyer?.email && emailService.isConfigured()) {
         try {
             await emailService.sendOrderConfirmation(orderForEmail);
-            await emailService.sendDownloadLink(orderForEmail);
+            if (eventLabel === 'confirmed' && selectedFormat === 'ebook') {
+                await emailService.sendDownloadLink(orderForEmail);
+            }
         } catch (error) {
             console.error('Failed to send ebook confirmation email:', error.message);
         }
@@ -1353,6 +1371,16 @@ const EbookController = {
                 }
             }
 
+            const requiresShipping =
+                pricing.chosenVariant.key !== 'ebook' &&
+                ['author_delivery', 'standard_shipping', 'express_shipping'].includes(
+                    String(shipping_method || delivery_method || '').trim().toLowerCase()
+                );
+
+            if (requiresShipping && !String(customer_address || '').trim()) {
+                return res.status(400).json({ error: 'Shipping address is required for printed book delivery' });
+            }
+
             const order = await EbookOrder.create({
                 order_id: `EBOOK-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
                 user_id: req.user.id,
@@ -1366,8 +1394,8 @@ const EbookController = {
                 delivery_method:
                     delivery_method ||
                     (pricing.chosenVariant.key === 'ebook' ? 'digital_download' : 'shipping'),
-                payment_status: isMobileMoneyPayment ? 'pending' : 'completed',
-                paid_at: isMobileMoneyPayment ? null : new Date(),
+                payment_status: 'pending',
+                paid_at: null,
                 purchased_at: new Date(),
                 transaction_id:
                     mobile_money_payment?.transaction_id || `TXN-${Date.now()}`,
@@ -1426,16 +1454,15 @@ const EbookController = {
                 ],
             });
 
-            if (isMobileMoneyPayment) {
-                await notifyAdminsOfEbookOrder(fullOrder);
-            } else if (fullOrder) {
-                await sendEbookOrderNotifications(fullOrder, fullOrder.Ebook, buyer, 'confirmed');
+            if (fullOrder) {
+                await sendEbookOrderNotifications(fullOrder, fullOrder.Ebook, buyer, 'received');
             }
+            await notifyAdminsOfEbookOrder(fullOrder || order);
 
             return res.status(201).json({
                 message: isMobileMoneyPayment
                     ? 'Ebook mobile money payment submitted for review'
-                    : 'Ebook order created successfully',
+                    : 'Ebook order created successfully and is awaiting admin confirmation',
                 payment_status: order.payment_status,
                 order: fullOrder || order,
             });

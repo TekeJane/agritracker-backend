@@ -5,6 +5,7 @@ const {
     Product,
     Ebook,
     EbookCategory,
+    EbookSubCategory,
     EbookOrder,
     User,
     Category,
@@ -191,12 +192,30 @@ async function sendEbookApprovalNotifications(orderRecord) {
     const order = orderRecord.toJSON ? orderRecord.toJSON() : orderRecord;
     const ebook = order.Ebook || {};
     const buyer = order.User || {};
+    const metadata =
+        order.metadata && typeof order.metadata === 'object'
+            ? order.metadata
+            : {};
+    const selectedFormat = String(
+        metadata.selected_format || ebook.format || 'ebook'
+    ).trim().toLowerCase();
+    const digitalDelivery = String(
+        metadata.digital_delivery || order.delivery_method || 'download_online'
+    )
+        .trim()
+        .toLowerCase();
+    const buyerMessage =
+        selectedFormat === 'ebook'
+            ? digitalDelivery === 'email_delivery'
+                ? `Your ebook order ${order.order_id} has been confirmed. Your ebook will be delivered by email shortly.`
+                : `Your ebook order ${order.order_id} has been confirmed. Your download is now ready.`
+            : `Your ${selectedFormat} order ${order.order_id} has been confirmed and is now being prepared for delivery.`;
 
     if (buyer.id) {
         await notifyUser(
             buyer.id,
             'Ebook Order Confirmed',
-            `Your ebook order ${order.order_id} has been confirmed. Your download is now ready.`,
+            buyerMessage,
             'order',
             {
                 deep_link: `agritracker://orders/${order.id}`,
@@ -228,10 +247,12 @@ async function sendEbookApprovalNotifications(orderRecord) {
                 ...order,
                 _downloadUrl: buildEbookDownloadUrl(order),
             });
-            await emailService.sendDownloadLink({
-                ...order,
-                _downloadUrl: buildEbookDownloadUrl(order),
-            });
+            if (selectedFormat === 'ebook') {
+                await emailService.sendDownloadLink({
+                    ...order,
+                    _downloadUrl: buildEbookDownloadUrl(order),
+                });
+            }
         } catch (error) {
             console.error('Failed to send ebook approval email:', error.message);
         }
@@ -472,6 +493,16 @@ const OrderController = {
                 return res.status(400).json({ message: 'Cart is empty' });
             }
 
+            if (
+                ['standard', 'express'].includes(String(shipping_method || '').trim()) &&
+                !String(shipping_address || '').trim()
+            ) {
+                await t.rollback();
+                return res.status(400).json({
+                    message: 'Shipping address is required for delivery orders',
+                });
+            }
+
             // Total calculation and stock check
               let total_amount = 0;
               let discount_amount = 0;
@@ -702,12 +733,41 @@ const OrderController = {
                 ],
             });
 
-            if (payment_status === 'paid' || status === 'delivered') {
+            const shouldNotifyBuyer =
+                !!payment_status || !!status;
+
+            if (shouldNotifyBuyer) {
+                const effectiveStatus = status || updatedOrder?.status || order.status;
+                const effectivePaymentStatus =
+                    payment_status || updatedOrder?.payment_status || order.payment_status;
+                let buyerTitle = 'Order Updated';
+                let buyerMessage = `Your order ${updatedOrder.order_number} has been updated to ${effectiveStatus}.`;
+
+                if (effectiveStatus === 'processing') {
+                    buyerTitle = 'Order Approved';
+                    buyerMessage = `Your order ${updatedOrder.order_number} has been approved. You are now waiting for your products.`;
+                } else if (effectiveStatus === 'shipped') {
+                    buyerTitle = 'Order Shipped';
+                    buyerMessage = `Your order ${updatedOrder.order_number} has been shipped and is on the way.`;
+                } else if (effectiveStatus === 'delivered') {
+                    buyerTitle = 'Order Delivered';
+                    buyerMessage = `Your order ${updatedOrder.order_number} has been delivered successfully.`;
+                } else if (effectiveStatus === 'cancelled') {
+                    buyerTitle = 'Order Cancelled';
+                    buyerMessage = `Your order ${updatedOrder.order_number} has been cancelled.`;
+                } else if (effectivePaymentStatus === 'paid') {
+                    buyerTitle = 'Payment Confirmed';
+                    buyerMessage = `Payment for order ${updatedOrder.order_number} has been confirmed successfully.`;
+                } else if (effectivePaymentStatus === 'failed') {
+                    buyerTitle = 'Payment Failed';
+                    buyerMessage = `Payment for order ${updatedOrder.order_number} could not be confirmed.`;
+                }
+
                 if (updatedOrder?.UserId) {
                     await notifyUser(
                         updatedOrder.UserId,
-                        'Order Updated',
-                        `Your order ${updatedOrder.order_number} has been updated to ${status || updatedOrder.status}.`,
+                        buyerTitle,
+                        buyerMessage,
                         'order',
                         {
                             deep_link: `agritracker://orders/${updatedOrder.id}`,
@@ -726,8 +786,12 @@ const OrderController = {
                     [...sellerIds].map((sellerId) =>
                         notifyUser(
                             sellerId,
-                            'Order Updated',
-                            `Order ${updatedOrder.order_number} for your product has been updated.`,
+                            effectiveStatus === 'processing'
+                                ? 'Order Approved'
+                                : 'Order Updated',
+                            effectiveStatus === 'processing'
+                                ? `Order ${updatedOrder.order_number} has been approved and is ready for fulfillment.`
+                                : `Order ${updatedOrder.order_number} for your product has been updated.`,
                             'sale',
                             {
                                 deep_link: `agritracker://orders/${updatedOrder.id}`,
