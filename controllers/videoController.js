@@ -130,6 +130,22 @@ function normalizeCategoryName(value) {
         .replace(/\s+/g, ' ');
 }
 
+function normalizeRoleValue(value) {
+    return String(value || '')
+        .trim()
+        .toLowerCase();
+}
+
+function normalizeVideoContentSource(value, fallback = 'feature_video') {
+    const normalized = String(value || '')
+        .trim()
+        .toLowerCase();
+
+    return ['general', 'feature_video', 'ebook_clip'].includes(normalized)
+        ? normalized
+        : fallback;
+}
+
 async function resolveAuthenticatedUser(req) {
     if (req.user?.id) {
         return req.user;
@@ -295,21 +311,42 @@ const videoController = {
             let thumbnailPath = req.files?.thumbnail_image?.[0]?.path || null;
             const creatorImagePath = req.files?.creator_image?.[0]?.path || null;
 
-            const isAdminUpload = req.user.role === 'admin';
+            const uploader = req.user?.id
+                ? await User.findByPk(req.user.id, {
+                    attributes: [
+                        'id',
+                        'full_name',
+                        'role',
+                        'facEbook',
+                        'instagram',
+                        'twitter',
+                        'tiktok',
+                    ],
+                })
+                : null;
+
+            const uploaderRole = normalizeRoleValue(uploader?.role || req.user?.role);
+            const isAdminUpload = uploaderRole === 'admin';
             const normalizedContentSource = isAdminUpload
-                ? (content_source || 'feature_video')
+                ? normalizeVideoContentSource(content_source, 'feature_video')
                 : 'ebook_clip';
+            const normalizedCreatorName = String(creator_name || '').trim()
+                || uploader?.full_name
+                || null;
+            const normalizedCreatorLink = String(creator_link || '').trim()
+                || buildCreatorLink(uploader)
+                || null;
 
             const video = await VideoTip.create({
-                title,
-                description,
+                title: String(title).trim(),
+                description: String(description || '').trim() || null,
                 video_url: toUploadDbPath(videoFile.path),
                 thumbnail_url: toUploadDbPath(thumbnailPath),
                 category_id,
                 uploaded_by: req.user.id,
                 creator_image: toUploadDbPath(creatorImagePath),
-                creator_name: creator_name || null,
-                creator_link: creator_link || null,
+                creator_name: normalizedCreatorName,
+                creator_link: normalizedCreatorLink,
                 content_source: normalizedContentSource,
                 ebook_id: ebook_id || null,
                 is_approved: isAdminUpload,
@@ -322,7 +359,7 @@ const videoController = {
             const host = `${req.protocol}://${req.get('host')}`;
 
             res.status(201).json({
-                message: req.user.role === 'admin'
+                message: isAdminUpload
                     ? 'Video uploaded successfully'
                     : 'Video uploaded and awaiting approval',
                 thumbnail_processing: !thumbnailPath,
