@@ -43,6 +43,7 @@ router.delete(
 );
 
 router.get('/', videoController.getApprovedVideos);
+router.get('/:id/download', videoController.downloadVideo);
 router.get('/:id/download-file', videoController.serveVideoDownload);
 router.get('/:id', videoController.getVideoById);
 router.post('/:id/like', authenticate, videoController.likeVideo);

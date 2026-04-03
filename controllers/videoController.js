@@ -51,6 +51,48 @@ function buildVideoDownloadUrl(host, videoId) {
     return `${host}/api/videos/${videoId}/download-file`;
 }
 
+function sanitizeVideoFilename(title, filePath) {
+    const extension = path.extname(filePath) || '.mp4';
+    const safeTitle = String(title || 'agritracker-video')
+        .trim()
+        .replace(/[<>:"/\\|?*\x00-\x1F]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .replace(/ /g, '_');
+
+    return `${safeTitle || 'agritracker-video'}${extension}`;
+}
+
+async function loadApprovedVideoOr404(videoId, res, includeRelations = false) {
+    const video = await VideoTip.findByPk(videoId, {
+        include: includeRelations ? [VideoCategory, User] : undefined,
+    });
+
+    if (!video || !video.is_approved) {
+        res.status(404).json({ error: 'Video not found' });
+        return null;
+    }
+
+    return video;
+}
+
+function resolveVideoDownloadFile(video, res) {
+    const filePath = resolveUploadFilePath(video.video_url);
+    if (!filePath || !fs.existsSync(filePath)) {
+        res.status(404).json({ error: 'Video file not found' });
+        return null;
+    }
+
+    return filePath;
+}
+
+function sendVideoDownloadResponse(res, filePath, videoTitle) {
+    const filename = sanitizeVideoFilename(videoTitle, filePath);
+    res.type(filename);
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    return res.download(filePath, filename);
+}
+
 function buildVideoShareMessage(videoPayload, shareUrl) {
     const title = String(videoPayload?.title || 'AgriTracker video').trim();
     const category = String(videoPayload?.category_name || 'Agriculture').trim();
@@ -709,13 +751,12 @@ const videoController = {
 
     async registerDownload(req, res) {
         try {
-            const video = await VideoTip.findByPk(req.params.id, {
-                include: [VideoCategory, User],
-            });
-
-            if (!video || !video.is_approved) {
-                return res.status(404).json({ error: 'Video not found' });
-            }
+            const video = await loadApprovedVideoOr404(
+                req.params.id,
+                res,
+                true,
+            );
+            if (!video) return;
 
             video.downloads_count = (video.downloads_count || 0) + 1;
             await video.save();
@@ -733,28 +774,33 @@ const videoController = {
         }
     },
 
+    async downloadVideo(req, res) {
+        try {
+            const video = await loadApprovedVideoOr404(req.params.id, res);
+            if (!video) return;
+
+            const filePath = resolveVideoDownloadFile(video, res);
+            if (!filePath) return;
+
+            video.downloads_count = (video.downloads_count || 0) + 1;
+            await video.save();
+
+            return sendVideoDownloadResponse(res, filePath, video.title);
+        } catch (err) {
+            console.error('Direct video download error:', err);
+            return res.status(500).json({ error: err.message });
+        }
+    },
+
     async serveVideoDownload(req, res) {
         try {
-            const video = await VideoTip.findByPk(req.params.id);
-            if (!video || !video.is_approved) {
-                return res.status(404).json({ error: 'Video not found' });
-            }
+            const video = await loadApprovedVideoOr404(req.params.id, res);
+            if (!video) return;
 
-            const filePath = resolveUploadFilePath(video.video_url);
-            if (!filePath || !fs.existsSync(filePath)) {
-                return res.status(404).json({ error: 'Video file not found' });
-            }
+            const filePath = resolveVideoDownloadFile(video, res);
+            if (!filePath) return;
 
-            const extension = path.extname(filePath) || '.mp4';
-            const safeTitle = String(video.title || 'agritracker-video')
-                .trim()
-                .replace(/[<>:"/\\|?*\x00-\x1F]+/g, ' ')
-                .replace(/\s+/g, ' ')
-                .trim()
-                .replace(/ /g, '_');
-            const filename = `${safeTitle || 'agritracker-video'}${extension}`;
-
-            return res.download(filePath, filename);
+            return sendVideoDownloadResponse(res, filePath, video.title);
         } catch (err) {
             console.error('Serve video download error:', err);
             return res.status(500).json({ error: err.message });
