@@ -1,7 +1,9 @@
 const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
 const { Ebook, EbookCategory, EbookSubCategory, EbookOrder, User, Review, sequelize } = require('../models');
 const { Op } = require('sequelize');
-const { toUploadDbPath } = require('../config/uploadPaths');
+const { toUploadDbPath, resolveUploadFilePath } = require('../config/uploadPaths');
 const notifyUser = require('../services/notifyUser');
 const emailService = require('../services/emailServices');
 const TOP_MARKETPLACE_THRESHOLD = 50;
@@ -190,6 +192,23 @@ function buildEbookDownloadUrl(order) {
     return `${host}/api/Ebooks/orders/${encodeURIComponent(order.order_id)}/download?token=${encodeURIComponent(token)}`;
 }
 
+function normalizeDigitalDeliveryMethod(value) {
+    const normalized = String(value || '').trim().toLowerCase();
+    return normalized === 'email_delivery' ? 'email_delivery' : 'download_online';
+}
+
+function sanitizeDownloadFilename(title, filePath) {
+    const extension = path.extname(filePath) || '.pdf';
+    const safeTitle = String(title || 'agritracker-ebook')
+        .trim()
+        .replace(/[<>:"/\\|?*\x00-\x1F]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .replace(/ /g, '_');
+
+    return `${safeTitle || 'agritracker-ebook'}${extension}`;
+}
+
 function resolveOrderDownloadFileUrl(orderRecord, host) {
     const order = orderRecord?.toJSON ? orderRecord.toJSON() : orderRecord;
     const ebook = order?.Ebook || {};
@@ -209,6 +228,35 @@ function resolveOrderDownloadFileUrl(orderRecord, host) {
         null;
 
     return buildPublicUrl(candidateUrl, host);
+}
+
+function resolveOrderDownloadFilePath(orderRecord) {
+    const order = orderRecord?.toJSON ? orderRecord.toJSON() : orderRecord;
+    const ebook = order?.Ebook || {};
+    const metadata =
+        order?.metadata && typeof order.metadata === 'object'
+            ? order.metadata
+            : {};
+    const selectedFormat = String(metadata.selected_format || '').trim();
+    const variants =
+        ebook?.format_variants && typeof ebook.format_variants === 'object'
+            ? ebook.format_variants
+            : {};
+    const selectedVariant = selectedFormat ? variants[selectedFormat] : null;
+    const candidateUrl =
+        selectedVariant?.manuscript_url ||
+        ebook?.file_url ||
+        null;
+
+    const filePath = resolveUploadFilePath(candidateUrl);
+    if (!filePath || !fs.existsSync(filePath)) {
+        return null;
+    }
+
+    return {
+        filePath,
+        filename: sanitizeDownloadFilename(ebook?.title, filePath),
+    };
 }
 
 function mapEbookOrderStatus(paymentStatus) {
@@ -242,6 +290,12 @@ function normalizeEbookOrder(orderRecord) {
     const metadata = item.metadata && typeof item.metadata === 'object'
         ? item.metadata
         : {};
+    const selectedFormat = String(metadata.selected_format || item.Ebook?.format || 'ebook')
+        .trim()
+        .toLowerCase();
+    const digitalDelivery = normalizeDigitalDeliveryMethod(
+        metadata.digital_delivery || item.delivery_method
+    );
 
     return {
         ...item,
@@ -252,10 +306,13 @@ function normalizeEbookOrder(orderRecord) {
         total_amount: item.total_amount || item.price_paid || 0,
         shipping_address: item.customer_address || null,
         shipping_method:
-            item.delivery_method ||
-            metadata.shipping_method ||
-            metadata.digital_delivery ||
-            'digital_download',
+            selectedFormat === 'ebook'
+                ? digitalDelivery
+                : (
+                    metadata.shipping_method ||
+                    item.delivery_method ||
+                    'shipping'
+                ),
         notes: item.note ?? item.notes ?? null,
         createdAt: item.createdAt || item.purchased_at || item.paid_at,
         payment_method: item.payment_method || 'N/A',
@@ -1388,6 +1445,9 @@ const EbookController = {
             const orderQuantity = Math.max(parseInt(quantity, 10) || 1, 1);
             const shippingAmount = Math.max(parseNumber(shipping_cost, 0), 0);
             const totalPrice = (pricing.totalPrice * orderQuantity) + shippingAmount;
+            const resolvedDigitalDelivery = pricing.chosenVariant.key === 'ebook'
+                ? normalizeDigitalDeliveryMethod(digital_delivery_method || digital_delivery)
+                : null;
             const isMobileMoneyPayment = ['mtn_mobile_money', 'orange_money'].includes(payment_method);
 
             if (isMobileMoneyPayment) {
@@ -1425,8 +1485,13 @@ const EbookController = {
                 customer_address: customer_address || null,
                 note: note || null,
                 delivery_method:
-                    delivery_method ||
-                    (pricing.chosenVariant.key === 'ebook' ? 'digital_download' : 'shipping'),
+                    pricing.chosenVariant.key === 'ebook'
+                        ? resolvedDigitalDelivery
+                        : (
+                            delivery_method ||
+                            shipping_method ||
+                            'shipping'
+                        ),
                 payment_status: 'pending',
                 paid_at: null,
                 purchased_at: new Date(),
@@ -1445,8 +1510,7 @@ const EbookController = {
                     coupon_code: pricing.appliedCouponCode,
                     discount_amount: pricing.discountAmount * orderQuantity,
                     discount_percentage: pricing.discountPercentage,
-                    digital_delivery:
-                        digital_delivery_method || digital_delivery || null,
+                    digital_delivery: resolvedDigitalDelivery,
                     royalty_percentage: pricing.chosenVariant.variant.royalty_percentage || 0,
                     payment_provider:
                         mobile_money_payment?.provider || payment_method || null,
@@ -1551,11 +1615,8 @@ const EbookController = {
                 return res.status(403).json({ error: 'Invalid download access' });
             }
 
-            const downloadUrl = resolveOrderDownloadFileUrl(
-                order,
-                `${req.protocol}://${req.get('host')}`,
-            );
-            if (!downloadUrl) {
+            const downloadFile = resolveOrderDownloadFilePath(order);
+            if (!downloadFile) {
                 return res.status(404).json({ error: 'Ebook file not available' });
             }
 
@@ -1567,7 +1628,7 @@ const EbookController = {
             order.metadata = metadata;
             await order.save();
 
-            return res.redirect(downloadUrl);
+            return res.download(downloadFile.filePath, downloadFile.filename);
         } catch (err) {
             console.error('Error downloading purchased ebook:', err);
             return res.status(500).json({ error: err.message });

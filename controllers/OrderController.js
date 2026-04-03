@@ -165,11 +165,22 @@ function buildEbookDownloadUrl(order) {
     return `${host}/api/Ebooks/orders/${encodeURIComponent(order.order_id)}/download?token=${encodeURIComponent(token)}`;
 }
 
+function normalizeDigitalDeliveryMethod(value) {
+    const normalized = String(value || '').trim().toLowerCase();
+    return normalized === 'email_delivery' ? 'email_delivery' : 'download_online';
+}
+
 function normalizeEbookOrder(orderRecord) {
     const item = orderRecord.toJSON ? orderRecord.toJSON() : orderRecord;
     const metadata = item.metadata && typeof item.metadata === 'object'
         ? item.metadata
         : {};
+    const selectedFormat = String(metadata.selected_format || item.Ebook?.format || 'ebook')
+        .trim()
+        .toLowerCase();
+    const digitalDelivery = normalizeDigitalDeliveryMethod(
+        metadata.digital_delivery || item.delivery_method
+    );
 
     return {
         ...item,
@@ -180,10 +191,13 @@ function normalizeEbookOrder(orderRecord) {
         total_amount: item.total_amount || item.price_paid || 0,
         shipping_address: item.customer_address || null,
         shipping_method:
-            item.delivery_method ||
-            metadata.shipping_method ||
-            metadata.digital_delivery ||
-            'digital_download',
+            selectedFormat === 'ebook'
+                ? digitalDelivery
+                : (
+                    metadata.shipping_method ||
+                    item.delivery_method ||
+                    'shipping'
+                ),
         notes: item.note ?? item.notes ?? null,
         createdAt: item.createdAt || item.purchased_at || item.paid_at,
         payment_method: item.payment_method || 'N/A',
@@ -708,15 +722,10 @@ const OrderController = {
                         .toLowerCase();
 
                     if (ebookFormat === 'ebook') {
-                        if (!ebookMetadata.digital_delivery) {
-                            ebookMetadata.digital_delivery = 'download_online';
-                        }
-                        if (
-                            !ebookOrder.delivery_method ||
-                            String(ebookOrder.delivery_method).trim().isEmpty
-                        ) {
-                            ebookOrder.delivery_method = 'digital_download';
-                        }
+                        ebookMetadata.digital_delivery = normalizeDigitalDeliveryMethod(
+                            ebookMetadata.digital_delivery || ebookOrder.delivery_method
+                        );
+                        ebookOrder.delivery_method = ebookMetadata.digital_delivery;
                     }
                 }
 

@@ -63,6 +63,7 @@ class EmailService {
 
     // Order confirmation email template
     getOrderConfirmationTemplate(order) {
+        const downloadUrl = this.getDownloadUrl(order);
         return `
         <!DOCTYPE html>
         <html>
@@ -101,8 +102,8 @@ class EmailService {
                     <h3>Download Your Ebook</h3>
                     <p>Your Ebook is now available for download. Click the button below to access your purchase:</p>
                     
-                    ${order.Ebook?.file_url ? `
-                        <a href="${this.getDownloadUrl(order)}" class="download-button">
+                    ${downloadUrl ? `
+                        <a href="${downloadUrl}" class="download-button">
                             📱 Download Ebook
                         </a>
                     ` : '<p>Download link will be available shortly.</p>'}
