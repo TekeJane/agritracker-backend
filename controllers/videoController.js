@@ -160,6 +160,36 @@ function formatVideo(video, host) {
     };
 }
 
+async function generateThumbnailForVideo(videoId, videoFilePath) {
+    const thumbnailDir = ensureUploadDir('thumbnails');
+    const thumbnailPath = path.join(
+        thumbnailDir,
+        `${Date.now()}_${videoId}_thumbnail.png`
+    );
+
+    await new Promise((resolve, reject) => {
+        ffmpeg(videoFilePath)
+            .on('end', resolve)
+            .on('error', reject)
+            .screenshots({
+                count: 1,
+                folder: path.dirname(thumbnailPath),
+                filename: path.basename(thumbnailPath),
+                size: '320x240',
+                timemarks: ['3'],
+            });
+    });
+
+    const videoRecord = await VideoTip.findByPk(videoId);
+    if (!videoRecord) {
+        return;
+    }
+
+    await videoRecord.update({
+        thumbnail_url: toUploadDbPath(thumbnailPath),
+    });
+}
+
 function buildVideoFilters(query = {}) {
     const whereClause = {};
 
@@ -223,39 +253,6 @@ const videoController = {
             let thumbnailPath = req.files?.thumbnail_image?.[0]?.path || null;
             const creatorImagePath = req.files?.creator_image?.[0]?.path || null;
 
-            if (!thumbnailPath) {
-                const thumbnailDir = ensureUploadDir('thumbnails');
-                thumbnailPath = path.join(
-                    thumbnailDir,
-                    `${Date.now()}_thumbnail.png`
-                );
-                console.log("Thumbnail will be saved to:", thumbnailPath);
-
-                try {
-                    await new Promise((resolve, reject) => {
-                        ffmpeg(videoFile.path)
-                            .on('end', () => {
-                                console.log("Thumbnail generated.");
-                                resolve();
-                            })
-                            .on('error', (err) => {
-                                console.error("FFmpeg error:", err);
-                                reject(err);
-                            })
-                            .screenshots({
-                                count: 1,
-                                folder: path.dirname(thumbnailPath),
-                                filename: path.basename(thumbnailPath),
-                                size: '320x240',
-                                timemarks: ['3']
-                            });
-                    });
-                } catch (thumbnailError) {
-                    console.error("Thumbnail generation failed, continuing without thumbnail:", thumbnailError);
-                    thumbnailPath = null;
-                }
-            }
-
             const isAdminUpload = req.user.role === 'admin';
             const normalizedContentSource = isAdminUpload
                 ? (content_source || 'feature_video')
@@ -286,8 +283,23 @@ const videoController = {
                 message: req.user.role === 'admin'
                     ? 'Video uploaded successfully'
                     : 'Video uploaded and awaiting approval',
+                thumbnail_processing: !thumbnailPath,
                 video: formatVideo(fullVideo, host),
             });
+
+            if (!thumbnailPath) {
+                setImmediate(async () => {
+                    try {
+                        await generateThumbnailForVideo(video.id, videoFile.path);
+                        console.log(`Thumbnail generated for video ${video.id}`);
+                    } catch (thumbnailError) {
+                        console.error(
+                            `Thumbnail generation failed for video ${video.id}:`,
+                            thumbnailError,
+                        );
+                    }
+                });
+            }
         } catch (err) {
             console.error("Upload error:", err);
             res.status(500).json({ error: err.message });

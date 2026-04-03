@@ -13,6 +13,7 @@ const {
 
 router.get('/top-products', marketController.topProducts);
 router.get('/top-sellers', marketController.topSellers);
+router.get('/top-authors', marketController.topAuthors);
 router.get('/category-trend', getCategoryDailyTrend);
 router.get('/crop-trend/:cropName', getCropTrend);
 router.get('/region-trend', getRegionTrend);

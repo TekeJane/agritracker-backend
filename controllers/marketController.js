@@ -1,4 +1,4 @@
-const { OrderItem, Product, Order, User } = require('../models');
+const { OrderItem, Product, Order, User, Ebook, EbookOrder } = require('../models');
 const { Sequelize } = require('sequelize');
 const { buildPublicMediaUrl } = require('../utils/publicMediaUrl');
 
@@ -212,6 +212,93 @@ module.exports = {
             return res.json(response);
         } catch (error) {
             console.error('Error fetching top sellers:', error.message);
+            return res.status(500).json({ error: error.message });
+        }
+    },
+
+    async topAuthors(req, res) {
+        try {
+            const host = getHost(req);
+            const completedOrders = await EbookOrder.findAll({
+                where: { payment_status: 'completed' },
+                include: [
+                    {
+                        model: Ebook,
+                        attributes: ['id', 'author_id', 'cover_image', 'category_id'],
+                        required: true,
+                    },
+                ],
+                order: [['createdAt', 'DESC']],
+            });
+
+            const authorStats = new Map();
+
+            for (const order of completedOrders) {
+                const raw = order.toJSON();
+                const ebook = raw.Ebook;
+                const authorId = Number(ebook?.author_id);
+                if (!authorId) continue;
+
+                const current = authorStats.get(authorId) || {
+                    authorId,
+                    totalOrders: 0,
+                    totalRevenue: 0,
+                    featuredCover: null,
+                };
+
+                current.totalOrders += 1;
+                current.totalRevenue += Number(raw.price_paid || 0);
+                if (!current.featuredCover && ebook?.cover_image) {
+                    current.featuredCover = buildPublicMediaUrl(ebook.cover_image, host);
+                }
+                authorStats.set(authorId, current);
+            }
+
+            const rankedAuthorIds = [...authorStats.values()]
+                .sort((a, b) => {
+                    if (b.totalOrders !== a.totalOrders) {
+                        return b.totalOrders - a.totalOrders;
+                    }
+                    return b.totalRevenue - a.totalRevenue;
+                })
+                .slice(0, 5)
+                .map((item) => item.authorId);
+
+            if (!rankedAuthorIds.length) {
+                return res.json([]);
+            }
+
+            const authors = await User.findAll({
+                where: { id: rankedAuthorIds },
+                attributes: ['id', 'full_name', 'email', 'address', 'profile_image'],
+            });
+
+            const authorsById = new Map(
+                authors.map((author) => [Number(author.id), author.toJSON()]),
+            );
+
+            const response = rankedAuthorIds
+                .map((authorId) => {
+                    const stats = authorStats.get(authorId);
+                    const user = authorsById.get(authorId);
+                    if (!stats || !user) return null;
+
+                    return {
+                        author_id: authorId,
+                        totalOrders: stats.totalOrders,
+                        totalRevenue: Number(stats.totalRevenue.toFixed(2)),
+                        featured_cover: stats.featuredCover,
+                        User: {
+                            ...user,
+                            profile_image: buildPublicMediaUrl(user.profile_image, host),
+                        },
+                    };
+                })
+                .filter(Boolean);
+
+            return res.json(response);
+        } catch (error) {
+            console.error('Error fetching top authors:', error.message);
             return res.status(500).json({ error: error.message });
         }
     },
