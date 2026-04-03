@@ -165,6 +165,16 @@ function generateDownloadToken() {
     return crypto.randomBytes(24).toString('hex');
 }
 
+function queueBackgroundTask(label, task) {
+    setImmediate(async () => {
+        try {
+            await task();
+        } catch (error) {
+            console.error(`${label} failed:`, error.message);
+        }
+    });
+}
+
 function buildEbookDownloadUrl(order) {
     const token = order?.metadata?.download_token;
     if (!order?.order_id || !token) {
@@ -327,10 +337,10 @@ async function sendEbookOrderNotifications(orderRecord, ebookRecord, buyerRecord
         );
     }
 
-    if (buyer?.email && emailService.isConfigured()) {
+    if (eventLabel === 'confirmed' && buyer?.email && emailService.isConfigured()) {
         try {
             await emailService.sendOrderConfirmation(orderForEmail);
-            if (eventLabel === 'confirmed' && selectedFormat === 'ebook') {
+            if (selectedFormat === 'ebook') {
                 await emailService.sendDownloadLink(orderForEmail);
             }
         } catch (error) {
@@ -1455,9 +1465,15 @@ const EbookController = {
             });
 
             if (fullOrder) {
-                await sendEbookOrderNotifications(fullOrder, fullOrder.Ebook, buyer, 'received');
+                queueBackgroundTask('Ebook received notifications', async () => {
+                    await sendEbookOrderNotifications(fullOrder, fullOrder.Ebook, buyer, 'received');
+                    await notifyAdminsOfEbookOrder(fullOrder);
+                });
+            } else {
+                queueBackgroundTask('Ebook admin notifications', async () => {
+                    await notifyAdminsOfEbookOrder(order);
+                });
             }
-            await notifyAdminsOfEbookOrder(fullOrder || order);
 
             return res.status(201).json({
                 message: isMobileMoneyPayment

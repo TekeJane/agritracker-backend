@@ -29,6 +29,16 @@ const SHIPPING_COSTS = {
     express: 2000,
 };
 
+function queueBackgroundTask(label, task) {
+    setImmediate(async () => {
+        try {
+            await task();
+        } catch (error) {
+            console.error(`${label} failed:`, error.message);
+        }
+    });
+}
+
 function normalizeCouponCode(value) {
     return String(value || '').trim().toUpperCase();
 }
@@ -580,8 +590,8 @@ const OrderController = {
             if (isMobileMoneyPayment) {
                 await notifyUser(
                     req.user.id,
-                    'Payment Submitted',
-                    `Your ${getMobileMoneyProviderLabel(payment_method)} payment for order ${completeOrder.order_number} has been submitted for review.`,
+                    'Order Received',
+                    `Your order ${completeOrder.order_number} has been received successfully. ${getMobileMoneyProviderLabel(payment_method)} payment is now waiting for admin confirmation.`,
                     'order',
                     {
                         deep_link: `agritracker://orders/${completeOrder.id}`,
@@ -597,7 +607,7 @@ const OrderController = {
                 await notifyUser(
                     req.user.id,
                     'Order Placed',
-                    'Your order has been placed successfully!',
+                    `Your order ${completeOrder.order_number} has been placed successfully and is now awaiting approval.`,
                     'order',
                     {
                         deep_link: `agritracker://orders/${completeOrder.id}`,
@@ -618,7 +628,7 @@ const OrderController = {
                     await notifyUser(
                         product.seller_id,
                         "New Sale",
-                        `Your product "${product.name}" has been ordered.`,
+                        `Your product "${product.name}" has been ordered and is awaiting fulfillment.`,
                         "sale",
                         {
                             deep_link: `agritracker://orders/${completeOrder.id}`,
@@ -755,7 +765,7 @@ const OrderController = {
                 } else if (effectiveStatus === 'cancelled') {
                     buyerTitle = 'Order Cancelled';
                     buyerMessage = `Your order ${updatedOrder.order_number} has been cancelled.`;
-                } else if (effectivePaymentStatus === 'paid') {
+                } else if (effectivePaymentStatus === 'paid' || effectivePaymentStatus === 'completed') {
                     buyerTitle = 'Payment Confirmed';
                     buyerMessage = `Payment for order ${updatedOrder.order_number} has been confirmed successfully.`;
                 } else if (effectivePaymentStatus === 'failed') {

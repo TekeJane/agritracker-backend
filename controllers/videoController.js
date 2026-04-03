@@ -51,6 +51,24 @@ function buildVideoDownloadUrl(host, videoId) {
     return `${host}/api/videos/${videoId}/download-file`;
 }
 
+function buildVideoShareMessage(videoPayload, shareUrl) {
+    const title = String(videoPayload?.title || 'AgriTracker video').trim();
+    const category = String(videoPayload?.category_name || 'Agriculture').trim();
+    const creator = String(videoPayload?.creator_name || 'AgriTracker').trim();
+    const description = String(videoPayload?.description || '').trim();
+    const summary = description.length > 160
+        ? `${description.slice(0, 157).trim()}...`
+        : description;
+
+    return [
+        `Watch "${title}" on AgriTracker.`,
+        `Category: ${category}`,
+        `Creator: ${creator}`,
+        summary || null,
+        shareUrl,
+    ].filter(Boolean).join('\n\n');
+}
+
 function escapeHtml(value) {
     return String(value ?? '')
         .replace(/&/g, '&amp;')
@@ -663,11 +681,13 @@ const videoController = {
             await video.save();
 
             const host = `${req.protocol}://${req.get('host')}`;
+            const payload = formatVideo(video, host);
             return res.json({
                 message: 'Video shared',
                 shares_count: video.shares_count,
                 share_url: buildVideoShareUrl(host, video.id),
-                video: formatVideo(video, host),
+                share_message: buildVideoShareMessage(payload, buildVideoShareUrl(host, video.id)),
+                video: payload,
             });
         } catch (err) {
             console.error('Share video error:', err);
@@ -742,7 +762,10 @@ const videoController = {
             const host = `${req.protocol}://${req.get('host')}`;
             const payload = formatVideo(video, host);
             const title = escapeHtml(payload.title || 'Shared video');
-            const description = escapeHtml(payload.description || 'Watch this video on Agritracker.');
+            const description = escapeHtml(
+                payload.description ||
+                `${payload.category_name || 'Agriculture'} video from ${payload.creator_name || 'AgriTracker'} on AgriTracker.`
+            );
             const category = escapeHtml(payload.category_name || 'Featured video');
             const creator = escapeHtml(payload.creator_name || 'Agritracker');
             const shareUrl = buildVideoShareUrl(host, video.id);
@@ -802,6 +825,7 @@ const videoController = {
         <img src="${thumbUrl}" alt="${title}" />
       </a>` : ''}
       <div class="meta">
+        <div>Category: <strong>${category}</strong></div>
         <div>Creator: <strong>${creator}</strong></div>
       </div>
       <div class="actions">
