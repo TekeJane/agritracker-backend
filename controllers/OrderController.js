@@ -29,6 +29,10 @@ const SHIPPING_COSTS = {
     express: 2000,
 };
 
+function generateDownloadToken() {
+    return uuidv4().replace(/-/g, '');
+}
+
 function queueBackgroundTask(label, task) {
     setImmediate(async () => {
         try {
@@ -684,6 +688,39 @@ const OrderController = {
                 if (payment_status) {
                     ebookOrder.payment_status = normalizedPaymentStatus;
                 }
+
+                const ebookMetadata =
+                    ebookOrder.metadata && typeof ebookOrder.metadata === 'object'
+                        ? { ...ebookOrder.metadata }
+                        : {};
+
+                if (normalizedPaymentStatus === 'completed') {
+                    if (!ebookMetadata.download_token) {
+                        ebookMetadata.download_token = generateDownloadToken();
+                    }
+
+                    const ebookFormat = String(
+                        ebookMetadata.selected_format ||
+                        ebookOrder.Ebook?.format ||
+                        'ebook'
+                    )
+                        .trim()
+                        .toLowerCase();
+
+                    if (ebookFormat === 'ebook') {
+                        if (!ebookMetadata.digital_delivery) {
+                            ebookMetadata.digital_delivery = 'download_online';
+                        }
+                        if (
+                            !ebookOrder.delivery_method ||
+                            String(ebookOrder.delivery_method).trim().isEmpty
+                        ) {
+                            ebookOrder.delivery_method = 'digital_download';
+                        }
+                    }
+                }
+
+                ebookOrder.metadata = ebookMetadata;
 
                 if (normalizedPaymentStatus === 'completed' && !ebookOrder.paid_at) {
                     ebookOrder.paid_at = new Date();

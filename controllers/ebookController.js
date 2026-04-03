@@ -190,6 +190,27 @@ function buildEbookDownloadUrl(order) {
     return `${host}/api/Ebooks/orders/${encodeURIComponent(order.order_id)}/download?token=${encodeURIComponent(token)}`;
 }
 
+function resolveOrderDownloadFileUrl(orderRecord, host) {
+    const order = orderRecord?.toJSON ? orderRecord.toJSON() : orderRecord;
+    const ebook = order?.Ebook || {};
+    const metadata =
+        order?.metadata && typeof order.metadata === 'object'
+            ? order.metadata
+            : {};
+    const selectedFormat = String(metadata.selected_format || '').trim();
+    const variants =
+        ebook?.format_variants && typeof ebook.format_variants === 'object'
+            ? ebook.format_variants
+            : {};
+    const selectedVariant = selectedFormat ? variants[selectedFormat] : null;
+    const candidateUrl =
+        selectedVariant?.manuscript_url ||
+        ebook?.file_url ||
+        null;
+
+    return buildPublicUrl(candidateUrl, host);
+}
+
 function mapEbookOrderStatus(paymentStatus) {
     switch (String(paymentStatus || '').trim().toLowerCase()) {
         case 'completed':
@@ -1318,10 +1339,12 @@ const EbookController = {
                 payment_status: 'completed',
                 paid_at: new Date(),
                 metadata: {
+                    download_token: generateDownloadToken(),
                     selected_format: pricing.chosenVariant.key,
                     base_price: pricing.basePrice,
                     printing_cost: pricing.printingCost,
                     page_count: pricing.chosenVariant.variant.page_count || null,
+                    digital_delivery: 'download_online',
                 },
             });
 
@@ -1528,8 +1551,10 @@ const EbookController = {
                 return res.status(403).json({ error: 'Invalid download access' });
             }
 
-            const ebook = order.Ebook;
-            const downloadUrl = buildPublicUrl(ebook?.file_url, `${req.protocol}://${req.get('host')}`);
+            const downloadUrl = resolveOrderDownloadFileUrl(
+                order,
+                `${req.protocol}://${req.get('host')}`,
+            );
             if (!downloadUrl) {
                 return res.status(404).json({ error: 'Ebook file not available' });
             }
