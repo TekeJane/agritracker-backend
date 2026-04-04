@@ -10,16 +10,11 @@ const {
     resolveUploadFilePath,
     toUploadDbPath,
 } = require('../config/uploadPaths');
+const { buildPublicMediaUrl } = require('../utils/publicMediaUrl');
 ffmpeg.setFfmpegPath(ffmpegPath);
 
 function buildPublicUrl(value, host) {
-    if (!value) return null;
-    if (value.startsWith('http://') || value.startsWith('https://')) {
-        return value;
-    }
-
-    const normalized = value.replace(/\\/g, '/').replace(/^\/+/, '');
-    return `${host}/${normalized}`;
+    return buildPublicMediaUrl(value, host);
 }
 
 function buildCreatorLink(user) {
