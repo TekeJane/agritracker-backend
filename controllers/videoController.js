@@ -141,6 +141,21 @@ function normalizeVideoContentSource(value, fallback = 'feature_video') {
         : fallback;
 }
 
+function normalizeCreatorLink(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return null;
+    if (raw.startsWith('http://') || raw.startsWith('https://')) {
+        return raw;
+    }
+    if (raw.startsWith('@')) {
+        return `https://www.tiktok.com/${raw}`;
+    }
+    if (raw.includes('.') && !raw.includes(' ')) {
+        return `https://${raw.replace(/^\/+/, '')}`;
+    }
+    return null;
+}
+
 async function resolveAuthenticatedUser(req) {
     if (req.user?.id) {
         return req.user;
@@ -274,15 +289,10 @@ const videoController = {
     // ✅ Create a video tip
     async uploadVideo(req, res) {
         try {
-            console.log("Uploading video...");
             const { title, description, category_id, creator_name, creator_link, content_source, ebook_id } = req.body;
-            console.log("Request body:", req.body);
-
             const videoFile = req.files?.video_url?.[0];
-            console.log("Uploaded file info:", videoFile);
 
             if (!videoFile) {
-                console.log("No video file provided.");
                 return res.status(400).json({ error: 'Video file required' });
             }
 
@@ -290,12 +300,16 @@ const videoController = {
                 return res.status(400).json({ error: 'Title and category are required' });
             }
 
-            const selectedCategory = await VideoCategory.findOne({
-                where: {
-                    id: category_id,
-                    is_active: true,
-                },
-            });
+            if (!req.user?.id) {
+                return res.status(401).json({ error: 'Authenticated user is required to upload a video' });
+            }
+
+            const uploaderRole = normalizeRoleValue(req.user?.role);
+            const isAdminUpload = uploaderRole === 'admin';
+            const categoryWhereClause = isAdminUpload
+                ? { id: category_id }
+                : { id: category_id, is_active: true };
+            const selectedCategory = await VideoCategory.findOne({ where: categoryWhereClause });
 
             if (!selectedCategory) {
                 return res.status(400).json({
@@ -320,17 +334,16 @@ const videoController = {
                 })
                 : null;
 
-            const uploaderRole = normalizeRoleValue(uploader?.role || req.user?.role);
-            const isAdminUpload = uploaderRole === 'admin';
             const normalizedContentSource = isAdminUpload
                 ? normalizeVideoContentSource(content_source, 'feature_video')
                 : 'ebook_clip';
             const normalizedCreatorName = String(creator_name || '').trim()
                 || uploader?.full_name
                 || null;
-            const normalizedCreatorLink = String(creator_link || '').trim()
-                || buildCreatorLink(uploader)
-                || null;
+            const normalizedCreatorLink =
+                normalizeCreatorLink(creator_link) ||
+                buildCreatorLink(uploader) ||
+                null;
 
             const video = await VideoTip.create({
                 title: String(title).trim(),
@@ -347,7 +360,6 @@ const videoController = {
                 is_approved: isAdminUpload,
             });
 
-            console.log("Video record created:", video.toJSON());
             const fullVideo = await VideoTip.findByPk(video.id, {
                 include: [VideoCategory, User],
             });

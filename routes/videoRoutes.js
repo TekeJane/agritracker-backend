@@ -1,17 +1,42 @@
 const express = require('express');
+const multer = require('multer');
 const router = express.Router();
 const videoController = require('../controllers/videoController');
 const { authenticate, authorizeAdmin } = require('../middleware/authMiddleware');
-const upload = require('../middleware/upload');
+const upload = require('../middleware/videoUpload');
 
-router.post(
-  '/',
-  authenticate,
+function handleVideoUpload(req, res, next) {
   upload.fields([
     { name: 'video_url', maxCount: 1 },
     { name: 'thumbnail_image', maxCount: 1 },
     { name: 'creator_image', maxCount: 1 },
-  ]),
+  ])(req, res, (error) => {
+    if (!error) {
+      return next();
+    }
+
+    if (error instanceof multer.MulterError) {
+      if (error.code === 'LIMIT_FILE_SIZE') {
+        return res.status(413).json({
+          error: 'Video file is too large. Maximum upload size is 250 MB.',
+        });
+      }
+
+      return res.status(400).json({
+        error: `Video upload failed: ${error.message}`,
+      });
+    }
+
+    return res.status(400).json({
+      error: error.message || 'Video upload failed.',
+    });
+  });
+}
+
+router.post(
+  '/',
+  authenticate,
+  handleVideoUpload,
   videoController.uploadVideo,
 );
 
