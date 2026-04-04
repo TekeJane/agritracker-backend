@@ -156,6 +156,38 @@ function normalizeCreatorLink(value) {
     return null;
 }
 
+function parsePositiveInteger(value) {
+    if (value === null || value === undefined || value === '') {
+        return null;
+    }
+
+    const parsed = Number.parseInt(String(value).trim(), 10);
+    if (!Number.isInteger(parsed) || parsed <= 0) {
+        return null;
+    }
+
+    return parsed;
+}
+
+function collectUploadedFilePaths(req) {
+    return Object.values(req.files || {})
+        .flat()
+        .map((file) => file?.path)
+        .filter(Boolean);
+}
+
+async function cleanupUploadedFiles(filePaths = []) {
+    await Promise.all(
+        filePaths.map(async (filePath) => {
+            try {
+                await fs.promises.unlink(filePath);
+            } catch (_) {
+                // Ignore cleanup failures so the real upload error can be returned.
+            }
+        }),
+    );
+}
+
 async function resolveAuthenticatedUser(req) {
     if (req.user?.id) {
         return req.user;
@@ -288,37 +320,60 @@ function buildVideoFilters(query = {}) {
 const videoController = {
     // ✅ Create a video tip
     async uploadVideo(req, res) {
+        const uploadedFilePaths = collectUploadedFilePaths(req);
+
         try {
-            const { title, description, category_id, creator_name, creator_link, content_source, ebook_id } = req.body;
+            const { creator_name, creator_link, content_source } = req.body;
             const videoFile = req.files?.video_url?.[0];
+            const thumbnailFile = req.files?.thumbnail_image?.[0] || null;
+            const creatorImageFile = req.files?.creator_image?.[0] || null;
+            const title = String(req.body.title || '').trim();
+            const description = String(req.body.description || '').trim();
+            const categoryId = parsePositiveInteger(req.body.category_id);
+            const ebookId = parsePositiveInteger(req.body.ebook_id);
 
             if (!videoFile) {
+                await cleanupUploadedFiles(uploadedFilePaths);
                 return res.status(400).json({ error: 'Video file required' });
             }
 
-            if (!title || !category_id) {
-                return res.status(400).json({ error: 'Title and category are required' });
+            if (!title) {
+                await cleanupUploadedFiles(uploadedFilePaths);
+                return res.status(400).json({ error: 'Title is required' });
+            }
+
+            if (!categoryId) {
+                await cleanupUploadedFiles(uploadedFilePaths);
+                return res.status(400).json({ error: 'A valid category is required' });
+            }
+
+            if (description.length > 5000) {
+                await cleanupUploadedFiles(uploadedFilePaths);
+                return res.status(400).json({ error: 'Description is too long' });
             }
 
             if (!req.user?.id) {
+                await cleanupUploadedFiles(uploadedFilePaths);
                 return res.status(401).json({ error: 'Authenticated user is required to upload a video' });
             }
 
             const uploaderRole = normalizeRoleValue(req.user?.role);
             const isAdminUpload = uploaderRole === 'admin';
+            const normalizedContentSource = isAdminUpload
+                ? normalizeVideoContentSource(content_source, 'feature_video')
+                : 'ebook_clip';
+
             const categoryWhereClause = isAdminUpload
-                ? { id: category_id }
-                : { id: category_id, is_active: true };
+                ? { id: categoryId }
+                : { id: categoryId, is_active: true };
             const selectedCategory = await VideoCategory.findOne({ where: categoryWhereClause });
 
             if (!selectedCategory) {
+                await cleanupUploadedFiles(uploadedFilePaths);
                 return res.status(400).json({
                     error: 'Selected video category was not found. Refresh categories and try again.',
                 });
             }
-
-            let thumbnailPath = req.files?.thumbnail_image?.[0]?.path || null;
-            const creatorImagePath = req.files?.creator_image?.[0]?.path || null;
 
             const uploader = req.user?.id
                 ? await User.findByPk(req.user.id, {
@@ -334,9 +389,6 @@ const videoController = {
                 })
                 : null;
 
-            const normalizedContentSource = isAdminUpload
-                ? normalizeVideoContentSource(content_source, 'feature_video')
-                : 'ebook_clip';
             const normalizedCreatorName = String(creator_name || '').trim()
                 || uploader?.full_name
                 || null;
@@ -346,17 +398,17 @@ const videoController = {
                 null;
 
             const video = await VideoTip.create({
-                title: String(title).trim(),
-                description: String(description || '').trim() || null,
+                title,
+                description: description || null,
                 video_url: toUploadDbPath(videoFile.path),
-                thumbnail_url: toUploadDbPath(thumbnailPath),
-                category_id,
+                thumbnail_url: toUploadDbPath(thumbnailFile?.path || null),
+                category_id: categoryId,
                 uploaded_by: req.user.id,
-                creator_image: toUploadDbPath(creatorImagePath),
+                creator_image: toUploadDbPath(creatorImageFile?.path || null),
                 creator_name: normalizedCreatorName,
                 creator_link: normalizedCreatorLink,
                 content_source: normalizedContentSource,
-                ebook_id: ebook_id || null,
+                ebook_id: ebookId,
                 is_approved: isAdminUpload,
             });
 
@@ -369,11 +421,11 @@ const videoController = {
                 message: isAdminUpload
                     ? 'Video uploaded successfully'
                     : 'Video uploaded and awaiting approval',
-                thumbnail_processing: !thumbnailPath,
+                thumbnail_processing: !thumbnailFile,
                 video: formatVideo(fullVideo, host),
             });
 
-            if (!thumbnailPath) {
+            if (!thumbnailFile) {
                 setImmediate(async () => {
                     try {
                         await generateThumbnailForVideo(video.id, videoFile.path);
@@ -388,6 +440,7 @@ const videoController = {
             }
         } catch (err) {
             console.error("Upload error:", err);
+            await cleanupUploadedFiles(uploadedFilePaths);
             res.status(500).json({ error: err.message });
         }
     },
