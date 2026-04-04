@@ -305,6 +305,12 @@ function buildVideoFilters(query = {}) {
         whereClause.ebook_id = query.ebook_id;
     }
 
+    if (query.featured === 'true') {
+        whereClause.is_featured = true;
+    } else if (query.featured === 'false') {
+        whereClause.is_featured = false;
+    }
+
     if (query.search && String(query.search).trim()) {
         const searchTerm = `%${String(query.search).trim()}%`;
         whereClause[Op.or] = [
@@ -410,6 +416,7 @@ const videoController = {
                 content_source: normalizedContentSource,
                 ebook_id: ebookId,
                 is_approved: isAdminUpload,
+                is_featured: false,
             });
 
             const fullVideo = await VideoTip.findByPk(video.id, {
@@ -564,6 +571,38 @@ const videoController = {
         } catch (err) {
             console.error("Create category error:", err);
             res.status(500).json({ error: err.message });
+        }
+    },
+
+    async featureVideo(req, res) {
+        try {
+            const video = await VideoTip.findByPk(req.params.id);
+            if (!video) {
+                return res.status(404).json({ error: 'Video not found' });
+            }
+
+            video.is_featured = true;
+            await video.save();
+            return res.json({ message: 'Video marked as featured.' });
+        } catch (err) {
+            console.error('Feature video error:', err);
+            return res.status(500).json({ error: err.message });
+        }
+    },
+
+    async unfeatureVideo(req, res) {
+        try {
+            const video = await VideoTip.findByPk(req.params.id);
+            if (!video) {
+                return res.status(404).json({ error: 'Video not found' });
+            }
+
+            video.is_featured = false;
+            await video.save();
+            return res.json({ message: 'Video removed from featured.' });
+        } catch (err) {
+            console.error('Unfeature video error:', err);
+            return res.status(500).json({ error: err.message });
         }
     },
 

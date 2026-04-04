@@ -318,6 +318,14 @@ const ensureEbookSubCategorySchema = async () => {
         });
         console.log('ðŸŸ¢ VideoTips.ebook_id column ensured');
     }
+    if (!videoTable.is_featured) {
+        await queryInterface.addColumn('VideoTips', 'is_featured', {
+            type: Sequelize.BOOLEAN,
+            allowNull: false,
+            defaultValue: false,
+        });
+        console.log('VideoTips.is_featured column ensured');
+    }
     if (!videoTable.likes_count) {
         await queryInterface.addColumn('VideoTips', 'likes_count', {
             type: Sequelize.INTEGER,

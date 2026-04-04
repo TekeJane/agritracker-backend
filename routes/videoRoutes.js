@@ -75,6 +75,18 @@ router.post('/:id/download', videoController.registerDownload);
 
 router.delete('/:id', authenticate, videoController.deleteVideo);
 router.put(
+  '/:id/feature',
+  authenticate,
+  authorizeAdmin,
+  videoController.featureVideo,
+);
+router.put(
+  '/:id/unfeature',
+  authenticate,
+  authorizeAdmin,
+  videoController.unfeatureVideo,
+);
+router.put(
   '/:id/approve',
   authenticate,
   authorizeAdmin,

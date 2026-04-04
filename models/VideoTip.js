@@ -40,6 +40,11 @@ const VideoTip = sequelize.define('VideoTip', {
         type: DataTypes.BOOLEAN,
         defaultValue: false,
     },
+    is_featured: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+    },
     likes_count: {
         type: DataTypes.INTEGER,
         allowNull: false,
