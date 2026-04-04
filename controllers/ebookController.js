@@ -197,6 +197,34 @@ function normalizeDigitalDeliveryMethod(value) {
     return normalized === 'email_delivery' ? 'email_delivery' : 'download_online';
 }
 
+function resolveEbookDeliveryState(orderRecord) {
+    const item = orderRecord?.toJSON ? orderRecord.toJSON() : orderRecord;
+    const metadata =
+        item?.metadata && typeof item.metadata === 'object' ? item.metadata : {};
+    const selectedFormat = String(
+        metadata.selected_format || item?.Ebook?.format || 'ebook'
+    )
+        .trim()
+        .toLowerCase();
+    const digitalDelivery = normalizeDigitalDeliveryMethod(
+        metadata.digital_delivery || item?.delivery_method
+    );
+    const isCompleted =
+        String(item?.payment_status || '').trim().toLowerCase() === 'completed';
+    const isDigitalEbook = selectedFormat === 'ebook';
+    const isOnlineDownload = isDigitalEbook && digitalDelivery === 'download_online';
+    const isEmailDelivery = isDigitalEbook && digitalDelivery === 'email_delivery';
+
+    return {
+        selectedFormat,
+        digitalDelivery,
+        isCompleted,
+        isDigitalEbook,
+        isOnlineDownload,
+        isEmailDelivery,
+    };
+}
+
 function sanitizeDownloadFilename(title, filePath) {
     const extension = path.extname(filePath) || '.pdf';
     const safeTitle = String(title || 'agritracker-ebook')
@@ -290,12 +318,7 @@ function normalizeEbookOrder(orderRecord) {
     const metadata = item.metadata && typeof item.metadata === 'object'
         ? item.metadata
         : {};
-    const selectedFormat = String(metadata.selected_format || item.Ebook?.format || 'ebook')
-        .trim()
-        .toLowerCase();
-    const digitalDelivery = normalizeDigitalDeliveryMethod(
-        metadata.digital_delivery || item.delivery_method
-    );
+    const deliveryState = resolveEbookDeliveryState(item);
 
     return {
         ...item,
@@ -306,8 +329,8 @@ function normalizeEbookOrder(orderRecord) {
         total_amount: item.total_amount || item.price_paid || 0,
         shipping_address: item.customer_address || null,
         shipping_method:
-            selectedFormat === 'ebook'
-                ? digitalDelivery
+            deliveryState.isDigitalEbook
+                ? deliveryState.digitalDelivery
                 : (
                     metadata.shipping_method ||
                     item.delivery_method ||
@@ -316,8 +339,16 @@ function normalizeEbookOrder(orderRecord) {
         notes: item.note ?? item.notes ?? null,
         createdAt: item.createdAt || item.purchased_at || item.paid_at,
         payment_method: item.payment_method || 'N/A',
-        download_url: buildEbookDownloadUrl(item),
-        download_ready: String(item.payment_status || '').toLowerCase() === 'completed',
+        download_url: deliveryState.isOnlineDownload ? buildEbookDownloadUrl(item) : '',
+        download_ready: deliveryState.isCompleted && deliveryState.isOnlineDownload,
+        auto_download: deliveryState.isCompleted && deliveryState.isOnlineDownload,
+        email_delivery_ready: deliveryState.isCompleted && deliveryState.isEmailDelivery,
+        digital_delivery_method: deliveryState.isDigitalEbook
+            ? deliveryState.digitalDelivery
+            : null,
+        delivery_target: deliveryState.isEmailDelivery
+            ? item.customer_email || null
+            : item.customer_address || null,
         User: item.User || null,
         Ebook: item.Ebook
             ? {
@@ -363,19 +394,18 @@ async function sendEbookOrderNotifications(orderRecord, ebookRecord, buyerRecord
         order.metadata && typeof order.metadata === 'object'
             ? order.metadata
             : {};
-    const selectedFormat = String(
-        metadata.selected_format || ebook?.format || 'ebook'
-    ).trim().toLowerCase();
-    const digitalDelivery = String(
-        metadata.digital_delivery || order.delivery_method || 'download_online'
-    ).trim().toLowerCase();
+    const deliveryState = resolveEbookDeliveryState({
+        ...order,
+        Ebook: ebook,
+        metadata,
+    });
     const buyerMessage =
         eventLabel === 'confirmed'
-            ? selectedFormat === 'ebook'
-                ? digitalDelivery === 'email_delivery'
+            ? deliveryState.isDigitalEbook
+                ? deliveryState.isEmailDelivery
                     ? `Your ebook order ${order.order_id} has been confirmed. Your ebook will be sent to your email shortly.`
                     : `Your ebook order ${order.order_id} has been confirmed. Your download is now ready.`
-                : `Your ${selectedFormat} order ${order.order_id} has been confirmed and is now being prepared for delivery.`
+                : `Your ${deliveryState.selectedFormat} order ${order.order_id} has been confirmed and is now being prepared for delivery.`
             : `Your order ${order.order_id} has been received successfully and is awaiting admin confirmation.`;
 
     const orderForEmail = {
@@ -418,7 +448,7 @@ async function sendEbookOrderNotifications(orderRecord, ebookRecord, buyerRecord
     if (eventLabel === 'confirmed' && buyer?.email && emailService.isConfigured()) {
         try {
             await emailService.sendOrderConfirmation(orderForEmail);
-            if (selectedFormat === 'ebook') {
+            if (deliveryState.isEmailDelivery) {
                 await emailService.sendDownloadLink(orderForEmail);
             }
         } catch (error) {
