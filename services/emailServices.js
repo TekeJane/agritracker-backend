@@ -25,7 +25,7 @@ class EmailService {
         return (
             process.env.BACKEND_PUBLIC_URL ||
             process.env.APP_BASE_URL ||
-            'https://agritracker-backend-production.up.railway.app'
+            'https://agritracker-backend-production-1636.up.railway.app'
         ).replace(/\/+$/, '');
     }
 

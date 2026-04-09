@@ -186,7 +186,7 @@ function buildEbookDownloadUrl(order) {
     const host = (
         process.env.BACKEND_PUBLIC_URL ||
         process.env.APP_BASE_URL ||
-        'https://agritracker-backend-production.up.railway.app'
+        'https://agritracker-backend-production-1636.up.railway.app'
     ).replace(/\/+$/, '');
 
     return `${host}/api/Ebooks/orders/${encodeURIComponent(order.order_id)}/download?token=${encodeURIComponent(token)}`;

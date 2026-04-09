@@ -445,8 +445,8 @@ const testConnection = async () => {
 testConnection().then(connected => {
     if (connected) {
         // Sync database and start server
-        ensureEbookSubCategorySchema()
-            .then(() => sequelize.sync({ force: false }))
+        sequelize.sync({ force: false })
+            .then(() => ensureEbookSubCategorySchema())
             .then(() => {
                 console.log('🟢 Database synced');
                 const PORT = process.env.PORT || 3000;
