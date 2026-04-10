@@ -26,11 +26,12 @@ function resolvePlantOpenAIKey() {
   if (looksLikeApiKey(process.env.OPENAI_PLANT_API_KEY)) {
     return process.env.OPENAI_PLANT_API_KEY;
   }
-  if (looksLikeApiKey(process.env.OPENAI_PLANT_MODEL)) {
-    return process.env.OPENAI_PLANT_MODEL;
-  }
   if (looksLikeApiKey(process.env.OPENAI_API_KEY)) {
     return process.env.OPENAI_API_KEY;
+  }
+  // Legacy fallback for older deployments that stored the API key in the model var.
+  if (looksLikeApiKey(process.env.OPENAI_PLANT_MODEL)) {
+    return process.env.OPENAI_PLANT_MODEL;
   }
   return null;
 }
