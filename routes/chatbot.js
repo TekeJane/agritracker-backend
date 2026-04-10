@@ -3,6 +3,25 @@ const axios = require('axios');
 require('dotenv').config();
 
 const router = express.Router();
+const OPENAI_CHAT_MODEL = process.env.OPENAI_CHAT_MODEL || 'gpt-4o-mini';
+const OPENROUTER_CHAT_MODEL =
+  process.env.OPENROUTER_CHAT_MODEL || 'openai/gpt-4o-mini';
+
+function resolveOpenAIKey() {
+  return (
+    process.env.OPENAI_CHAT_API_KEY ||
+    process.env.OPENAI_API_KEY ||
+    null
+  );
+}
+
+function resolveOpenRouterKey() {
+  return (
+    process.env.OPENROUTER_CHAT_API_KEY ||
+    process.env.OPENROUTER_API_KEY ||
+    null
+  );
+}
 
 const SYSTEM_PROMPT = `You are AgriTech AI, an assistant for a Cameroon-based agritech app.
 Help users with farming advice, weather-based crop actions, pests, selling crops, market questions, registration, and support.
@@ -47,7 +66,8 @@ function buildLocalFallback(userMessage) {
 }
 
 async function requestOpenAI(userMessage) {
-  if (!process.env.OPENAI_API_KEY) {
+  const apiKey = resolveOpenAIKey();
+  if (!apiKey) {
     return null;
   }
 
@@ -56,7 +76,7 @@ async function requestOpenAI(userMessage) {
   const response = await axios.post(
     'https://api.openai.com/v1/chat/completions',
     {
-      model: 'gpt-4o-mini',
+      model: OPENAI_CHAT_MODEL,
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: userMessage },
@@ -66,7 +86,7 @@ async function requestOpenAI(userMessage) {
     },
     {
       headers: {
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
       timeout: 30000,
@@ -77,7 +97,8 @@ async function requestOpenAI(userMessage) {
 }
 
 async function requestOpenRouter(userMessage) {
-  if (!process.env.OPENROUTER_API_KEY) {
+  const apiKey = resolveOpenRouterKey();
+  if (!apiKey) {
     return null;
   }
 
@@ -86,7 +107,7 @@ async function requestOpenRouter(userMessage) {
   const response = await axios.post(
     'https://openrouter.ai/api/v1/chat/completions',
     {
-      model: 'openai/gpt-4o-mini',
+      model: OPENROUTER_CHAT_MODEL,
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: userMessage },
@@ -96,7 +117,7 @@ async function requestOpenRouter(userMessage) {
     },
     {
       headers: {
-        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
       timeout: 30000,

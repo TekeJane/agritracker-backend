@@ -17,6 +17,34 @@ const OPENROUTER_MODEL =
   process.env.OPENROUTER_PLANT_MODEL || 'openai/gpt-4o-mini';
 const REQUEST_TIMEOUT_MS = 45000;
 
+function looksLikeApiKey(value) {
+  const trimmed = value?.toString().trim();
+  return !!trimmed && trimmed.startsWith('sk-');
+}
+
+function resolvePlantOpenAIKey() {
+  if (looksLikeApiKey(process.env.OPENAI_PLANT_API_KEY)) {
+    return process.env.OPENAI_PLANT_API_KEY;
+  }
+  if (looksLikeApiKey(process.env.OPENAI_PLANT_MODEL)) {
+    return process.env.OPENAI_PLANT_MODEL;
+  }
+  if (looksLikeApiKey(process.env.OPENAI_API_KEY)) {
+    return process.env.OPENAI_API_KEY;
+  }
+  return null;
+}
+
+function resolvePlantOpenRouterKey() {
+  if (looksLikeApiKey(process.env.OPENROUTER_PLANT_API_KEY)) {
+    return process.env.OPENROUTER_PLANT_API_KEY;
+  }
+  if (looksLikeApiKey(process.env.OPENROUTER_API_KEY)) {
+    return process.env.OPENROUTER_API_KEY;
+  }
+  return null;
+}
+
 const SYSTEM_PROMPT = `You are Plant AI Doctor, a careful agronomist and plant-vision assistant.
 Analyze one crop image and return only valid JSON.
 Be cautious: do not invent certainty. If the image is unclear, say so.
@@ -457,7 +485,8 @@ async function refineFocusRegionsWithOpenAI(
   contextPayload,
   safeDiagnosis,
 ) {
-  if (!process.env.OPENAI_API_KEY) return null;
+  const apiKey = resolvePlantOpenAIKey();
+  if (!apiKey) return null;
   const model = sanitizeModelName(OPENAI_MODEL, 'gpt-4o-mini');
 
   const response = await axios.post(
@@ -500,7 +529,7 @@ async function refineFocusRegionsWithOpenAI(
     },
     {
       headers: {
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
       timeout: REQUEST_TIMEOUT_MS,
@@ -517,7 +546,8 @@ async function refineFocusRegionsWithOpenRouter(
   contextPayload,
   safeDiagnosis,
 ) {
-  if (!process.env.OPENROUTER_API_KEY) return null;
+  const apiKey = resolvePlantOpenRouterKey();
+  if (!apiKey) return null;
   const model = sanitizeModelName(
     OPENROUTER_MODEL,
     'openai/gpt-4o-mini',
@@ -563,7 +593,7 @@ async function refineFocusRegionsWithOpenRouter(
     },
     {
       headers: {
-        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
       timeout: REQUEST_TIMEOUT_MS,
@@ -576,7 +606,8 @@ async function refineFocusRegionsWithOpenRouter(
 }
 
 async function sendToOpenAI(imageDataUrl, contextPayload) {
-  if (!process.env.OPENAI_API_KEY) return null;
+  const apiKey = resolvePlantOpenAIKey();
+  if (!apiKey) return null;
   const model = sanitizeModelName(OPENAI_MODEL, 'gpt-4o-mini');
   const cropGuidance = buildCropGuidance(contextPayload.cropType);
   const content = [
@@ -626,7 +657,7 @@ async function sendToOpenAI(imageDataUrl, contextPayload) {
       payload,
       {
         headers: {
-          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          Authorization: `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
         },
         timeout: REQUEST_TIMEOUT_MS,
@@ -647,7 +678,7 @@ async function sendToOpenAI(imageDataUrl, contextPayload) {
       },
       {
         headers: {
-          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          Authorization: `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
         },
         timeout: REQUEST_TIMEOUT_MS,
@@ -661,7 +692,8 @@ async function sendToOpenAI(imageDataUrl, contextPayload) {
 }
 
 async function sendToOpenRouter(imageDataUrl, contextPayload) {
-  if (!process.env.OPENROUTER_API_KEY) return null;
+  const apiKey = resolvePlantOpenRouterKey();
+  if (!apiKey) return null;
   const model = sanitizeModelName(
     OPENROUTER_MODEL,
     'openai/gpt-4o-mini',
@@ -714,7 +746,7 @@ async function sendToOpenRouter(imageDataUrl, contextPayload) {
       payload,
       {
         headers: {
-          Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          Authorization: `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
         },
         timeout: REQUEST_TIMEOUT_MS,
@@ -735,7 +767,7 @@ async function sendToOpenRouter(imageDataUrl, contextPayload) {
       },
       {
         headers: {
-          Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          Authorization: `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
         },
         timeout: REQUEST_TIMEOUT_MS,
@@ -774,7 +806,8 @@ function buildDiagnosisChatFallback({
 }
 
 async function requestDiagnosisFollowUpOpenAI(payload) {
-  if (!process.env.OPENAI_API_KEY) return null;
+  const apiKey = resolvePlantOpenAIKey();
+  if (!apiKey) return null;
   const model = sanitizeModelName(OPENAI_MODEL, 'gpt-4o-mini');
 
   const response = await axios.post(
@@ -797,7 +830,7 @@ async function requestDiagnosisFollowUpOpenAI(payload) {
     },
     {
       headers: {
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
       timeout: REQUEST_TIMEOUT_MS,
@@ -808,7 +841,8 @@ async function requestDiagnosisFollowUpOpenAI(payload) {
 }
 
 async function requestDiagnosisFollowUpOpenRouter(payload) {
-  if (!process.env.OPENROUTER_API_KEY) return null;
+  const apiKey = resolvePlantOpenRouterKey();
+  if (!apiKey) return null;
   const model = sanitizeModelName(OPENROUTER_MODEL, 'openai/gpt-4o-mini');
 
   const response = await axios.post(
@@ -831,7 +865,7 @@ async function requestDiagnosisFollowUpOpenRouter(payload) {
     },
     {
       headers: {
-        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
       timeout: REQUEST_TIMEOUT_MS,
