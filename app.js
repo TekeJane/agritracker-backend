@@ -45,6 +45,11 @@ if (legacyUploadDir !== primaryUploadDir) {
     app.use('/uploads', express.static(legacyUploadDir));
 }
 
+console.log(`[UPLOADS] Primary upload directory: ${primaryUploadDir}`);
+if (legacyUploadDir !== primaryUploadDir) {
+    console.log(`[UPLOADS] Legacy upload directory fallback: ${legacyUploadDir}`);
+}
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/myprofile', myProfileRoutes);
