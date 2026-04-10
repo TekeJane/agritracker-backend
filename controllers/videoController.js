@@ -363,7 +363,21 @@ const videoController = {
                 return res.status(401).json({ error: 'Authenticated user is required to upload a video' });
             }
 
-            const uploaderRole = normalizeRoleValue(req.user?.role);
+            const uploader = req.user?.id
+                ? await User.findByPk(req.user.id, {
+                    attributes: [
+                        'id',
+                        'full_name',
+                        'role',
+                        'facEbook',
+                        'instagram',
+                        'twitter',
+                        'tiktok',
+                    ],
+                })
+                : null;
+
+            const uploaderRole = normalizeRoleValue(uploader?.role || req.user?.role);
             const isAdminUpload = uploaderRole === 'admin';
             const normalizedContentSource = isAdminUpload
                 ? normalizeVideoContentSource(content_source, 'feature_video')
@@ -380,20 +394,6 @@ const videoController = {
                     error: 'Selected video category was not found. Refresh categories and try again.',
                 });
             }
-
-            const uploader = req.user?.id
-                ? await User.findByPk(req.user.id, {
-                    attributes: [
-                        'id',
-                        'full_name',
-                        'role',
-                        'facEbook',
-                        'instagram',
-                        'twitter',
-                        'tiktok',
-                    ],
-                })
-                : null;
 
             const normalizedCreatorName = String(creator_name || '').trim()
                 || uploader?.full_name
