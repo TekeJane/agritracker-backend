@@ -75,7 +75,7 @@ const buildUserResponse = (
         id: user.id,
         full_name: user.full_name,
         account_type: user.account_type || null,
-        role: user.account_type || null,
+        role: user.role || null,
         email: user.email,
         phone: user.phone,
         address: user.address,
