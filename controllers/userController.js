@@ -2,6 +2,18 @@ const bcrypt = require('bcrypt');
 const User = require('../models/user');
 const { toUploadDbPath } = require('../config/uploadPaths');
 
+function isBcryptHash(value) {
+    return typeof value === 'string' && /^\$2[aby]\$\d{2}\$/.test(value);
+}
+
+async function passwordMatches(inputPassword, storedPassword) {
+    if (!inputPassword || !storedPassword) return false;
+    if (isBcryptHash(storedPassword)) {
+        return bcrypt.compare(inputPassword, storedPassword);
+    }
+    return inputPassword === storedPassword;
+}
+
 const registerUser = async (req, res) => {
     try {
         const {
@@ -68,7 +80,7 @@ const changePassword = async (req, res) => {
         }
 
         // Check old password
-        const isMatch = await bcrypt.compare(oldPassword, user.password);
+        const isMatch = await passwordMatches(oldPassword, user.password);
         if (!isMatch) {
             return res.status(401).json({ message: 'Incorrect old password' });
         }

@@ -1,5 +1,16 @@
+const bcrypt = require('bcrypt');
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/db');
+
+function isBcryptHash(value) {
+    return typeof value === 'string' && /^\$2[aby]\$\d{2}\$/.test(value);
+}
+
+async function hashPasswordIfNeeded(user) {
+    if (!user.changed('password')) return;
+    if (!user.password || isBcryptHash(user.password)) return;
+    user.password = await bcrypt.hash(user.password, 10);
+}
 
 const User = sequelize.define('User', {
     full_name: {
@@ -67,6 +78,10 @@ const User = sequelize.define('User', {
 }, {
     tableName: 'users',
     timestamps: true,
+    hooks: {
+        beforeCreate: hashPasswordIfNeeded,
+        beforeUpdate: hashPasswordIfNeeded,
+    },
 });
 
 User.associate = (models) => {

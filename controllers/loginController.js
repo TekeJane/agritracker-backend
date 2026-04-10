@@ -5,6 +5,18 @@ const User = require('../models/user');
 const otpStore = {};
 const axios = require('axios');
 
+function isBcryptHash(value) {
+    return typeof value === 'string' && /^\$2[aby]\$\d{2}\$/.test(value);
+}
+
+async function passwordMatches(inputPassword, storedPassword) {
+    if (!inputPassword || !storedPassword) return false;
+    if (isBcryptHash(storedPassword)) {
+        return bcrypt.compare(inputPassword, storedPassword);
+    }
+    return inputPassword === storedPassword;
+}
+
 // Send OTP via ClickSend
 const sendOtp = async (req, res) => {
     const { phone } = req.body;
@@ -118,7 +130,7 @@ const loginUser = async (req, res) => {
             return res.status(404).json({ message: 'User not found' });
         }
 
-        const passwordMatch = await bcrypt.compare(password, user.password);
+        const passwordMatch = await passwordMatches(password, user.password);
         if (!passwordMatch) {
             return res.status(401).json({ message: 'Invalid credentials' });
         }
