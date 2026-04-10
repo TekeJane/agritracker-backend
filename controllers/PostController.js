@@ -2,6 +2,7 @@ const path = require('path');
 const { Op } = require('sequelize');
 
 const { Post, User, Comment, Like } = require('../models');
+const { toUploadDbPath } = require('../config/uploadPaths');
 
 function getHost(req) {
   return `${req.protocol}://${req.get('host')}`;
@@ -242,7 +243,7 @@ exports.createPost = async (req, res) => {
       title,
       text,
       category: category || 'general',
-      image_url: req.file ? `/uploads/${req.file.filename}` : null,
+      image_url: req.file ? toUploadDbPath(req.file.path) : null,
     });
 
     const postWithUser = await Post.findByPk(newPost.id, {
@@ -658,7 +659,7 @@ exports.updatePost = async (req, res) => {
     if (title !== undefined) postRecord.title = title;
     if (text !== undefined) postRecord.text = text;
     if (category !== undefined) postRecord.category = category;
-    if (req.file) postRecord.image_url = `/uploads/${req.file.filename}`;
+    if (req.file) postRecord.image_url = toUploadDbPath(req.file.path);
 
     await postRecord.save();
 

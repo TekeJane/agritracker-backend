@@ -1,5 +1,6 @@
 const { Product, Category, SubCategory, User, OrderItem, Order, sequelize } = require('../models');
 const { Op } = require('sequelize');
+const { toUploadDbPath } = require('../config/uploadPaths');
 const TOP_MARKETPLACE_THRESHOLD = 50;
 
 function formatMediaUrls(mediaList, hostUrl) {
@@ -451,8 +452,8 @@ const ProductController = {
                 return res.status(400).json({ error: 'At least 3 product images are required' });
             }
 
-            const imageUrls = imageFiles.map((file) => `/uploads/${file.filename}`);
-            const videoUrls = videoFiles.map((file) => `/uploads/${file.filename}`);
+            const imageUrls = imageFiles.map((file) => toUploadDbPath(file.path));
+            const videoUrls = videoFiles.map((file) => toUploadDbPath(file.path));
 
             const isPreorderBool = isPreorder === 'true' || isPreorder === true;
             const parsedPreorderDays =

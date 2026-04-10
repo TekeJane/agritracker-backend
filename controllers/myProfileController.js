@@ -4,11 +4,30 @@ const { toUploadDbPath } = require('../config/uploadPaths');
 const TOP_MARKETPLACE_THRESHOLD = 50;
 
 const getBaseUrl = (req) => {
-    const envBaseUrl = process.env.BASE_URL;
+    const envBaseUrl =
+        process.env.BASE_URL ||
+        process.env.BACKEND_PUBLIC_URL ||
+        process.env.APP_BASE_URL;
     if (envBaseUrl && envBaseUrl.trim().length > 0) {
         return envBaseUrl.endsWith('/') ? envBaseUrl : `${envBaseUrl}/`;
     }
     return `${req.protocol}://${req.get('host')}/`;
+};
+
+const toRoundedRating = (value) => parseFloat(Number(value || 0).toFixed(1));
+
+const getReviewMetrics = (reviews) => {
+    const normalizedReviews = Array.isArray(reviews) ? reviews : [];
+    const count = normalizedReviews.length;
+    const total = normalizedReviews.reduce(
+        (sum, review) => sum + Number(review?.rating || 0),
+        0
+    );
+
+    return {
+        count,
+        average: count > 0 ? total / count : 0,
+    };
 };
 
 const buildMediaUrl = (baseUrl, value) => {
@@ -34,16 +53,23 @@ const buildUserResponse = (
     authorOrderCount = 0,
     sellerOrderCount = 0
 ) => {
-    const combinedReviewCount = (sellerReviewCount ?? user.reviews?.length ?? 0) + (authorReviewCount ?? 0);
+    const safeSellerReviewCount = sellerReviewCount ?? 0;
+    const safeAuthorReviewCount = authorReviewCount ?? 0;
+    const safeSellerAverageRating = typeof sellerAverageRating === 'number' ? sellerAverageRating : 0;
+    const safeAuthorAverageRating = typeof authorAverageRating === 'number' ? authorAverageRating : 0;
+    const combinedReviewCount = safeSellerReviewCount + safeAuthorReviewCount;
     const weightedRatingTotal =
-        ((typeof sellerAverageRating === 'number' ? sellerAverageRating : 0) * (sellerReviewCount ?? user.reviews?.length ?? 0)) +
-        ((typeof authorAverageRating === 'number' ? authorAverageRating : 0) * (authorReviewCount ?? 0));
+        (safeSellerAverageRating * safeSellerReviewCount) +
+        (safeAuthorAverageRating * safeAuthorReviewCount);
     const averageRating =
         combinedReviewCount > 0
             ? weightedRatingTotal / combinedReviewCount
             : user.reviews?.length > 0
                 ? user.reviews.reduce((acc, r) => acc + r.rating, 0) / user.reviews.length
                 : 0;
+    const roundedAverageRating = toRoundedRating(averageRating);
+    const roundedSellerAverageRating = toRoundedRating(safeSellerAverageRating);
+    const roundedAuthorAverageRating = toRoundedRating(safeAuthorAverageRating);
 
     return {
         id: user.id,
@@ -65,46 +91,56 @@ const buildUserResponse = (
         tiktok: user.tiktok,
         whatsapp: user.phone,
         created_at: user.createdAt,
-        average_rating: parseFloat(averageRating.toFixed(1)),
-        seller_review_count: combinedReviewCount,
+        rating: roundedAverageRating,
+        average_rating: roundedAverageRating,
+        joined_rating: roundedAverageRating,
+        combined_review_count: combinedReviewCount,
+        joined_review_count: combinedReviewCount,
+        seller_rating: roundedSellerAverageRating,
+        seller_average_rating: roundedSellerAverageRating,
+        seller_review_count: safeSellerReviewCount,
+        author_rating: roundedAuthorAverageRating,
+        author_average_rating: roundedAuthorAverageRating,
+        author_review_count: safeAuthorReviewCount,
         author_order_count: authorOrderCount,
         seller_order_count: sellerOrderCount,
         products: (user.products ?? []).map((product) => {
             const item = product.toJSON ? product.toJSON() : product;
             const orderCount = Number(item.order_count || 0);
+            const productReviewMetrics = getReviewMetrics(item.Reviews);
             return {
                 ...item,
                 order_count: orderCount,
                 orderCount,
+                ratings_count: productReviewMetrics.count,
+                ratings_average: toRoundedRating(productReviewMetrics.average),
                 is_top_seller_item: orderCount >= TOP_MARKETPLACE_THRESHOLD,
                 isTopSellerItem: orderCount >= TOP_MARKETPLACE_THRESHOLD,
             };
         }),
-        ebooks: (user.Ebooks ?? []).map((ebook) => ({
-            ...ebook.toJSON(),
-            order_count: Number(ebook.order_count || 0),
-            orderCount: Number(ebook.order_count || 0),
-            is_top_author_item: Number(ebook.order_count || 0) >= TOP_MARKETPLACE_THRESHOLD,
-            isTopAuthorItem: Number(ebook.order_count || 0) >= TOP_MARKETPLACE_THRESHOLD,
-            ratings_count: ebook.Reviews?.length ?? 0,
-            ratings_average:
-                ebook.Reviews?.isNotEmpty == true
-                    ? Number(
-                        (
-                            ebook.Reviews.reduce((acc, review) => acc + review.rating, 0) /
-                            ebook.Reviews.length
-                        ).toFixed(1)
-                    )
-                    : 0,
-            cover_image: buildMediaUrl(baseUrl, ebook.cover_image),
-            gallery_images: (ebook.gallery_images ?? []).map((image) =>
-                buildMediaUrl(baseUrl, image)
-            ),
-            file_url: buildMediaUrl(baseUrl, ebook.file_url),
-            category_name: ebook.EbookCategory?.name ?? null,
-            sub_category_name: ebook.EbookSubCategory?.name ?? null,
-            author_name: user.full_name,
-        })),
+        ebooks: (user.Ebooks ?? []).map((ebook) => {
+            const item = ebook.toJSON ? ebook.toJSON() : ebook;
+            const orderCount = Number(item.order_count || 0);
+            const ebookReviewMetrics = getReviewMetrics(item.Reviews);
+
+            return {
+                ...item,
+                order_count: orderCount,
+                orderCount,
+                is_top_author_item: orderCount >= TOP_MARKETPLACE_THRESHOLD,
+                isTopAuthorItem: orderCount >= TOP_MARKETPLACE_THRESHOLD,
+                ratings_count: ebookReviewMetrics.count,
+                ratings_average: toRoundedRating(ebookReviewMetrics.average),
+                cover_image: buildMediaUrl(baseUrl, item.cover_image),
+                gallery_images: (item.gallery_images ?? []).map((image) =>
+                    buildMediaUrl(baseUrl, image)
+                ),
+                file_url: buildMediaUrl(baseUrl, item.file_url),
+                category_name: item.EbookCategory?.name ?? null,
+                sub_category_name: item.EbookSubCategory?.name ?? null,
+                author_name: user.full_name,
+            };
+        }),
     };
 };
 
@@ -211,7 +247,7 @@ const getMyProfile = async (req, res) => {
         const user = await User.findByPk(userId, {
             attributes: { exclude: ['password'] },
             include: [
-                { model: Product, as: 'products' },
+                { model: Product, as: 'products', include: [{ model: Review, attributes: ['rating'], required: false }] },
                 { model: Review, as: 'reviews', attributes: ['rating'] },
                 {
                     model: Ebook,
@@ -290,7 +326,7 @@ const getUserProfile = async (req, res) => {
         const user = await User.findByPk(userId, {
             attributes: { exclude: ['password'] },
             include: [
-                { model: Product, as: 'products' },
+                { model: Product, as: 'products', include: [{ model: Review, attributes: ['rating'], required: false }] },
                 { model: Review, as: 'reviews', attributes: ['rating'] },
                 {
                     model: Ebook,
@@ -388,7 +424,7 @@ const updateMyProfile = async (req, res) => {
         const updatedUser = await User.findByPk(userId, {
             attributes: { exclude: ['password'] },
             include: [
-                { model: Product, as: 'products' },
+                { model: Product, as: 'products', include: [{ model: Review, attributes: ['rating'], required: false }] },
                 { model: Review, as: 'reviews', attributes: ['rating'] },
                 {
                     model: Ebook,

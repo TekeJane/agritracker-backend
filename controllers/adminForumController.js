@@ -2,6 +2,7 @@ const ForumMessage = require('../models/Post');
 const User = require('../models/user');
 const { Op } = require('sequelize');
 const { buildPublicMediaUrl } = require('../utils/publicMediaUrl');
+const { toUploadDbPath } = require('../config/uploadPaths');
 
 ForumMessage.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
 
@@ -54,7 +55,7 @@ const PostMessage = async (req, res) => {
         let image_url = null;
 
         if (req.file) {
-            image_url = `/uploads/${req.file.filename}`;
+            image_url = toUploadDbPath(req.file.path);
         } else if (req.body.image_url) {
             image_url = req.body.image_url;
         }

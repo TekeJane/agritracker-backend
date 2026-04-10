@@ -4,7 +4,9 @@ const path = require('path');
 const backendRoot = path.resolve(__dirname, '..');
 const configuredUploadRoot =
   process.env.UPLOAD_DIR ||
+  process.env.RAILWAY_VOLUME_PATH ||
   process.env.RAILWAY_VOLUME_MOUNT_PATH ||
+  process.env.VOLUME_MOUNT_PATH ||
   path.join(backendRoot, 'uploads');
 const primaryUploadDir = path.resolve(configuredUploadRoot);
 const legacyUploadDir = path.join(process.cwd(), 'uploads');
