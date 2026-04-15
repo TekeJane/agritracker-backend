@@ -64,6 +64,85 @@ function normalizeCouponCode(value) {
     return String(value || '').trim().toUpperCase();
 }
 
+function parseBooleanFlag(value) {
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'number') return value !== 0;
+    return ['true', '1', 'yes', 'on'].includes(String(value || '').trim().toLowerCase());
+}
+
+function parseNullableInteger(value) {
+    if (value === undefined || value === null || value === '') {
+        return null;
+    }
+
+    const parsed = parseInt(value, 10);
+    return Number.isFinite(parsed) ? parsed : null;
+}
+
+function resolveProductPreorderState(product) {
+    const item = product?.toJSON ? product.toJSON() : product;
+    const storedIsPreorder = Boolean(item?.is_preorder);
+    const preorderDays = parseNullableInteger(item?.preorder_days);
+    const createdAt = item?.createdAt ? new Date(item.createdAt) : new Date();
+    let availableDate = item?.preorder_available_date
+        ? new Date(item.preorder_available_date)
+        : null;
+
+    if ((!availableDate || Number.isNaN(availableDate.getTime())) && storedIsPreorder && preorderDays && preorderDays > 0) {
+        availableDate = new Date(createdAt.getTime() + preorderDays * 24 * 60 * 60 * 1000);
+    }
+
+    if (availableDate && Number.isNaN(availableDate.getTime())) {
+        availableDate = null;
+    }
+
+    const isActivePreorder =
+        storedIsPreorder &&
+        (!availableDate || availableDate.getTime() > Date.now());
+
+    return {
+        storedIsPreorder,
+        isActivePreorder,
+        preorderDays,
+        preorderAvailableDate: availableDate,
+        isAvailableForPurchase: !isActivePreorder,
+    };
+}
+
+function buildProductPreorderFields(input = {}, existingProduct = null) {
+    const existing = existingProduct?.toJSON ? existingProduct.toJSON() : (existingProduct || {});
+    const rawIsPreorder =
+        input.isPreorder ??
+        input.is_preorder ??
+        existing.is_preorder;
+    const rawPreorderDays =
+        input.preorderDays ??
+        input.preorder_days ??
+        existing.preorder_days;
+    const isPreorder = parseBooleanFlag(rawIsPreorder);
+    const preorderDays = isPreorder ? parseNullableInteger(rawPreorderDays) : null;
+
+    if (!isPreorder) {
+        return {
+            is_preorder: false,
+            preorder_days: null,
+            preorder_available_date: null,
+        };
+    }
+
+    const baseDate = existing.createdAt ? new Date(existing.createdAt) : new Date();
+    const preorderAvailableDate =
+        preorderDays && preorderDays > 0
+            ? new Date(baseDate.getTime() + preorderDays * 24 * 60 * 60 * 1000)
+            : existing.preorder_available_date || null;
+
+    return {
+        is_preorder: true,
+        preorder_days: preorderDays,
+        preorder_available_date: preorderAvailableDate,
+    };
+}
+
 function getProductDiscountDetails(product) {
     const originalPrice = Number(product.price || 0);
     const discountPrice = Number(product.discount_price || 0);
@@ -104,6 +183,7 @@ function formatProduct(product, hostUrl) {
     const category = product.Category || {};
     const subCategory = product.SubCategory || {};
     const discountDetails = getProductDiscountDetails(product);
+    const preorderState = resolveProductPreorderState(product);
 
     return {
         ...product.toJSON(),
@@ -138,12 +218,14 @@ function formatProduct(product, hostUrl) {
         categoryName: category.name || null,
         sub_category_name: subCategory.name || null,
         subCategoryName: subCategory.name || null,
-        is_preorder: product.is_preorder || false,
-        isPreorder: product.is_preorder || false,
-        preorder_days: product.preorder_days || null,
-        preorderDays: product.preorder_days || null,
-        preorder_available_date: product.preorder_available_date || null,
-        preorderAvailableDate: product.preorder_available_date || null,
+        is_preorder: preorderState.isActivePreorder,
+        isPreorder: preorderState.isActivePreorder,
+        preorder_days: preorderState.preorderDays,
+        preorderDays: preorderState.preorderDays,
+        preorder_available_date: preorderState.preorderAvailableDate,
+        preorderAvailableDate: preorderState.preorderAvailableDate,
+        is_available_for_purchase: preorderState.isAvailableForPurchase,
+        isAvailableForPurchase: preorderState.isAvailableForPurchase,
         order_count: Number(product.get?.('order_count') ?? product.order_count ?? 0),
         orderCount: Number(product.get?.('order_count') ?? product.order_count ?? 0),
         is_top_seller_item: Number(product.get?.('order_count') ?? product.order_count ?? 0) >= TOP_MARKETPLACE_THRESHOLD,
@@ -455,15 +537,10 @@ const ProductController = {
             const imageUrls = imageFiles.map((file) => toUploadDbPath(file.path));
             const videoUrls = videoFiles.map((file) => toUploadDbPath(file.path));
 
-            const isPreorderBool = isPreorder === 'true' || isPreorder === true;
-            const parsedPreorderDays =
-                preorderDays !== undefined && preorderDays !== null && preorderDays !== ''
-                    ? parseInt(preorderDays, 10)
-                    : null;
-            const preorderAvailableDate =
-                isPreorderBool && parsedPreorderDays
-                    ? new Date(Date.now() + parsedPreorderDays * 24 * 60 * 60 * 1000)
-                    : null;
+            const preorderFields = buildProductPreorderFields({
+                isPreorder,
+                preorderDays,
+            });
 
               const parsedMinimumOrderQuantity =
                   minimumOrderQuantity !== undefined &&
@@ -516,9 +593,7 @@ const ProductController = {
                 CategoryId: parseInt(categoryId, 10),
                 SubCategoryId: parseInt(subCategoryId, 10),
                 seller_id: parseInt(sellerId, 10),
-                is_preorder: isPreorderBool,
-                preorder_days: parsedPreorderDays,
-                preorder_available_date: preorderAvailableDate,
+                ...preorderFields,
             });
 
             const fullProduct = await fetchProductWithRelations(product.id);
@@ -533,15 +608,25 @@ const ProductController = {
 
     async updateProduct(req, res) {
         try {
-            const [updated] = await Product.update(req.body, {
-                where: { id: req.params.id },
-            });
-
-            if (!updated) {
+            const product = await Product.findByPk(req.params.id);
+            if (!product) {
                 return res.status(404).json({ message: 'Product not found' });
             }
 
-            const updatedProduct = await fetchProductWithRelations(req.params.id);
+            const updates = { ...req.body };
+            const shouldRebuildPreorder =
+                Object.prototype.hasOwnProperty.call(req.body, 'isPreorder') ||
+                Object.prototype.hasOwnProperty.call(req.body, 'is_preorder') ||
+                Object.prototype.hasOwnProperty.call(req.body, 'preorderDays') ||
+                Object.prototype.hasOwnProperty.call(req.body, 'preorder_days');
+
+            if (shouldRebuildPreorder) {
+                Object.assign(updates, buildProductPreorderFields(req.body, product));
+            }
+
+            await product.update(updates);
+
+            const updatedProduct = await fetchProductWithRelations(product.id);
             const hostUrl = `${req.protocol}://${req.get('host')}`;
 
             return res.status(200).json(formatProduct(updatedProduct, hostUrl));

@@ -170,6 +170,62 @@ function normalizeDigitalDeliveryMethod(value) {
     return normalized === 'email_delivery' ? 'email_delivery' : 'download_online';
 }
 
+function parseNullableInteger(value) {
+    if (value === undefined || value === null || value === '') {
+        return null;
+    }
+
+    const parsed = parseInt(value, 10);
+    return Number.isFinite(parsed) ? parsed : null;
+}
+
+function resolveProductPreorderState(product) {
+    const item = product?.toJSON ? product.toJSON() : product;
+    const storedIsPreorder = Boolean(item?.is_preorder);
+    const preorderDays = parseNullableInteger(item?.preorder_days);
+    const createdAt = item?.createdAt ? new Date(item.createdAt) : new Date();
+    let availableDate = item?.preorder_available_date
+        ? new Date(item.preorder_available_date)
+        : null;
+
+    if ((!availableDate || Number.isNaN(availableDate.getTime())) && storedIsPreorder && preorderDays && preorderDays > 0) {
+        availableDate = new Date(createdAt.getTime() + preorderDays * 24 * 60 * 60 * 1000);
+    }
+
+    if (availableDate && Number.isNaN(availableDate.getTime())) {
+        availableDate = null;
+    }
+
+    const isActivePreorder =
+        storedIsPreorder &&
+        (!availableDate || availableDate.getTime() > Date.now());
+
+    return {
+        isActivePreorder,
+        preorderAvailableDate: availableDate,
+    };
+}
+
+function resolveEbookPreorderState(ebook) {
+    const item = ebook?.toJSON ? ebook.toJSON() : ebook;
+    const isPreorder = Boolean(item?.is_preorder);
+    const preorderDays = parseNullableInteger(item?.preorder_days);
+    const baseDateValue = item?.posted_at || item?.createdAt || item?.updatedAt || null;
+    const baseDate = baseDateValue ? new Date(baseDateValue) : new Date();
+    const preorderAvailableDate =
+        isPreorder && preorderDays && preorderDays > 0
+            ? new Date(baseDate.getTime() + preorderDays * 24 * 60 * 60 * 1000)
+            : null;
+    const isActivePreorder =
+        isPreorder &&
+        (!preorderAvailableDate || preorderAvailableDate.getTime() > Date.now());
+
+    return {
+        isActivePreorder,
+        preorderAvailableDate,
+    };
+}
+
 function resolveEbookDeliveryState(orderRecord) {
     const item = orderRecord?.toJSON ? orderRecord.toJSON() : orderRecord;
     const metadata =
@@ -566,6 +622,13 @@ const OrderController = {
               let discount_amount = 0;
               const normalizedCouponCode = normalizeCouponCode(coupon_code);
               for (const item of cartItems) {
+                  const preorderState = resolveProductPreorderState(item.Product);
+                  if (preorderState.isActivePreorder) {
+                      await t.rollback();
+                      return res.status(400).json({
+                          message: `${item.Product.name} is on preorder and cannot be purchased until ${preorderState.preorderAvailableDate?.toISOString() || 'it becomes available'}`,
+                      });
+                  }
                   if (item.Product.stock_quantity < item.quantity) {
                       await t.rollback();
                       return res.status(400).json({ message: `Insufficient stock for ${item.Product.name}` });
@@ -739,6 +802,13 @@ const OrderController = {
                         : {};
 
                 if (normalizedPaymentStatus === 'completed') {
+                    const preorderState = resolveEbookPreorderState(ebookOrder.Ebook);
+                    if (preorderState.isActivePreorder) {
+                        return res.status(400).json({
+                            message: `This ebook is still on preorder and cannot be completed until ${preorderState.preorderAvailableDate?.toISOString() || 'it becomes available'}`,
+                        });
+                    }
+
                     if (!ebookMetadata.download_token) {
                         ebookMetadata.download_token = generateDownloadToken();
                     }

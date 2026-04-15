@@ -52,6 +52,30 @@ function parseBoolean(value) {
     return ['true', '1', 'yes', 'on'].includes(String(value || '').trim().toLowerCase());
 }
 
+function resolveEbookPreorderState(ebook) {
+    const item = ebook?.toJSON ? ebook.toJSON() : ebook;
+    const isPreorder = Boolean(item?.is_preorder);
+    const preorderDays = Number.isFinite(Number(item?.preorder_days))
+        ? Number(item.preorder_days)
+        : null;
+    const baseDateValue = item?.posted_at || item?.createdAt || item?.updatedAt || null;
+    const baseDate = baseDateValue ? new Date(baseDateValue) : new Date();
+    const preorderAvailableDate =
+        isPreorder && preorderDays && preorderDays > 0
+            ? new Date(baseDate.getTime() + preorderDays * 24 * 60 * 60 * 1000)
+            : null;
+    const isActivePreorder =
+        isPreorder &&
+        (!preorderAvailableDate || preorderAvailableDate.getTime() > Date.now());
+
+    return {
+        isActivePreorder,
+        preorderDays,
+        preorderAvailableDate,
+        isAvailableForPurchase: !isActivePreorder,
+    };
+}
+
 function normalizeCouponCode(value) {
     return String(value || '').trim().toUpperCase();
 }
@@ -746,6 +770,7 @@ function formatEbook(ebook, host) {
         const percentage = Number(variant.discount_percentage || 0);
         return percentage > max ? percentage : max;
     }, 0);
+    const preorderState = resolveEbookPreorderState(item);
 
     return {
         ...item,
@@ -772,6 +797,14 @@ function formatEbook(ebook, host) {
         orderCount: Number(item.order_count || 0),
         is_top_author_item: Number(item.order_count || 0) >= TOP_MARKETPLACE_THRESHOLD,
         isTopAuthorItem: Number(item.order_count || 0) >= TOP_MARKETPLACE_THRESHOLD,
+        is_preorder: preorderState.isActivePreorder,
+        isPreorder: preorderState.isActivePreorder,
+        preorder_days: preorderState.preorderDays,
+        preorderDays: preorderState.preorderDays,
+        preorder_available_date: preorderState.preorderAvailableDate,
+        preorderAvailableDate: preorderState.preorderAvailableDate,
+        is_available_for_purchase: preorderState.isAvailableForPurchase,
+        isAvailableForPurchase: preorderState.isAvailableForPurchase,
         discount_percentage: highestDiscount,
         discountPercentage: highestDiscount,
         has_discount: highestDiscount > 0,
@@ -1415,6 +1448,13 @@ const EbookController = {
                 return res.status(400).json({ error: 'Ebook not available' });
             }
 
+            const preorderState = resolveEbookPreorderState(ebook);
+            if (preorderState.isActivePreorder) {
+                return res.status(400).json({
+                    error: `This ebook is on preorder and will be available from ${preorderState.preorderAvailableDate?.toISOString() || 'a future date'}`,
+                });
+            }
+
             const existing = await EbookOrder.findOne({
                 where: { user_id: req.user.id, Ebook_id: ebookId, payment_status: 'completed' },
             });
@@ -1472,6 +1512,13 @@ const EbookController = {
             const ebook = await Ebook.findByPk(ebook_id);
             if (!ebook || !ebook.is_approved) {
                 return res.status(404).json({ error: 'Ebook not found or not approved' });
+            }
+
+            const preorderState = resolveEbookPreorderState(ebook);
+            if (preorderState.isActivePreorder) {
+                return res.status(400).json({
+                    error: `This ebook is on preorder and cannot be purchased yet. It becomes available from ${preorderState.preorderAvailableDate?.toISOString() || 'a future date'}`,
+                });
             }
 
             const pricing = getOrderPricing(ebook, selected_format, coupon_code);
