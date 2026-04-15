@@ -297,17 +297,19 @@ async function sendEbookApprovalNotifications(orderRecord) {
         );
     }
 
-    if (buyer.email && emailService.isConfigured()) {
+    const emailOrder = {
+        ...order,
+        customer_email: order.customer_email || buyer.email || '',
+        _downloadUrl: buildEbookDownloadUrl(order),
+    };
+
+    if (emailOrder.customer_email && emailService.isConfigured()) {
         try {
-            await emailService.sendOrderConfirmation({
-                ...order,
-                _downloadUrl: buildEbookDownloadUrl(order),
-            });
+            await emailService.sendOrderConfirmation(emailOrder);
             if (deliveryState.isEmailDelivery) {
-                await emailService.sendDownloadLink({
-                    ...order,
-                    _downloadUrl: buildEbookDownloadUrl(order),
-                });
+                await emailService.sendEbookDeliveryEmail(emailOrder);
+            } else if (deliveryState.isOnlineDownload) {
+                await emailService.sendDownloadLink(emailOrder);
             }
         } catch (error) {
             console.error('Failed to send ebook approval email:', error.message);

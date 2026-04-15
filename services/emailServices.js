@@ -1,4 +1,7 @@
+const fs = require('fs');
+const path = require('path');
 const nodemailer = require('nodemailer');
+const { resolveUploadFilePath } = require('../config/uploadPaths');
 
 class EmailService {
     constructor() {
@@ -42,12 +45,91 @@ class EmailService {
         return `${this.getBackendBaseUrl()}/api/Ebooks/orders/${encodeURIComponent(order.order_id)}/download?token=${encodeURIComponent(token)}`;
     }
 
+    getRecipientEmail(order) {
+        return (
+            order?.customer_email ||
+            order?.User?.email ||
+            order?.user?.email ||
+            ''
+        )
+            .toString()
+            .trim();
+    }
+
+    getDeliveryState(order) {
+        const metadata =
+            order?.metadata && typeof order.metadata === 'object'
+                ? order.metadata
+                : {};
+        const selectedFormat = String(
+            metadata.selected_format || order?.Ebook?.format || 'ebook'
+        )
+            .trim()
+            .toLowerCase();
+        const digitalDelivery = String(
+            metadata.digital_delivery || order?.delivery_method || 'download_online'
+        )
+            .trim()
+            .toLowerCase();
+
+        return {
+            selectedFormat,
+            digitalDelivery,
+            isDigitalEbook: selectedFormat === 'ebook',
+            isEmailDelivery:
+                selectedFormat === 'ebook' && digitalDelivery === 'email_delivery',
+            isOnlineDownload:
+                selectedFormat === 'ebook' && digitalDelivery !== 'email_delivery',
+        };
+    }
+
+    resolveOrderFileRecord(order) {
+        const ebook = order?.Ebook || {};
+        const metadata =
+            order?.metadata && typeof order.metadata === 'object'
+                ? order.metadata
+                : {};
+        const selectedFormat = String(metadata.selected_format || '').trim();
+        const variants =
+            ebook?.format_variants && typeof ebook.format_variants === 'object'
+                ? ebook.format_variants
+                : {};
+        const selectedVariant = selectedFormat ? variants[selectedFormat] : null;
+        const candidateUrl =
+            selectedVariant?.manuscript_url ||
+            ebook?.file_url ||
+            null;
+        const filePath = resolveUploadFilePath(candidateUrl);
+
+        if (!filePath || !fs.existsSync(filePath)) {
+            return null;
+        }
+
+        const extension = path.extname(filePath) || '.pdf';
+        const safeTitle = String(ebook?.title || 'agritracker-ebook')
+            .trim()
+            .replace(/[<>:"/\\|?*\x00-\x1F]+/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim()
+            .replace(/ /g, '_');
+
+        return {
+            path: filePath,
+            filename: `${safeTitle || 'agritracker-ebook'}${extension}`,
+        };
+    }
+
     // Send order confirmation email
     async sendOrderConfirmation(order) {
         try {
+            const recipientEmail = this.getRecipientEmail(order);
+            if (!recipientEmail) {
+                throw new Error(`Missing recipient email for order ${order?.order_id || 'unknown'}`);
+            }
+
             const mailOptions = {
                 from: this.getSenderAddress(),
-                to: order.customer_email,
+                to: recipientEmail,
                 subject: `Order Confirmation - ${order.order_id}`,
                 html: this.getOrderConfirmationTemplate(order)
             };
@@ -139,9 +221,14 @@ class EmailService {
     // Send download link email
     async sendDownloadLink(order) {
         try {
+            const recipientEmail = this.getRecipientEmail(order);
+            if (!recipientEmail) {
+                throw new Error(`Missing recipient email for order ${order?.order_id || 'unknown'}`);
+            }
+
             const mailOptions = {
                 from: this.getSenderAddress(),
-                to: order.customer_email,
+                to: recipientEmail,
                 subject: `Download Link - ${order.Ebook?.title}`,
                 html: this.getDownloadLinkTemplate(order)
             };
@@ -211,6 +298,96 @@ class EmailService {
         `;
     }
 
+    async sendEbookDeliveryEmail(order) {
+        try {
+            const recipientEmail = this.getRecipientEmail(order);
+            if (!recipientEmail) {
+                throw new Error(`Missing recipient email for order ${order?.order_id || 'unknown'}`);
+            }
+
+            const attachment = this.resolveOrderFileRecord(order);
+            const downloadUrl = this.getDownloadUrl(order);
+            const deliveryState = this.getDeliveryState(order);
+
+            const mailOptions = {
+                from: this.getSenderAddress(),
+                to: recipientEmail,
+                subject: `Your Ebook Delivery - ${order.Ebook?.title || order.order_id}`,
+                html: this.getEbookDeliveryTemplate(order, {
+                    attachmentAvailable: Boolean(attachment),
+                    downloadUrl,
+                    deliveryState,
+                }),
+                attachments: attachment
+                    ? [
+                        {
+                            filename: attachment.filename,
+                            path: attachment.path,
+                        },
+                    ]
+                    : [],
+            };
+
+            const result = await this.transporter.sendMail(mailOptions);
+            console.log('Ebook delivery email sent:', result.messageId);
+            return result;
+        } catch (error) {
+            console.error('Failed to send ebook delivery email:', error);
+            throw error;
+        }
+    }
+
+    getEbookDeliveryTemplate(order, { attachmentAvailable, downloadUrl, deliveryState }) {
+        const title = order.Ebook?.title || 'Your ebook';
+        const recipientEmail = this.getRecipientEmail(order);
+        const deliveryText = deliveryState?.isEmailDelivery
+            ? attachmentAvailable
+                ? 'Your ebook file is attached to this email.'
+                : 'Your ebook is ready, but the attachment could not be added. Use the secure download link below.'
+            : 'Your ebook is ready for online download.';
+
+        return `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Your Ebook Delivery</title>
+            <style>
+                body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                .header { background: #2E7D32; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+                .content { background: #f9f9f9; padding: 20px; border-radius: 0 0 8px 8px; }
+                .panel { background: white; padding: 16px; margin: 16px 0; border-radius: 6px; border-left: 4px solid #2E7D32; }
+                .button { display: inline-block; background: #2E7D32; color: white; padding: 12px 22px; text-decoration: none; border-radius: 4px; margin-top: 10px; }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>Your Ebook Is Ready</h1>
+                    <p>AgriTracker delivery for order ${order.order_id}</p>
+                </div>
+                <div class="content">
+                    <div class="panel">
+                        <p><strong>Title:</strong> ${title}</p>
+                        <p><strong>Order ID:</strong> ${order.order_id}</p>
+                        <p><strong>Delivered To:</strong> ${recipientEmail}</p>
+                        <p>${deliveryText}</p>
+                    </div>
+                    ${downloadUrl ? `
+                    <div class="panel">
+                        <p>If you prefer, you can also download your ebook securely online:</p>
+                        <a href="${downloadUrl}" class="button">Download Ebook</a>
+                    </div>
+                    ` : ''}
+                </div>
+            </div>
+        </body>
+        </html>
+        `;
+    }
+
     // Format payment method for display
     formatPaymentMethod(method) {
         const methods = {
@@ -224,9 +401,14 @@ class EmailService {
     // Send payment failure notification
     async sendPaymentFailureNotification(order) {
         try {
+            const recipientEmail = this.getRecipientEmail(order);
+            if (!recipientEmail) {
+                throw new Error(`Missing recipient email for order ${order?.order_id || 'unknown'}`);
+            }
+
             const mailOptions = {
                 from: this.getSenderAddress(),
-                to: order.customer_email,
+                to: recipientEmail,
                 subject: `Payment Failed - Order ${order.order_id}`,
                 html: `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">

@@ -412,6 +412,7 @@ async function sendEbookOrderNotifications(orderRecord, ebookRecord, buyerRecord
         ...order,
         Ebook: ebook,
         User: buyer,
+        customer_email: order.customer_email || buyer?.email || '',
         _downloadUrl: buildEbookDownloadUrl(order),
     };
 
@@ -445,10 +446,12 @@ async function sendEbookOrderNotifications(orderRecord, ebookRecord, buyerRecord
         );
     }
 
-    if (eventLabel === 'confirmed' && buyer?.email && emailService.isConfigured()) {
+    if (eventLabel === 'confirmed' && orderForEmail.customer_email && emailService.isConfigured()) {
         try {
             await emailService.sendOrderConfirmation(orderForEmail);
             if (deliveryState.isEmailDelivery) {
+                await emailService.sendEbookDeliveryEmail(orderForEmail);
+            } else if (deliveryState.isOnlineDownload) {
                 await emailService.sendDownloadLink(orderForEmail);
             }
         } catch (error) {
