@@ -111,9 +111,11 @@ async function fetchLogs({
 
     const productWhere = {};
     if (categoryId) productWhere.CategoryId = categoryId;
-    if (region && region !== 'All') productWhere.market_region = region;
+    if (region && region !== 'All') {
+        productWhere[Op.or] = [{ market_region: region }, { origin_region: region }];
+    }
     if (cropName && cropName !== 'All') {
-        productWhere.name = { [Op.like]: cropName };
+        productWhere.name = cropName;
     }
 
     const logs = await ProductPriceLog.findAll({
@@ -128,7 +130,11 @@ async function fetchLogs({
                     'name',
                     'CategoryId',
                     'market_region',
+                    'origin_region',
                     'unit',
+                    'price',
+                    'updatedAt',
+                    'createdAt',
                 ],
                 where: productWhere,
             },
@@ -142,7 +148,66 @@ async function fetchLogs({
     });
 }
 
-function buildTrendPayload(logs, granularity) {
+async function fetchCategoryProducts({ categoryId, cropName, region }) {
+    const productWhere = {
+        CategoryId: categoryId,
+        is_active: true,
+    };
+
+    if (cropName && cropName !== 'All') {
+        productWhere.name = cropName;
+    }
+
+    if (region && region !== 'All') {
+        productWhere[Op.or] = [{ market_region: region }, { origin_region: region }];
+    }
+
+    return Product.findAll({
+        where: productWhere,
+        attributes: [
+            'id',
+            'name',
+            'price',
+            'unit',
+            'CategoryId',
+            'market_region',
+            'origin_region',
+            'updatedAt',
+            'createdAt',
+        ],
+        order: [['updatedAt', 'DESC']],
+    });
+}
+
+function buildSyntheticLogsFromProducts(products, { to, market }) {
+    const loggedAt = to ? new Date(to) : new Date();
+
+    return products.map((product) => {
+        const productJson = product.toJSON ? product.toJSON() : product;
+        const marketRegion = productJson.market_region || productJson.origin_region || null;
+
+        return {
+            price: productJson.price,
+            normalized_price: normalizePrice(productJson.price, productJson.unit),
+            unit: productJson.unit || 'kg',
+            normalized_unit: 'kg',
+            market_region: marketRegion,
+            market_name:
+                market && market !== 'All'
+                    ? market
+                    : marketRegion
+                      ? `${marketRegion} Marketplace`
+                      : 'Marketplace',
+            source_type: 'seller',
+            source_confidence: normalizeConfidence('seller'),
+            logged_at: loggedAt,
+            crop_name: productJson.name,
+            Product: productJson,
+        };
+    });
+}
+
+function buildTrendPayload(logs, granularity, options = {}) {
     const grouped = {};
 
     logs.forEach((log) => {
@@ -201,6 +266,12 @@ function buildTrendPayload(logs, granularity) {
     const cropMap = new Set(
         logs.map((log) => log.crop_name || log.Product?.name).filter(Boolean)
     );
+    const extraRegions = Array.isArray(options.availableRegions)
+        ? options.availableRegions.filter(Boolean)
+        : [];
+    const extraCrops = Array.isArray(options.availableCrops)
+        ? options.availableCrops.filter(Boolean)
+        : [];
 
     const momChange =
         avgPrices.length >= 2 && avgPrices[0] != 0
@@ -262,9 +333,9 @@ function buildTrendPayload(logs, granularity) {
             acc[key] = (acc[key] || 0) + 1;
             return acc;
         }, {}),
-        available_regions: [...new Set([...CAMEROON_REGIONS, ...regionMap])],
+        available_regions: [...new Set([...CAMEROON_REGIONS, ...regionMap, ...extraRegions])],
         available_markets: [...marketMap].sort(),
-        available_crops: [...cropMap].sort(),
+        available_crops: [...new Set([...cropMap, ...extraCrops])].sort(),
     };
 }
 
@@ -320,7 +391,11 @@ const getCategoryDailyTrend = async (req, res) => {
     }
 
     try {
-        const logs = await fetchLogs({
+        const categoryProducts = await fetchCategoryProducts({
+            categoryId: category_id,
+            region,
+        });
+        let logs = await fetchLogs({
             categoryId: category_id,
             cropName: crop,
             region,
@@ -329,10 +404,29 @@ const getCategoryDailyTrend = async (req, res) => {
             to,
         });
 
+        if (!logs.length) {
+            const fallbackProducts =
+                crop && crop !== 'All'
+                    ? categoryProducts.filter((product) => product.name === crop)
+                    : categoryProducts;
+
+            logs = buildSyntheticLogsFromProducts(fallbackProducts, { to, market });
+        }
+
+        const availableRegions = categoryProducts
+            .map((product) => product.market_region || product.origin_region)
+            .filter(Boolean);
+        const availableCrops = categoryProducts
+            .map((product) => product.name)
+            .filter(Boolean);
+
         return res.json({
             category_id,
             granularity,
-            ...buildTrendPayload(logs, granularity),
+            ...buildTrendPayload(logs, granularity, {
+                availableRegions,
+                availableCrops,
+            }),
         });
     } catch (err) {
         console.error('Error in getCategoryDailyTrend:', err);
