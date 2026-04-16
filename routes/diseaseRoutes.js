@@ -749,6 +749,11 @@ async function sendToOpenRouter(imageDataUrl, contextPayload) {
         headers: {
           Authorization: `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
+          'HTTP-Referer':
+            process.env.APP_BASE_URL ||
+            process.env.BACKEND_PUBLIC_URL ||
+            'https://agritracker-backend-production-1636.up.railway.app',
+          'X-Title': 'AgriTracker Plant AI',
         },
         timeout: REQUEST_TIMEOUT_MS,
       },
@@ -770,6 +775,11 @@ async function sendToOpenRouter(imageDataUrl, contextPayload) {
         headers: {
           Authorization: `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
+          'HTTP-Referer':
+            process.env.APP_BASE_URL ||
+            process.env.BACKEND_PUBLIC_URL ||
+            'https://agritracker-backend-production-1636.up.railway.app',
+          'X-Title': 'AgriTracker Plant AI',
         },
         timeout: REQUEST_TIMEOUT_MS,
       },
@@ -868,6 +878,11 @@ async function requestDiagnosisFollowUpOpenRouter(payload) {
       headers: {
         Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
+        'HTTP-Referer':
+          process.env.APP_BASE_URL ||
+          process.env.BACKEND_PUBLIC_URL ||
+          'https://agritracker-backend-production-1636.up.railway.app',
+        'X-Title': 'AgriTracker Plant AI Chat',
       },
       timeout: REQUEST_TIMEOUT_MS,
     },
@@ -967,11 +982,19 @@ router.post(
             weather,
             failureReason: providerErrors.join(' | '),
           });
+      const failureReason = providerErrors.join(' | ');
+      const failureType = detectProviderFailureType(failureReason);
 
       safeDiagnosis.diagnosisMeta = {
         ...(safeDiagnosis.diagnosisMeta || {}),
         liveDiagnosisAvailable: provider !== 'local',
         provider,
+        failureReason,
+        failureType,
+        configuredProviders: {
+          openai: !!resolvePlantOpenAIKey(),
+          openrouter: !!resolvePlantOpenRouterKey(),
+        },
         providerErrors,
       };
 
@@ -1086,6 +1109,22 @@ router.post('/detect-plant-disease/chat', async (req, res) => {
       provider: 'local',
     });
   }
+});
+
+router.get('/detect-plant-disease/health', (_req, res) => {
+  return res.json({
+    configuredProviders: {
+      openai: !!resolvePlantOpenAIKey(),
+      openrouter: !!resolvePlantOpenRouterKey(),
+    },
+    models: {
+      openai: sanitizeModelName(OPENAI_MODEL, 'gpt-4o-mini'),
+      openrouter: sanitizeModelName(
+        OPENROUTER_MODEL,
+        'openai/gpt-4o-mini',
+      ),
+    },
+  });
 });
 
 module.exports = router;

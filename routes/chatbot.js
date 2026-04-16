@@ -7,20 +7,84 @@ const OPENAI_CHAT_MODEL = process.env.OPENAI_CHAT_MODEL || 'gpt-4o-mini';
 const OPENROUTER_CHAT_MODEL =
   process.env.OPENROUTER_CHAT_MODEL || 'openai/gpt-4o-mini';
 
+function looksLikeApiKey(value) {
+  const trimmed = value?.toString().trim();
+  return !!trimmed && trimmed.startsWith('sk-');
+}
+
+function sanitizeModelName(value, fallback) {
+  const trimmed = value?.toString().trim();
+  if (!trimmed) return fallback;
+  if (looksLikeApiKey(trimmed)) {
+    console.warn(
+      `[AI CHATBOT] Ignoring invalid model env value that looks like an API key. Using fallback model ${fallback}.`,
+    );
+    return fallback;
+  }
+  return trimmed;
+}
+
 function resolveOpenAIKey() {
-  return (
-    process.env.OPENAI_CHAT_API_KEY ||
-    process.env.OPENAI_API_KEY ||
-    null
-  );
+  if (looksLikeApiKey(process.env.OPENAI_CHAT_API_KEY)) {
+    return process.env.OPENAI_CHAT_API_KEY;
+  }
+  if (looksLikeApiKey(process.env.OPENAI_API_KEY)) {
+    return process.env.OPENAI_API_KEY;
+  }
+  if (looksLikeApiKey(process.env.OPENAI_CHAT_MODEL)) {
+    return process.env.OPENAI_CHAT_MODEL;
+  }
+  return null;
 }
 
 function resolveOpenRouterKey() {
-  return (
-    process.env.OPENROUTER_CHAT_API_KEY ||
-    process.env.OPENROUTER_API_KEY ||
-    null
-  );
+  if (looksLikeApiKey(process.env.OPENROUTER_CHAT_API_KEY)) {
+    return process.env.OPENROUTER_CHAT_API_KEY;
+  }
+  if (looksLikeApiKey(process.env.OPENROUTER_API_KEY)) {
+    return process.env.OPENROUTER_API_KEY;
+  }
+  if (looksLikeApiKey(process.env.OPENROUTER_CHAT_MODEL)) {
+    return process.env.OPENROUTER_CHAT_MODEL;
+  }
+  return null;
+}
+
+function summarizeProviderError(error) {
+  if (!error) return 'Unknown provider error';
+  const status = error.response?.status;
+  const remoteMessage =
+    error.response?.data?.error?.message ||
+    error.response?.data?.message ||
+    error.response?.data?.error ||
+    error.message;
+  return status ? `${status}: ${remoteMessage}` : `${remoteMessage}`;
+}
+
+function detectProviderFailureType(failureReason) {
+  const text = String(failureReason || '').toLowerCase();
+  if (!text) return 'unknown';
+  if (
+    text.includes('insufficient_quota') ||
+    text.includes('exceeded your current quota') ||
+    text.includes('insufficient credits') ||
+    text.includes('never purchased credits') ||
+    text.includes('402:')
+  ) {
+    return 'billing';
+  }
+  if (text.includes('timeout')) {
+    return 'timeout';
+  }
+  if (
+    text.includes('401') ||
+    text.includes('invalid api key') ||
+    text.includes('incorrect api key') ||
+    text.includes('unauthorized')
+  ) {
+    return 'auth';
+  }
+  return 'unavailable';
 }
 
 const SYSTEM_PROMPT = `You are AgriTech AI, an assistant for a Cameroon-based agritech app.
@@ -76,7 +140,7 @@ async function requestOpenAI(userMessage) {
   const response = await axios.post(
     'https://api.openai.com/v1/chat/completions',
     {
-      model: OPENAI_CHAT_MODEL,
+      model: sanitizeModelName(OPENAI_CHAT_MODEL, 'gpt-4o-mini'),
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: userMessage },
@@ -107,7 +171,10 @@ async function requestOpenRouter(userMessage) {
   const response = await axios.post(
     'https://openrouter.ai/api/v1/chat/completions',
     {
-      model: OPENROUTER_CHAT_MODEL,
+      model: sanitizeModelName(
+        OPENROUTER_CHAT_MODEL,
+        'openai/gpt-4o-mini',
+      ),
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: userMessage },
@@ -119,6 +186,11 @@ async function requestOpenRouter(userMessage) {
       headers: {
         Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
+        'HTTP-Referer':
+          process.env.APP_BASE_URL ||
+          process.env.BACKEND_PUBLIC_URL ||
+          'https://agritracker-backend-production-1636.up.railway.app',
+        'X-Title': 'AgriTracker AI Chat',
       },
       timeout: 30000,
     },
@@ -141,6 +213,7 @@ router.post('/', async (req, res) => {
   try {
     let reply = null;
     let provider = 'local';
+    const providerErrors = [];
 
     try {
       reply = await requestOpenAI(userMessage);
@@ -148,6 +221,7 @@ router.post('/', async (req, res) => {
         provider = 'openai';
       }
     } catch (error) {
+      providerErrors.push(`OpenAI: ${summarizeProviderError(error)}`);
       console.error(
         '[AI CHATBOT] OpenAI error:',
         error.response?.data || error.message,
@@ -161,6 +235,7 @@ router.post('/', async (req, res) => {
           provider = 'openrouter';
         }
       } catch (error) {
+        providerErrors.push(`OpenRouter: ${summarizeProviderError(error)}`);
         console.error(
           '[AI CHATBOT] OpenRouter error:',
           error.response?.data || error.message,
@@ -175,14 +250,53 @@ router.post('/', async (req, res) => {
     console.log(`[AI CHATBOT] Reply provider: ${provider}`);
     console.log('[AI CHATBOT] Final reply:', reply);
 
-    return res.json({ reply, provider });
+    return res.json({
+      reply,
+      provider,
+      meta: {
+        liveReplyAvailable: provider !== 'local',
+        configuredProviders: {
+          openai: !!resolveOpenAIKey(),
+          openrouter: !!resolveOpenRouterKey(),
+        },
+        failureReason: providerErrors.join(' | '),
+        failureType: detectProviderFailureType(providerErrors.join(' | ')),
+        providerErrors,
+      },
+    });
   } catch (error) {
     console.error('[AI CHATBOT] Unexpected error:', error.message);
     return res.json({
       reply: buildLocalFallback(userMessage),
       provider: 'local',
+      meta: {
+        liveReplyAvailable: false,
+        configuredProviders: {
+          openai: !!resolveOpenAIKey(),
+          openrouter: !!resolveOpenRouterKey(),
+        },
+        failureReason: error.message,
+        failureType: detectProviderFailureType(error.message),
+        providerErrors: [error.message],
+      },
     });
   }
+});
+
+router.get('/health', (_req, res) => {
+  return res.json({
+    configuredProviders: {
+      openai: !!resolveOpenAIKey(),
+      openrouter: !!resolveOpenRouterKey(),
+    },
+    models: {
+      openai: sanitizeModelName(OPENAI_CHAT_MODEL, 'gpt-4o-mini'),
+      openrouter: sanitizeModelName(
+        OPENROUTER_CHAT_MODEL,
+        'openai/gpt-4o-mini',
+      ),
+    },
+  });
 });
 
 module.exports = router;
