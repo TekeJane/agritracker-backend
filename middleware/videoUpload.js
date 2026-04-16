@@ -32,7 +32,11 @@ function isAllowedVideo(file) {
         'application/octet-stream',
     ];
 
-    return allowedExtensions.includes(extension) || allowedMimeTypes.includes(mimeType);
+    return (
+        allowedExtensions.includes(extension) ||
+        allowedMimeTypes.includes(mimeType) ||
+        mimeType.startsWith('video/')
+    );
 }
 
 function isAllowedImage(file) {
@@ -46,7 +50,11 @@ function isAllowedImage(file) {
         'application/octet-stream',
     ];
 
-    return allowedExtensions.includes(extension) || allowedMimeTypes.includes(mimeType);
+    return (
+        allowedExtensions.includes(extension) ||
+        allowedMimeTypes.includes(mimeType) ||
+        mimeType.startsWith('image/')
+    );
 }
 
 function fileFilter(req, file, cb) {
