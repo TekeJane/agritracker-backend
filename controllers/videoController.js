@@ -161,7 +161,21 @@ function normalizeApprovedFilter(value, defaultValue = true) {
 }
 
 function normalizeCreatorLink(value) {
-    const raw = String(value || '').trim();
+    const rawValue = String(value || '').trim();
+    if (!rawValue) return null;
+
+    let raw = rawValue;
+    try {
+        raw = decodeURIComponent(rawValue);
+    } catch (_) {
+        raw = rawValue;
+    }
+
+    raw = raw
+        .replace(/^["'{\[]+/, '')
+        .replace(/["'}\]]+$/, '')
+        .trim();
+
     if (!raw) return null;
     if (raw.startsWith('http://') || raw.startsWith('https://')) {
         return raw;
