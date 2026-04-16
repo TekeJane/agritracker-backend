@@ -6,18 +6,13 @@ const { Op } = require('sequelize');
 const { toUploadDbPath, resolveUploadFilePath } = require('../config/uploadPaths');
 const notifyUser = require('../services/notifyUser');
 const emailService = require('../services/emailServices');
+const { buildPublicMediaUrl } = require('../utils/publicMediaUrl');
 const TOP_MARKETPLACE_THRESHOLD = 50;
 
 const EDITION_KEYS = ['ebook', 'paperback', 'hardcover'];
 
 function buildPublicUrl(value, host) {
-    if (!value) return null;
-    if (value.startsWith('http://') || value.startsWith('https://')) {
-        return value;
-    }
-
-    const normalized = toUploadDbPath(value).replace(/^\/+/, '');
-    return `${host}/${normalized}`;
+    return buildPublicMediaUrl(value, host);
 }
 
 function parseJsonField(value, fallback) {
@@ -1183,23 +1178,29 @@ const EbookController = {
 
     async listApprovedEbooks(req, res) {
         try {
-            const approved = req.query.approved;
+            const approved = String(req.query.approved || '').trim().toLowerCase();
             const adminView = String(req.query.admin_view || '').toLowerCase() === 'true';
             const whereClause = {};
+            const requestedPublicationStatus = String(
+                req.query.publication_status || '',
+            ).trim().toLowerCase();
 
-            if (approved === 'false') {
-                whereClause.is_approved = false;
-                if (req.query.publication_status) {
-                    whereClause.publication_status = req.query.publication_status;
-                } else if (!adminView) {
-                    whereClause.publication_status = 'draft';
+            if (adminView) {
+                if (approved === 'true') {
+                    whereClause.is_approved = true;
+                } else if (approved === 'false') {
+                    whereClause.is_approved = false;
+                }
+                if (requestedPublicationStatus) {
+                    whereClause.publication_status = requestedPublicationStatus;
                 }
             } else {
-                whereClause.is_approved = true;
-                if (req.query.publication_status) {
-                    whereClause.publication_status = req.query.publication_status;
+                if (approved === 'false') {
+                    whereClause.is_approved = false;
+                    whereClause.publication_status = requestedPublicationStatus || 'draft';
                 } else if (!adminView) {
-                    whereClause.publication_status = 'published';
+                    whereClause.is_approved = true;
+                    whereClause.publication_status = requestedPublicationStatus || 'published';
                 }
             }
 

@@ -10,6 +10,9 @@ const configuredUploadRoot =
   path.join(backendRoot, 'uploads');
 const primaryUploadDir = path.resolve(configuredUploadRoot);
 const legacyUploadDir = path.join(process.cwd(), 'uploads');
+const uploadRoots = Array.from(
+  new Set([primaryUploadDir, legacyUploadDir].map((dir) => path.resolve(dir))),
+);
 
 function ensureDir(dirPath) {
   if (!fs.existsSync(dirPath)) {
@@ -44,27 +47,61 @@ function toUploadDbPath(filePath) {
 function resolveUploadFilePath(dbPath) {
   if (!dbPath) return null;
 
-  const normalized = String(dbPath).replace(/\\/g, '/').trim();
+  const normalized = String(dbPath)
+    .replace(/\\/g, '/')
+    .replace(/^https?:\/\/[^/]+/i, '')
+    .replace(/[?#].*$/, '')
+    .trim();
   if (!normalized) return null;
 
-  const relativePath = normalized
-    .replace(/^https?:\/\/[^/]+/i, '')
-    .replace(/^\/+/, '');
-
-  if (!relativePath.toLowerCase().startsWith('uploads/')) {
-    return null;
+  const directPath = path.resolve(normalized);
+  if (fs.existsSync(directPath)) {
+    return directPath;
   }
 
-  const relativeWithoutRoot = relativePath.substring('uploads/'.length);
-  return path.join(primaryUploadDir, relativeWithoutRoot);
+  const relativePath = normalized.replace(/^\/+/, '');
+  const relativeCandidates = [];
+
+  if (relativePath.toLowerCase().startsWith('uploads/')) {
+    relativeCandidates.push(relativePath.substring('uploads/'.length));
+  } else {
+    relativeCandidates.push(relativePath);
+    relativeCandidates.push(path.basename(relativePath));
+  }
+
+  for (const uploadRoot of uploadRoots) {
+    const normalizedRoot = uploadRoot.replace(/\\/g, '/');
+    if (normalized.toLowerCase().startsWith(normalizedRoot.toLowerCase())) {
+      const nestedRelative = normalized.slice(normalizedRoot.length).replace(/^\/+/, '');
+      if (nestedRelative) {
+        relativeCandidates.unshift(nestedRelative);
+      }
+    }
+  }
+
+  for (const candidate of relativeCandidates) {
+    if (!candidate) continue;
+
+    for (const uploadRoot of uploadRoots) {
+      const resolved = path.join(uploadRoot, candidate);
+      if (fs.existsSync(resolved)) {
+        return resolved;
+      }
+    }
+  }
+
+  const preferredCandidate = relativeCandidates.find(Boolean);
+  return preferredCandidate ? path.join(primaryUploadDir, preferredCandidate) : null;
 }
 
 ensureDir(primaryUploadDir);
+ensureDir(legacyUploadDir);
 
 module.exports = {
   backendRoot,
   primaryUploadDir,
   legacyUploadDir,
+  uploadRoots,
   ensureUploadDir,
   resolveUploadFilePath,
   toUploadDbPath,

@@ -482,7 +482,7 @@ const videoController = {
                 isAdminRequester &&
                 String(req.query.admin_view || '').trim().toLowerCase() === 'true';
             const approvedFilter = allowAdminView
-                ? normalizeApprovedFilter(req.query.approved, true)
+                ? normalizeApprovedFilter(req.query.approved, null)
                 : true;
             const whereClause = {
                 ...buildVideoFilters(req.query),
