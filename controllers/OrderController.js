@@ -260,6 +260,13 @@ function normalizeEbookOrder(orderRecord) {
         ? item.metadata
         : {};
     const deliveryState = resolveEbookDeliveryState(item);
+    const emailDeliveryStatus = String(
+        metadata.email_delivery_status || ''
+    ).trim().toLowerCase();
+    const downloadLinkEmailStatus = String(
+        metadata.download_link_email_status || ''
+    ).trim().toLowerCase();
+    const hasDownloadToken = Boolean(metadata.download_token);
 
     return {
         ...item,
@@ -281,9 +288,26 @@ function normalizeEbookOrder(orderRecord) {
         createdAt: item.createdAt || item.purchased_at || item.paid_at,
         payment_method: item.payment_method || 'N/A',
         download_url: deliveryState.isOnlineDownload ? buildEbookDownloadUrl(item) : '',
-        download_ready: deliveryState.isCompleted && deliveryState.isOnlineDownload,
-        auto_download: deliveryState.isCompleted && deliveryState.isOnlineDownload,
-        email_delivery_ready: deliveryState.isCompleted && deliveryState.isEmailDelivery,
+        download_ready:
+            deliveryState.isCompleted &&
+            deliveryState.isOnlineDownload &&
+            hasDownloadToken,
+        auto_download:
+            deliveryState.isCompleted &&
+            deliveryState.isOnlineDownload &&
+            hasDownloadToken,
+        email_delivery_ready:
+            deliveryState.isCompleted &&
+            deliveryState.isEmailDelivery &&
+            emailDeliveryStatus === 'sent',
+        email_delivery_failed:
+            deliveryState.isCompleted &&
+            deliveryState.isEmailDelivery &&
+            emailDeliveryStatus === 'failed',
+        download_link_email_sent:
+            deliveryState.isCompleted &&
+            deliveryState.isOnlineDownload &&
+            downloadLinkEmailStatus === 'sent',
         digital_delivery_method: deliveryState.isDigitalEbook
             ? deliveryState.digitalDelivery
             : null,
@@ -359,15 +383,72 @@ async function sendEbookApprovalNotifications(orderRecord) {
         _downloadUrl: buildEbookDownloadUrl(order),
     };
 
+    if (
+        orderRecord?.update &&
+        (
+            (deliveryState.isEmailDelivery && !emailOrder.customer_email) ||
+            !emailService.isConfigured()
+        )
+    ) {
+        const failedMetadata =
+            orderRecord?.metadata && typeof orderRecord.metadata === 'object'
+                ? { ...orderRecord.metadata }
+                : {};
+        const failureReason = !emailService.isConfigured()
+            ? 'Email service is not configured on the server'
+            : 'Missing recipient email address';
+
+        if (deliveryState.isEmailDelivery) {
+            failedMetadata.email_delivery_status = 'failed';
+            failedMetadata.email_delivery_error = failureReason;
+            failedMetadata.email_delivery_failed_at = new Date().toISOString();
+        } else if (deliveryState.isOnlineDownload) {
+            failedMetadata.download_link_email_status = 'failed';
+            failedMetadata.download_link_email_error = failureReason;
+            failedMetadata.download_link_email_failed_at = new Date().toISOString();
+        }
+
+        await orderRecord.update({ metadata: failedMetadata });
+    }
+
     if (emailOrder.customer_email && emailService.isConfigured()) {
         try {
             await emailService.sendOrderConfirmation(emailOrder);
+            const nextMetadata =
+                orderRecord?.metadata && typeof orderRecord.metadata === 'object'
+                    ? { ...orderRecord.metadata }
+                    : {};
             if (deliveryState.isEmailDelivery) {
                 await emailService.sendEbookDeliveryEmail(emailOrder);
+                nextMetadata.email_delivery_status = 'sent';
+                nextMetadata.email_delivery_sent_at = new Date().toISOString();
+                nextMetadata.email_delivery_error = null;
             } else if (deliveryState.isOnlineDownload) {
                 await emailService.sendDownloadLink(emailOrder);
+                nextMetadata.download_link_email_status = 'sent';
+                nextMetadata.download_link_email_sent_at = new Date().toISOString();
+                nextMetadata.download_link_email_error = null;
+            }
+            if (orderRecord?.update) {
+                await orderRecord.update({ metadata: nextMetadata });
             }
         } catch (error) {
+            if (orderRecord?.update) {
+                const failedMetadata =
+                    orderRecord?.metadata && typeof orderRecord.metadata === 'object'
+                        ? { ...orderRecord.metadata }
+                        : {};
+                if (deliveryState.isEmailDelivery) {
+                    failedMetadata.email_delivery_status = 'failed';
+                    failedMetadata.email_delivery_error = error.message;
+                    failedMetadata.email_delivery_failed_at = new Date().toISOString();
+                } else if (deliveryState.isOnlineDownload) {
+                    failedMetadata.download_link_email_status = 'failed';
+                    failedMetadata.download_link_email_error = error.message;
+                    failedMetadata.download_link_email_failed_at = new Date().toISOString();
+                }
+                await orderRecord.update({ metadata: failedMetadata });
+            }
             console.error('Failed to send ebook approval email:', error.message);
         }
     }
