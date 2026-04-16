@@ -141,6 +141,25 @@ function normalizeVideoContentSource(value, fallback = 'feature_video') {
         : fallback;
 }
 
+function normalizeApprovedFilter(value, defaultValue = true) {
+    if (value === undefined || value === null || value === '') {
+        return defaultValue;
+    }
+
+    const normalized = String(value).trim().toLowerCase();
+    if (normalized === 'all') {
+        return null;
+    }
+    if (normalized === 'true') {
+        return true;
+    }
+    if (normalized === 'false') {
+        return false;
+    }
+
+    return defaultValue;
+}
+
 function normalizeCreatorLink(value) {
     const raw = String(value || '').trim();
     if (!raw) return null;
@@ -456,10 +475,22 @@ const videoController = {
     async getApprovedVideos(req, res) {
         try {
             console.log("Fetching approved videos...");
+            const requester = await resolveAuthenticatedUser(req);
+            const isAdminRequester =
+                normalizeRoleValue(requester?.role) === 'admin';
+            const allowAdminView =
+                isAdminRequester &&
+                String(req.query.admin_view || '').trim().toLowerCase() === 'true';
+            const approvedFilter = allowAdminView
+                ? normalizeApprovedFilter(req.query.approved, true)
+                : true;
             const whereClause = {
-                is_approved: true,
                 ...buildVideoFilters(req.query),
             };
+
+            if (approvedFilter !== null) {
+                whereClause.is_approved = approvedFilter;
+            }
 
             if (req.query.category) {
                 whereClause['$VideoCategory.name$'] = req.query.category;
@@ -483,14 +514,16 @@ const videoController = {
 
     async getVideosForAdminReview(req, res) {
         try {
-            const approvedParam = String(req.query.approved ?? 'false').toLowerCase();
-            const isApproved = approvedParam == 'true';
-            console.log(`Fetching admin review videos (approved=${isApproved})...`);
+            const approvedFilter = normalizeApprovedFilter(req.query.approved, false);
+            console.log(`Fetching admin review videos (approved=${approvedFilter === null ? 'all' : approvedFilter})...`);
 
             const whereClause = {
-                is_approved: isApproved,
                 ...buildVideoFilters(req.query),
             };
+
+            if (approvedFilter !== null) {
+                whereClause.is_approved = approvedFilter;
+            }
 
             if (req.query.category) {
                 whereClause['$VideoCategory.name$'] = req.query.category;
