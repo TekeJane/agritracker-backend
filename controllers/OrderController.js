@@ -16,6 +16,8 @@ const { v4: uuidv4 } = require('uuid');
 const { Op } = require('sequelize');
 const notifyUser = require('../services/notifyUser');
 const emailService = require('../services/emailServices');
+const fs = require('fs');
+const { resolveUploadFilePath } = require('../config/uploadPaths');
 
 
 const VALID_STATUSES = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
@@ -125,13 +127,91 @@ async function notifyAdminsOfMobileMoneySubmission(order, buyerId) {
     );
 }
 
-function mapEbookOrderStatus(paymentStatus) {
-    switch (String(paymentStatus || '').trim().toLowerCase()) {
-        case 'completed':
-            return 'delivered';
+function sanitizeDownloadFilename(title, sourcePath) {
+    const extension = sourcePath
+        ? (String(sourcePath).match(/\.[A-Za-z0-9]+(?=$|[?#])/i)?.[0] || '.pdf')
+        : '.pdf';
+    const safeTitle = String(title || 'agritracker-ebook')
+        .trim()
+        .replace(/[<>:"/\\|?*\x00-\x1F]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .replace(/ /g, '_');
+
+    return `${safeTitle || 'agritracker-ebook'}${extension}`;
+}
+
+function resolveOrderDownloadAccess(orderRecord) {
+    const order = orderRecord?.toJSON ? orderRecord.toJSON() : orderRecord;
+    const ebook = order?.Ebook || {};
+    const metadata =
+        order?.metadata && typeof order.metadata === 'object'
+            ? order.metadata
+            : {};
+    const selectedFormat = String(metadata.selected_format || '').trim();
+    const variants =
+        ebook?.format_variants && typeof ebook.format_variants === 'object'
+            ? ebook.format_variants
+            : {};
+    const selectedVariant = selectedFormat ? variants[selectedFormat] : null;
+    const candidateUrl =
+        selectedVariant?.manuscript_url ||
+        ebook?.file_url ||
+        null;
+
+    if (!candidateUrl) {
+        return null;
+    }
+
+    if (/^https?:\/\//i.test(String(candidateUrl).trim())) {
+        return {
+            externalUrl: String(candidateUrl).trim(),
+            filename: sanitizeDownloadFilename(ebook?.title, candidateUrl),
+        };
+    }
+
+    const filePath = resolveUploadFilePath(candidateUrl);
+    if (!filePath || !fs.existsSync(filePath)) {
+        return null;
+    }
+
+    return {
+        filePath,
+        filename: sanitizeDownloadFilename(ebook?.title, filePath),
+    };
+}
+
+function mapEbookOrderStatus(orderRecord) {
+    const item = orderRecord?.toJSON ? orderRecord.toJSON() : orderRecord;
+    const paymentStatus = String(item?.payment_status || '').trim().toLowerCase();
+
+    switch (paymentStatus) {
         case 'failed':
         case 'refunded':
             return 'cancelled';
+        case 'completed': {
+            const metadata =
+                item?.metadata && typeof item.metadata === 'object'
+                    ? item.metadata
+                    : {};
+            const deliveryState = resolveEbookDeliveryState(item);
+            const emailDeliveryStatus = String(
+                metadata.email_delivery_status || ''
+            ).trim().toLowerCase();
+            const hasDownloadToken = Boolean(metadata.download_token);
+            const downloadAccess = resolveOrderDownloadAccess(item);
+
+            if (!deliveryState.isDigitalEbook) {
+                return 'delivered';
+            }
+            if (deliveryState.isEmailDelivery) {
+                return emailDeliveryStatus === 'sent' ? 'delivered' : 'processing';
+            }
+            if (deliveryState.isOnlineDownload) {
+                return hasDownloadToken && downloadAccess ? 'delivered' : 'processing';
+            }
+            return 'processing';
+        }
         default:
             return 'pending';
     }
@@ -260,6 +340,7 @@ function normalizeEbookOrder(orderRecord) {
         ? item.metadata
         : {};
     const deliveryState = resolveEbookDeliveryState(item);
+    const downloadAccess = resolveOrderDownloadAccess(item);
     const emailDeliveryStatus = String(
         metadata.email_delivery_status || ''
     ).trim().toLowerCase();
@@ -267,12 +348,16 @@ function normalizeEbookOrder(orderRecord) {
         metadata.download_link_email_status || ''
     ).trim().toLowerCase();
     const hasDownloadToken = Boolean(metadata.download_token);
+    const downloadIsReady = deliveryState.isCompleted &&
+        deliveryState.isOnlineDownload &&
+        hasDownloadToken &&
+        Boolean(downloadAccess);
 
     return {
         ...item,
         order_type: 'ebook',
         order_number: item.order_id || `EBOOK-${item.id}`,
-        status: mapEbookOrderStatus(item.payment_status),
+        status: mapEbookOrderStatus(item),
         payment_status: mapEbookPaymentStatus(item.payment_status),
         total_amount: item.total_amount || item.price_paid || 0,
         shipping_address: item.customer_address || null,
@@ -287,15 +372,12 @@ function normalizeEbookOrder(orderRecord) {
         notes: item.note ?? item.notes ?? null,
         createdAt: item.createdAt || item.purchased_at || item.paid_at,
         payment_method: item.payment_method || 'N/A',
-        download_url: deliveryState.isOnlineDownload ? buildEbookDownloadUrl(item) : '',
-        download_ready:
-            deliveryState.isCompleted &&
-            deliveryState.isOnlineDownload &&
-            hasDownloadToken,
-        auto_download:
-            deliveryState.isCompleted &&
-            deliveryState.isOnlineDownload &&
-            hasDownloadToken,
+        download_url:
+            deliveryState.isOnlineDownload && downloadIsReady
+                ? buildEbookDownloadUrl(item)
+                : '',
+        download_ready: downloadIsReady,
+        auto_download: downloadIsReady,
         email_delivery_ready:
             deliveryState.isCompleted &&
             deliveryState.isEmailDelivery &&
@@ -308,6 +390,12 @@ function normalizeEbookOrder(orderRecord) {
             deliveryState.isCompleted &&
             deliveryState.isOnlineDownload &&
             downloadLinkEmailStatus === 'sent',
+        delivery_issue:
+            deliveryState.isCompleted &&
+            (
+                (deliveryState.isEmailDelivery && emailDeliveryStatus === 'failed') ||
+                (deliveryState.isOnlineDownload && !downloadIsReady)
+            ),
         digital_delivery_method: deliveryState.isDigitalEbook
             ? deliveryState.digitalDelivery
             : null,

@@ -67,6 +67,7 @@ app.use('/api/admin/users', adminUserRoutes);
 app.use('/api/admin/forum', adminForumRoutes);
 app.use('/api', userProductRoutes);
 app.use('/api/Ebooks', ebookRoutes);
+app.use('/api/ebooks', ebookRoutes);
 app.use('/api/videos', videoRoutes);
 app.use('/api/webinars', webinarRoutes);
 app.use('/api', advisoryRoutes);

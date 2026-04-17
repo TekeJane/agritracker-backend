@@ -17,7 +17,10 @@ class EmailService {
     }
 
     isConfigured() {
-        return Boolean(process.env.EMAIL_USER || process.env.SMTP_USER);
+        return Boolean(
+            (process.env.EMAIL_USER || process.env.SMTP_USER) &&
+            (process.env.EMAIL_PASSWORD || process.env.SMTP_PASS)
+        );
     }
 
     getSenderAddress() {
@@ -37,8 +40,9 @@ class EmailService {
             return order._downloadUrl;
         }
 
+        const asset = this.resolveOrderDeliveryAsset(order);
         const token = order?.metadata?.download_token;
-        if (!order?.order_id || !token) {
+        if (!order?.order_id || !token || !asset) {
             return '';
         }
 
@@ -84,6 +88,18 @@ class EmailService {
     }
 
     resolveOrderFileRecord(order) {
+        const asset = this.resolveOrderDeliveryAsset(order);
+        if (!asset?.path) {
+            return null;
+        }
+
+        return {
+            path: asset.path,
+            filename: asset.filename,
+        };
+    }
+
+    resolveOrderDeliveryAsset(order) {
         const ebook = order?.Ebook || {};
         const metadata =
             order?.metadata && typeof order.metadata === 'object'
@@ -99,24 +115,38 @@ class EmailService {
             selectedVariant?.manuscript_url ||
             ebook?.file_url ||
             null;
-        const filePath = resolveUploadFilePath(candidateUrl);
+        if (!candidateUrl) {
+            return null;
+        }
 
+        if (/^https?:\/\//i.test(String(candidateUrl).trim())) {
+            return {
+                externalUrl: String(candidateUrl).trim(),
+                filename: this.buildSafeFilename(ebook?.title, candidateUrl),
+            };
+        }
+
+        const filePath = resolveUploadFilePath(candidateUrl);
         if (!filePath || !fs.existsSync(filePath)) {
             return null;
         }
 
-        const extension = path.extname(filePath) || '.pdf';
-        const safeTitle = String(ebook?.title || 'agritracker-ebook')
+        return {
+            path: filePath,
+            filename: this.buildSafeFilename(ebook?.title, filePath),
+        };
+    }
+
+    buildSafeFilename(title, sourcePath) {
+        const extension = path.extname(String(sourcePath || '')) || '.pdf';
+        const safeTitle = String(title || 'agritracker-ebook')
             .trim()
             .replace(/[<>:"/\\|?*\x00-\x1F]+/g, ' ')
             .replace(/\s+/g, ' ')
             .trim()
             .replace(/ /g, '_');
 
-        return {
-            path: filePath,
-            filename: `${safeTitle || 'agritracker-ebook'}${extension}`,
-        };
+        return `${safeTitle || 'agritracker-ebook'}${extension}`;
     }
 
     // Send order confirmation email
@@ -225,6 +255,9 @@ class EmailService {
             if (!recipientEmail) {
                 throw new Error(`Missing recipient email for order ${order?.order_id || 'unknown'}`);
             }
+            if (!this.getDownloadUrl(order)) {
+                throw new Error(`Secure download link is unavailable for order ${order?.order_id || 'unknown'}`);
+            }
 
             const mailOptions = {
                 from: this.getSenderAddress(),
@@ -305,9 +338,12 @@ class EmailService {
                 throw new Error(`Missing recipient email for order ${order?.order_id || 'unknown'}`);
             }
 
+            const deliveryState = this.getDeliveryState(order);
             const attachment = this.resolveOrderFileRecord(order);
             const downloadUrl = this.getDownloadUrl(order);
-            const deliveryState = this.getDeliveryState(order);
+            if (deliveryState.isEmailDelivery && !attachment) {
+                throw new Error(`Ebook attachment file is missing for order ${order?.order_id || 'unknown'}`);
+            }
 
             const mailOptions = {
                 from: this.getSenderAddress(),
