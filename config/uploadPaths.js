@@ -32,12 +32,35 @@ function toUploadDbPath(filePath) {
   if (!filePath) return null;
 
   const normalized = filePath.replace(/\\/g, '/');
+  const normalizedLower = normalized.toLowerCase();
+
+  for (const uploadRoot of uploadRoots) {
+    const normalizedRoot = uploadRoot.replace(/\\/g, '/');
+    const relative = path.relative(uploadRoot, filePath);
+    const isInsideRoot =
+      relative &&
+      relative !== '.' &&
+      !relative.startsWith('..') &&
+      !path.isAbsolute(relative);
+
+    if (isInsideRoot) {
+      return `/uploads/${relative.replace(/\\/g, '/')}`;
+    }
+
+    if (normalizedLower.startsWith(`${normalizedRoot.toLowerCase()}/`)) {
+      const nestedRelative = normalized.slice(normalizedRoot.length + 1);
+      if (nestedRelative) {
+        return `/uploads/${nestedRelative}`;
+      }
+    }
+  }
+
   const uploadsIndex = normalized.toLowerCase().lastIndexOf('/uploads/');
   if (uploadsIndex >= 0) {
     return normalized.substring(uploadsIndex);
   }
 
-  if (normalized.toLowerCase().startsWith('uploads/')) {
+  if (normalizedLower.startsWith('uploads/')) {
     return `/${normalized}`;
   }
 

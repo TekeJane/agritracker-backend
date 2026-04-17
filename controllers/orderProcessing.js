@@ -4,7 +4,7 @@ const User = require('../models/User');
 const Ebook = require('../models/Ebook');
 const EbookCategory = require('../models/EbookCategory');
 const EbookOrder = require('../models/EbookOrder');
-const emailService = require('../services/emailService');
+const emailService = require('../services/emailServices');
 
 class OrderController {
     // Create a new order (purchase Ebook)
